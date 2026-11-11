@@ -111,6 +111,10 @@ jobs:
 
   gitleaks:
     runs-on: ubuntu-latest
+    # La acción lee los commits del PR con la API: necesita este permiso además de `contents`.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }

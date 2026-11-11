@@ -16,7 +16,9 @@ import { getPathname } from '@/lib/request';
 export const dynamic = 'force-dynamic';
 
 // Figtree autoalojada: los archivos se sirven desde el propio dominio (sin terceros, principio IV).
-const figtree = Figtree({ subsets: ['latin'], variable: '--font-figtree', display: 'swap' });
+// `optional`: si la fuente no llega a tiempo se queda la de respaldo y no se cambia después, así
+// no hay salto de diseño (CLS) en redes lentas ni en sistemas sin Arial, como Android o Linux.
+const figtree = Figtree({ subsets: ['latin'], variable: '--font-figtree', display: 'optional' });
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
 
