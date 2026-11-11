@@ -1,0 +1,111 @@
+/* Design tokens: única fuente de valores visuales (colores, tipografía, forma, espacio y movimiento). */
+:root {
+  /* Marca */
+  --color-navy: #00263e;          /* texto principal, titulares, footer, botón primario */
+  --color-navy-soft: #4f5253;
+  --color-teal-dark: #2a5f62;     /* texto sobre chips claros */
+  --color-sky: #aadceb;           /* CTA "Pide cita" */
+  --color-sky-light: #cee5ef;     /* fondos de sección */
+  --color-sky-lighter: #cae9f2;
+  --color-mint: #9dd1b1;          /* CTA "Clínicas más cercanas" */
+  --color-mint-light: #c2e2ce;
+  --color-mint-dark: #235136;
+  --color-pink: #f7bcc7;          /* CTA "Urgencias" */
+  --color-pink-light: #fce4e9;
+  --color-pink-dark: #452329;
+  --color-alert: #dc3453;
+  --color-amber: #ebbc4e;         /* chip "Campañas" */
+
+  /* Neutros */
+  --color-white: #ffffff;
+  --color-bg: #f3f7f8;            /* fondo de página */
+  --color-chip: #deeef0;
+  --color-border: #e9eff1;
+  --color-gray-100: #f4f4f4;
+  --color-gray-500: #6a6f70;
+  --color-gray-600: #696969;
+
+  /* Tipografía */
+  --font-family: var(--font-figtree), "Segoe UI", system-ui, sans-serif; /* Figtree autoalojada con next/font */
+  --fs-h1: 48px;  --fs-h1-compact: 32px;
+  --fs-h2: 24px;  --fs-h3: 18px;  --fs-h4: 14px;
+  --fs-preamble: 16px; --fs-body: 14px; --fs-xxs: 10px; --fs-chip: 12px;
+  --fw-light: 275; --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700; --fw-extrabold: 800;
+  --lh-heading: 1.2; --lh-body: 1.5;
+  --ls-heading: -0.5px;
+
+  /* Forma */
+  --radius-sm: 12px;     /* botones, chips, inputs, iconos */
+  --radius-md: 24px;     /* tarjetas, hero, imágenes */
+  --radius-card-tl: 0 24px 24px 24px;
+  --shadow-card: 0 8px 120px rgba(0, 0, 0, 0.15);
+  --border-hairline: 0.8px solid var(--color-border);
+
+  /* Movimiento (medido en anicura.es) */
+  --duration-fast: 0.1s;
+  --duration-base: 0.25s;                       /* transición dominante: color, fondo, borde, sombra, opacidad */
+  --ease-in-out: ease-in-out;                   /* la más usada (224 elementos) */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1); /* transform y enlaces */
+  --ease-out: ease-out;
+
+  /* Degradados y patrones */
+  --gradient-glow: radial-gradient(893.05% 50.55% at 50.55% 50%, #fed78a 0, #ffffff00 36.81%); /* halo dorado de "Campañas" */
+  --gradient-fade-white: linear-gradient(to bottom, rgba(243,247,248,0) 0%, #ffffff 100%);      /* difumina el patrón del hero */
+  --gradient-sky: linear-gradient(135deg, var(--color-sky-light), var(--color-mint-light));    /* relleno de imagen (placeholder) */
+  --gradient-navy: linear-gradient(120deg, var(--color-navy), var(--color-teal-dark));
+  --pattern-leaf: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath d='M0 24A24 24 0 0 1 24 0V24Z M24 48A24 24 0 0 1 48 24V48Z' fill='%23e9eff1'/%3E%3C/svg%3E"); /* patrón de hojas del hero */
+
+  /* Espaciado */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 40px; --space-7: 96px;
+  --container: 1330px;   /* ancho útil aprox. a 1536px de viewport, padding lateral 96px */
+  --gutter: 96px;
+  --header-height: 120px;
+
+  /* Escala ampliada (R4): todo valor de design/styles.css sale de aquí */
+  --fs-xs: 11px; --fs-sm: 13px; --fs-lead: 20px; --fs-card: 22px; --fs-section: 28px;
+  --fs-stat: 32px; --fs-detail: 36px; --fs-display: 40px; --fs-logo: 32px;
+  --fs-icon-sm: 20px; --fs-icon: 40px; --fs-icon-md: 32px; --fs-icon-lg: 64px; --fs-icon-xl: 160px;
+  --lh-tight: 1.1; --lh-relaxed: 1.6; --lh-footer: 2;
+
+  --space-0-5: 2px; --space-0-75: 3px; --space-1-25: 5px; --space-1-5: 6px; --space-2-5: 10px;
+  --space-3-5: 14px; --space-4-5: 20px; --space-5-5: 32px; --space-nav: 36px; --space-6-5: 48px;
+  --space-section: 64px;
+
+  --border-width: 1px; --border-width-thick: 3px; --outline-width: 2px; --outline-offset: 2px;
+  --border-1: var(--border-width) solid var(--color-border);
+  --border-on-dark: var(--border-width) solid rgba(255, 255, 255, 0.12);
+  --shadow-header: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --radius-xs: 8px; --radius-nav: 10px; --radius-xl: 120px; --radius-pill: 999px;
+
+  --size-icon-tile: 100px; --size-avatar: 64px; --size-thumb: 96px; --size-thumb-sm: 72px;
+  --size-spinner: 24px; --size-badge: 20px; --size-qty-w: 40px; --size-qty-h: 44px; --size-qty-input: 48px;
+  --size-target: 24px;
+  --bar-height: 72px; --hero-media-min: 434px; --photo-hero-min: 460px; --map-min: 380px; --map-min-sm: 220px;
+  --sticky-offset: 96px;
+
+  --grid-min-xs: 220px; --grid-min-sm: 230px; --grid-min-md: 240px; --grid-min-lg: 260px;
+  --grid-min-xl: 280px; --grid-min-2xl: 300px;
+  --container-xs: 420px; --container-sm: 480px; --container-search: 520px; --container-card: 560px;
+  --container-prose: 765px; --container-faq: 860px; --sidebar: 240px; --cart-summary: 360px;
+  --select-min: 160px; --menu-min: 220px;
+
+  --lift-1: -1px; --lift-3: -3px; --lift-4: -4px;
+  --underline-offset: 6px; --underline-offset-sm: 3px;
+
+  --duration-fade: 0.4s; --duration-spin: 1s; --duration-pulse: 2s; --duration-shimmer: 2s;
+  --duration-glow: 3s; --duration-loader: 3s; --duration-instant: 0.01ms;
+  --shimmer-offset: 4.6875rem; --glow-width: 18.75rem; --glow-height: 12.5rem; --shine-width: 1.5rem;
+
+  --size-icon-img: 48px; --size-icon-inline: 20px; --size-logo-h: 40px; --size-logo-h-sm: 28px; --size-logo-h-xs: 24px;
+  --cookie-banner-space: 160px;
+  --shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --color-sky-pale: #eaf6fa;      /* fondo de .page-hero */
+  --font-family-logo: Georgia, "Times New Roman", serif;
+  --gradient-shine: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  --gradient-map: repeating-linear-gradient(45deg, var(--color-sky-light), var(--color-sky-light) 12px, var(--color-sky-lighter) 12px, var(--color-sky-lighter) 24px);
+}
+@media (max-width: 900px) {
+  :root { --gutter: 20px; --fs-h1: 32px; --header-height: 72px; }
+}
+

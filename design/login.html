@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iniciar sesión</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="styles.css"></head>
+<body>
+<div id="site-header"></div>
+<main class="auth">
+  <section class="auth__card">
+    <h1 style="font-size:32px">Iniciar sesión</h1>
+    <p style="margin:0">Accede para gestionar tus citas, mascotas y pedidos.</p>
+    <form class="form" action="#" method="post">
+      <label class="field">Correo electrónico<input type="email" name="email" autocomplete="email" required placeholder="nombre@correo.com"></label>
+      <label class="field">Contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><label class="check"><input type="checkbox"> Recordarme</label><a href="#" style="text-decoration:underline">¿Olvidaste tu contraseña?</a></div>
+      <button class="btn btn--block" type="submit">Iniciar sesión</button>
+    </form>
+    <p class="auth__alt">¿Aún no tienes cuenta? <a href="registro.html">Crear cuenta</a></p>
+  </section>
+</main>
+<div id="site-footer"></div><script src="layout.js"></script>
+</body></html>

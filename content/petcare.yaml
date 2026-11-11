@@ -1,0 +1,333 @@
+# Contenido de la clínica de demostración PetCare. PetCare es una clínica FICTICIA.
+# Todos los textos están redactados para este proyecto (no se copian de design/ ni de terceros).
+# Los datos personales del responsable y el buzón de destino se resuelven desde el entorno (${VAR}).
+# Carga: npm run content:load -- --file content/petcare.yaml
+
+clinic:
+  name: PetCare
+  demo_banner_enabled: true
+  logo: media/petcare/logo.svg
+  hero:
+    title: Veterinaria de barrio con tiempo para escucharte
+    text: >-
+      Consultas sin prisas, medicina preventiva y un equipo que explica cada paso. Cuidamos de perros,
+      gatos y pequeños mamíferos en un espacio pensado para que estén tranquilos.
+    image: media/petcare/hero.svg
+    image_alt: Ilustración de un perro y un gato sentados juntos sobre un cojín
+  about:
+    title: Conoce PetCare
+    text: >-
+      Una consulta luminosa, salas de espera separadas para perros y gatos, y profesionales que
+      prefieren una explicación clara a una palabra técnica.
+    image: media/petcare/clinica.svg
+    image_alt: Ilustración de la sala de consulta con una camilla y una ventana grande
+  # Dirección inventada a propósito (no corresponde a ningún local real).
+  address:
+    line: Calle de la Demostración, 1
+    postal_code: '28000'
+    city: Madrid
+    province: Madrid
+  # Coordenadas de un espacio público genérico (un parque), nunca de una vivienda ni de un negocio.
+  geo:
+    lat: 40.415300
+    lng: -3.684500
+  # Teléfono que controla el responsable de la demo. Nunca se inventa un número.
+  phone:
+    e164: '${CLINIC_PHONE_E164}'
+    display: '${CLINIC_PHONE_DISPLAY}'
+  public_email: null
+  inbox_email: '${CLINIC_INBOX_EMAIL}'
+  response_time_text: en un plazo de 24 horas laborables
+  legal:
+    owner_name: '${LEGAL_OWNER_NAME}'
+    contact_email: '${LEGAL_CONTACT_EMAIL}'
+    tax_id: null
+    address: null
+
+opening_hours:
+  - { weekday: 1, opens: '09:30', closes: '14:00' }
+  - { weekday: 1, opens: '16:30', closes: '20:00' }
+  - { weekday: 2, opens: '09:30', closes: '14:00' }
+  - { weekday: 2, opens: '16:30', closes: '20:00' }
+  - { weekday: 3, opens: '09:30', closes: '14:00' }
+  - { weekday: 3, opens: '16:30', closes: '20:00' }
+  - { weekday: 4, opens: '09:30', closes: '14:00' }
+  - { weekday: 4, opens: '16:30', closes: '20:00' }
+  - { weekday: 5, opens: '09:30', closes: '14:00' }
+  - { weekday: 5, opens: '16:30', closes: '20:00' }
+  - { weekday: 6, opens: '10:00', closes: '14:00' }
+
+closures:
+  - { slug: inmaculada-2026, starts_on: '2026-12-08', ends_on: '2026-12-08', reason: Festivo nacional }
+
+services:
+  - slug: consulta-general
+    name: Consulta general
+    description: >-
+      Exploración completa, revisión del historial y un plan claro para lo que necesite tu animal,
+      explicado sin tecnicismos.
+  - slug: vacunacion-y-desparasitacion
+    name: Vacunación y desparasitación
+    description: >-
+      Calendario de vacunas adaptado a la edad y al estilo de vida de tu mascota, con recordatorios
+      para que no se te pase ninguna dosis.
+  - slug: medicina-preventiva
+    name: Medicina preventiva
+    description: >-
+      Revisiones anuales, analíticas de control y consejos de alimentación para detectar a tiempo
+      cualquier cambio.
+  - slug: cirugia-programada
+    name: Cirugía programada
+    description: >-
+      Esterilizaciones y pequeñas intervenciones con anestesia monitorizada y seguimiento del
+      postoperatorio en casa.
+  - slug: salud-dental
+    name: Salud dental
+    description: >-
+      Limpiezas de boca con ultrasonidos, extracciones cuando hacen falta y pautas sencillas para el
+      cepillado diario.
+  - slug: dermatologia
+    name: Dermatología
+    description: >-
+      Estudio de picores, caída de pelo y alergias, con pruebas en consulta y tratamientos que se
+      pueden seguir en casa.
+  - slug: ecografia-y-radiologia
+    name: Ecografía y radiología
+    description: >-
+      Pruebas de imagen en la propia clínica para llegar antes al diagnóstico, sin desplazamientos
+      añadidos.
+  - slug: exoticos-y-pequenos-mamiferos
+    name: Conejos y pequeños mamíferos
+    description: >-
+      Atención específica para conejos, cobayas y hurones, con un manejo tranquilo adaptado a cada
+      especie.
+
+team:
+  - slug: nerea-olmedo
+    name: Dra. Nerea Olmedo
+    specialty: Dirección clínica · Medicina interna
+    photo: media/petcare/equipo-1.svg
+    photo_alt: Retrato ilustrado de la Dra. Nerea Olmedo
+  - slug: inigo-barral
+    name: Dr. Íñigo Barral
+    specialty: Cirugía y anestesia
+    photo: media/petcare/equipo-2.svg
+    photo_alt: Retrato ilustrado del Dr. Íñigo Barral
+  - slug: carlota-vives
+    name: Dra. Carlota Vives
+    specialty: Dermatología y salud dental
+    photo: media/petcare/equipo-3.svg
+    photo_alt: Retrato ilustrado de la Dra. Carlota Vives
+  - slug: samuel-ortuno
+    name: Samuel Ortuño
+    specialty: Auxiliar de veterinaria
+    photo: media/petcare/equipo-4.svg
+    photo_alt: Retrato ilustrado de Samuel Ortuño
+
+faq_topics:
+  - slug: citas
+    name: Citas
+    faqs:
+      - slug: como-reservo
+        question: ¿Cómo reservo una visita?
+        answer_md: >-
+          Por ahora, llamando por teléfono o escribiéndonos desde la página de
+          [Contacto](/contacto). Muy pronto también podrás hacerlo desde
+          [Pide cita](section:reservas).
+      - slug: cuanto-dura-la-consulta
+        question: ¿Cuánto dura una consulta normal?
+        answer_md: >-
+          Reservamos unos **30 minutos** por visita para explorar con calma y resolver tus dudas.
+      - slug: llegar-tarde
+        question: ¿Qué pasa si llego tarde?
+        answer_md: >-
+          Avísanos en cuanto lo sepas. Si el margen es pequeño te atendemos igualmente; si no, te
+          proponemos otro hueco ese mismo día o el siguiente.
+  - slug: tienda
+    name: Tienda
+    faqs:
+      - slug: que-vendeis
+        question: ¿Vendéis piensos y antiparasitarios?
+        answer_md: >-
+          Sí. Tenemos una selección de alimentación y productos de higiene que recomendamos en
+          consulta. Pronto podrás verla en [Nuestros productos](section:tienda).
+      - slug: recoger-pedido
+        question: ¿Puedo encargar un producto y recogerlo después?
+        answer_md: >-
+          Claro. Pregúntanos por teléfono y lo dejamos preparado con tu nombre en recepción.
+      - slug: devoluciones
+        question: ¿Admitís devoluciones?
+        answer_md: >-
+          Si el envase está sin abrir, puedes devolverlo en los 14 días siguientes a la compra con el
+          justificante.
+  - slug: tu-mascota
+    name: Tu mascota
+    faqs:
+      - slug: primera-visita
+        question: ¿Qué llevo el primer día?
+        answer_md: >-
+          La cartilla sanitaria, los informes que tengas de otras clínicas y, si es un gato, un
+          transportín cerrado.
+      - slug: cada-cuanto-revision
+        question: ¿Cada cuánto conviene una revisión?
+        answer_md: >-
+          Una vez al año en adultos sanos y cada seis meses a partir de los ocho años, o antes si
+          notas algún cambio.
+      - slug: miedo-al-veterinario
+        question: Mi perro se pone muy nervioso, ¿qué hago?
+        answer_md: >-
+          Cuéntanoslo al pedir la visita. Podemos darte un horario más tranquilo y preparar la sala
+          antes de que entréis.
+      - slug: urgencias
+        question: ¿Atendéis urgencias?
+        answer_md: >-
+          Dentro del horario, sí: llámanos antes de venir. Fuera de horario, acude a un servicio de
+          urgencias veterinarias de 24 horas.
+
+# Cifras FICTICIAS de la demo (FR-011).
+activity_stats:
+  - slug: visitas
+    value_text: '+3.200'
+    label: visitas al año
+    description: Consultas, revisiones y vacunas en una clínica de tamaño humano.
+  - slug: equipo
+    value_text: '4'
+    label: personas en el equipo
+    description: Veterinarios y auxiliares que conocen a cada paciente por su nombre.
+  - slug: anos
+    value_text: '9'
+    label: años en el barrio
+    description: Acompañando a las familias desde el primer día de su mascota.
+
+# Sin avisos de salud: solo se publican si tienen una fuente real verificable.
+health_notices: []
+
+contact_reasons:
+  - { slug: informacion-general, label: Información general }
+  - { slug: consulta-cita, label: Consulta sobre una cita }
+  - { slug: pedido-tienda, label: Pedido de la tienda }
+  - { slug: otro, label: Otro }
+
+legal_pages:
+  - kind: aviso-legal
+    title: Aviso legal
+    version: '2026-11-10'
+    updated_on: '2026-11-10'
+    body_md: |
+      ## Una web de demostración
+
+      Esta web es una **demostración**. **PetCare es una clínica veterinaria ficticia**: no presta
+      servicios veterinarios, no vende productos y no tiene local abierto al público. Los nombres del
+      equipo, las cifras y la dirección son inventados.
+
+      ## Titular de la web
+
+      El titular y responsable de esta web de demostración es **${LEGAL_OWNER_NAME}**. Puedes
+      escribir a **${LEGAL_CONTACT_EMAIL}** para cualquier cuestión sobre la web.
+
+      Al tratarse de una demostración, no se indica razón social ni NIF de ninguna empresa.
+
+      ## Uso de la web
+
+      Los contenidos se ofrecen solo con fines de demostración. No sustituyen el consejo de un
+      profesional veterinario: si tu animal está enfermo, acude a una clínica real.
+
+      ## Enlaces
+
+      Esta web puede enlazar a servicios de terceros, como el mapa de OpenStreetMap. Su contenido es
+      responsabilidad de sus titulares.
+  - kind: privacidad
+    title: Política de privacidad
+    version: '2026-11-10'
+    updated_on: '2026-11-10'
+    body_md: |
+      ## Quién trata tus datos
+
+      El responsable del tratamiento es **${LEGAL_OWNER_NAME}**, responsable de esta web de
+      demostración. **PetCare es una clínica ficticia**, así que tus datos no llegan a ninguna
+      clínica: los recibe el responsable de la demo. Contacto: **${LEGAL_CONTACT_EMAIL}**.
+
+      ## Qué datos pedimos y para qué
+
+      En el formulario de contacto:
+
+      - **Nombre y correo electrónico**: para responder a tu mensaje.
+      - **Teléfono** (opcional): para devolverte la llamada si lo prefieres.
+      - **Motivo**: para dirigir tu consulta a quien corresponda.
+      - **Mensaje**: para saber qué necesitas.
+
+      Guardamos también la fecha en que aceptas esta política y su versión. No guardamos tu
+      dirección IP junto al mensaje: solo se usa, cifrada y durante 24 horas, para frenar envíos
+      automáticos.
+
+      ## Base legal
+
+      Tu consentimiento, que das al marcar la casilla de privacidad antes de enviar el formulario.
+
+      ## Cuánto tiempo los guardamos
+
+      Los mensajes se borran automáticamente a los **12 meses**.
+
+      ## Quién más interviene
+
+      Los correos se envían con **Brevo** (Sendinblue SAS), que actúa como encargado del tratamiento
+      con un contrato que protege tus datos. No cedemos datos a nadie más.
+
+      ## Tus derechos
+
+      Puedes pedir el acceso, la rectificación, la supresión, la limitación, la oposición y la
+      portabilidad de tus datos escribiendo a **${LEGAL_CONTACT_EMAIL}**. Si crees que no se han
+      respetado, puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).
+  - kind: cookies
+    title: Política de cookies
+    version: '2026-11-10'
+    updated_on: '2026-11-10'
+    body_md: |
+      ## Qué cookies usamos
+
+      - **pc_consent** (propia y necesaria): recuerda si aceptas o rechazas las cookies de terceros.
+        Dura 12 meses y no sirve para seguirte.
+
+      No usamos cookies de analítica ni de publicidad.
+
+      ## Contenido de terceros
+
+      El **mapa de OpenStreetMap** de las páginas La clínica y Contacto se carga desde
+      openstreetmap.org y puede guardar datos en tu navegador. Por eso **solo se carga si lo
+      aceptas**. Si lo rechazas, verás la dirección y un enlace para abrirla en el mapa.
+
+      ## Cambiar tu elección
+
+      Puedes cambiar o retirar tu consentimiento en cualquier momento desde **Configurar cookies**,
+      en el pie de todas las páginas. La web es una demostración: **PetCare es una clínica
+      ficticia** y el responsable es ${LEGAL_OWNER_NAME}.
+  - kind: terminos
+    title: Términos de uso
+    version: '2026-11-10'
+    updated_on: '2026-11-10'
+    body_md: |
+      ## Objeto
+
+      Estos términos regulan el uso de esta web de demostración. **PetCare es una clínica
+      ficticia**: aquí no se contratan servicios ni se compran productos.
+
+      ## Uso correcto
+
+      Te pedimos que no uses el formulario para enviar publicidad, contenido ofensivo o datos de
+      otras personas sin su permiso.
+
+      ## Responsabilidad
+
+      La información sobre salud animal es orientativa y no sustituye la consulta con un
+      veterinario.
+
+      ## Contacto
+
+      Para cualquier duda sobre estos términos, escribe a ${LEGAL_CONTACT_EMAIL}.
+
+sections:
+  - { key: reservas, label: Pide cita, href: null }
+  - { key: tienda, label: Nuestros productos, href: null }
+  - { key: carrito, label: Carrito, href: null }
+  - { key: consejos, label: Consejos de salud, href: null }
+  - { key: cuenta, label: Mi cuenta, href: null }

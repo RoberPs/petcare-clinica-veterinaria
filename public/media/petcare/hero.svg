@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<rect width="1200" height="900" fill="#cee5ef"/>
+<circle cx="980" cy="160" r="110" fill="#f3e3c3"/>
+<rect x="0" y="640" width="1200" height="260" fill="#9dd1b1"/>
+<ellipse cx="600" cy="690" rx="420" ry="70" fill="#f7bcc7"/>
+<!-- perro -->
+<g fill="#c98d5a"><ellipse cx="470" cy="560" rx="150" ry="130"/><circle cx="470" cy="360" r="105"/>
+<ellipse cx="380" cy="350" rx="38" ry="80" fill="#8a5a33"/><ellipse cx="560" cy="350" rx="38" ry="80" fill="#8a5a33"/></g>
+<ellipse cx="470" cy="410" rx="55" ry="40" fill="#f1d3b0"/><circle cx="470" cy="392" r="16" fill="#00263e"/>
+<circle cx="435" cy="340" r="11" fill="#00263e"/><circle cx="505" cy="340" r="11" fill="#00263e"/>
+<!-- gato -->
+<g fill="#7d8b99"><ellipse cx="770" cy="590" rx="115" ry="100"/><circle cx="770" cy="420" r="85"/>
+<path d="M700 370 l10 -90 55 60z"/><path d="M840 370 l-10 -90 -55 60z"/></g>
+<circle cx="742" cy="415" r="10" fill="#00263e"/><circle cx="798" cy="415" r="10" fill="#00263e"/>
+<path d="M760 445 h20 l-10 10z" fill="#f7bcc7"/>
+<path d="M880 620 q90 -20 70 -120" stroke="#7d8b99" stroke-width="26" fill="none" stroke-linecap="round"/>
+</svg>

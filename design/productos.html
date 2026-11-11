@@ -1,0 +1,47 @@
+﻿<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuestros productos</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="styles.css"></head>
+<body>
+<div id="site-header"></div>
+<main>
+  <section class="page-hero"><div class="container">
+    <nav class="breadcrumb"><a href="index.html">Página de inicio</a><span>Nuestros productos</span></nav>
+    <h1>Nuestros productos</h1>
+    <div class="toolbar">
+      <form class="search" role="search"><input type="search" placeholder="Buscar producto..." aria-label="Buscar producto"><button type="submit" aria-label="Buscar">🔍</button></form>
+      <a class="btn cart-btn" href="#">🛒 Carrito <span class="cart-count">0</span></a>
+    </div>
+  </div></section>
+
+  <div class="container shop-layout">
+    <aside class="shop-filters" aria-label="Filtros">
+      <h3>Mascota</h3>
+      <label><input type="checkbox" checked> Perro</label>
+      <label><input type="checkbox" checked> Gato</label>
+      <label><input type="checkbox"> Otros animales</label>
+      <h3 style="margin-top:12px">Categoría</h3>
+      <label><input type="radio" name="cat" checked> Todas</label>
+      <label><input type="radio" name="cat"> Alimentación</label>
+      <label><input type="radio" name="cat"> Higiene</label>
+      <label><input type="radio" name="cat"> Juguetes</label>
+      <label><input type="radio" name="cat"> Accesorios</label>
+      <label><input type="radio" name="cat"> Salud y bienestar</label>
+    </aside>
+
+    <section>
+      <div class="shop-toolbar"><span>6 productos</span><button class="select">Ordenar por: Destacados ⌄</button></div>
+      <div class="product-grid">
+        <a class="product" href="producto.html"><div class="product__img"><span class="chip chip--amber product__tag">Novedad</span>🥣</div><div class="product__body"><span class="product__meta">Alimentación · Perro</span><h3>Pienso premium adulto 12 kg</h3><div class="product__foot"><span class="price">39,90 €</span><button class="btn btn--sm btn--sky">Añadir</button></div></div></a>
+        <a class="product" href="producto.html"><div class="product__img">🐟</div><div class="product__body"><span class="product__meta">Alimentación · Gato</span><h3>Comida húmeda de salmón (pack 12)</h3><div class="product__foot"><span class="price">18,50 €</span><button class="btn btn--sm btn--sky">Añadir</button></div></div></a>
+        <a class="product" href="producto.html"><div class="product__img"><span class="chip product__tag">Oferta</span>🧴</div><div class="product__body"><span class="product__meta">Higiene · Perro</span><h3>Champú hipoalergénico 250 ml</h3><div class="product__foot"><span class="price"><s>12,00 €</s>9,90 €</span><button class="btn btn--sm btn--sky">Añadir</button></div></div></a>
+        <a class="product" href="producto.html"><div class="product__img">🎾</div><div class="product__body"><span class="product__meta">Juguetes · Perro</span><h3>Pelota resistente de goma</h3><div class="product__foot"><span class="price">6,50 €</span><button class="btn btn--sm btn--sky">Añadir</button></div></div></a>
+        <a class="product" href="producto.html"><div class="product__img">🪶</div><div class="product__body"><span class="product__meta">Juguetes · Gato</span><h3>Caña con plumas</h3><div class="product__foot"><span class="price">4,90 €</span><button class="btn btn--sm btn--sky">Añadir</button></div></div></a>
+        <a class="product" href="producto.html"><div class="product__img">🦴</div><div class="product__body"><span class="product__meta">Salud y bienestar · Perro</span><h3>Snacks dentales (pack 7)</h3><div class="product__foot"><span class="price">8,90 €</span><button class="btn btn--sm btn--sky">Añadir</button></div></div></a>
+      </div>
+    </section>
+  </div>
+</main>
+<div id="site-footer"></div><script src="layout.js"></script>
+</body></html>
+

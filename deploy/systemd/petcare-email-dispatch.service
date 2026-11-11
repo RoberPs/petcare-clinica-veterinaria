@@ -1,0 +1,10 @@
+# envía los correos pendientes de la bandeja de salida
+[Unit]
+Description=PetCare: envía los correos pendientes de la bandeja de salida
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/petcare
+ExecStart=/usr/bin/docker compose -f deploy/docker-compose.prod.yml exec -T petcare-app node cli/email-dispatch.mjs

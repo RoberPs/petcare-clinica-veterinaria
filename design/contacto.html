@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contacto</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="styles.css"></head>
+<body>
+<div id="site-header"></div>
+<main>
+  <section class="page-hero page-hero--compact"><div class="container">
+    <nav class="breadcrumb"><a href="index.html">Página de inicio</a><span>Contacto</span></nav>
+    <h1>Contacto</h1>
+  </div></section>
+  <div class="container contact-grid">
+    <form class="panel form" action="#" method="post">
+      <h2>Escríbenos</h2>
+      <div class="field-row"><label class="field">Nombre<input type="text" name="nombre" autocomplete="name" required></label><label class="field">Teléfono<input type="tel" name="telefono" autocomplete="tel"></label></div>
+      <label class="field">Correo electrónico<input type="email" name="email" autocomplete="email" required></label>
+      <label class="field">Motivo<select name="motivo"><option>Información general</option><option>Consulta sobre una cita</option><option>Pedido de la tienda</option><option>Otro</option></select></label>
+      <label class="field">Mensaje<textarea name="mensaje" rows="5" required></textarea></label>
+      <label class="check"><input type="checkbox" required> Acepto la <a class="link-underline" href="#">política de privacidad</a>.</label>
+      <button class="btn form__submit" type="submit">Enviar mensaje</button>
+    </form>
+    <aside class="contact-aside">
+      <div class="note note--contact"><h3>✆ Llámanos</h3><p class="note__phone">900 000 000</p><p>Lunes a viernes 9:00 – 20:00 · Sábados 10:00 – 14:00</p></div>
+      <div class="info-card"><h3>📍 Dirección</h3><p>Calle Ejemplo 12<br>28000 Ciudad</p></div>
+      <div class="info-card"><h3>✉ Correo</h3><p>hola@clinicaejemplo.es</p></div>
+      <div class="map map--sm" role="img" aria-label="Mapa de ubicación">[ Mapa ]</div>
+    </aside>
+  </div>
+</main>
+<div id="site-footer"></div><script src="layout.js"></script>
+</body></html>

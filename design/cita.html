@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pide cita</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="styles.css"></head>
+<body>
+<div id="site-header"></div>
+<main>
+  <section class="page-hero"><div class="container">
+    <nav class="breadcrumb"><a href="index.html">Página de inicio</a><span>Pide cita</span></nav>
+    <h1 style="margin-bottom:0">Pide cita online</h1>
+  </div></section>
+  <div class="container cart-layout">
+    <form class="form" action="#" method="post">
+      <div class="steps"><span class="is-active">1 Servicio</span><span>2 Fecha y hora</span><span>3 Tus datos</span></div>
+      <section class="panel"><h2>1. ¿Qué necesitas?</h2>
+        <label class="field">Tipo de servicio<select name="servicio"><option>Consulta general</option><option>Vacunación</option><option>Revisión dental</option><option>Cirugía</option><option>Dermatología</option><option>Otro</option></select></label>
+        <label class="field" style="margin-top:16px">Veterinario/a<select name="veterinario"><option>Sin preferencia</option><option>Dra. María García</option><option>Dr. Javier Ruiz</option><option>Dra. Laura Pérez</option></select></label>
+      </section>
+      <section class="panel"><h2>2. Tu mascota</h2>
+        <label class="field">Mascota guardada<select name="mascota"><option>Toby (perro)</option><option>Luna (gato)</option><option>Otra mascota…</option></select></label>
+        <div class="field-row" style="margin-top:16px"><label class="field">Nombre<input type="text" name="nombre_mascota"></label><label class="field">Especie<select><option>Perro</option><option>Gato</option><option>Otro</option></select></label></div>
+        <p class="product__meta"><a href="login.html" style="text-decoration:underline">Inicia sesión</a> para elegir entre tus mascotas guardadas.</p>
+      </section>
+      <section class="panel"><h2>3. Fecha y hora</h2>
+        <label class="field">Fecha<input type="date" name="fecha"></label>
+        <div class="slots" role="group" aria-label="Horas disponibles">
+          <button type="button" class="slot">09:00</button><button type="button" class="slot">09:30</button><button type="button" class="slot is-selected">10:00</button><button type="button" class="slot">11:30</button><button type="button" class="slot" disabled>12:00</button><button type="button" class="slot">16:00</button><button type="button" class="slot">17:30</button><button type="button" class="slot">18:00</button>
+        </div>
+      </section>
+      <section class="panel"><h2>4. Tus datos</h2>
+        <div class="field-row"><label class="field">Nombre y apellidos<input type="text" autocomplete="name" required></label><label class="field">Teléfono<input type="tel" autocomplete="tel" required></label></div>
+        <label class="field" style="margin-top:16px">Correo electrónico<input type="email" autocomplete="email" required></label>
+        <label class="field" style="margin-top:16px">Motivo de la consulta (opcional)<textarea rows="3"></textarea></label>
+        <label class="check" style="margin-top:16px"><input type="checkbox" required> Acepto la <a href="#" style="text-decoration:underline">política de privacidad</a>.</label>
+      </section>
+      <button class="btn btn--sky" type="submit" style="align-self:flex-start">Confirmar cita</button>
+    </form>
+    <aside class="summary">
+      <h2 style="font-size:20px">Resumen de tu cita</h2>
+      <div class="summary__row"><span>Servicio</span><span>Consulta general</span></div>
+      <div class="summary__row"><span>Mascota</span><span>Toby</span></div>
+      <div class="summary__row"><span>Fecha</span><span>—</span></div>
+      <div class="summary__row"><span>Hora</span><span>10:00</span></div>
+      <p class="product__meta" style="margin:8px 0 0">Recibirás la confirmación por correo. ¿Dudas? <a href="contacto.html" style="text-decoration:underline">Contacta con nosotros</a>.</p>
+    </aside>
+  </div>
+</main>
+<div id="site-footer"></div><script src="layout.js"></script>
+</body></html>

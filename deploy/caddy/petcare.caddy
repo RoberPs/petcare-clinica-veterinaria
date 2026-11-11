@@ -1,0 +1,13 @@
+# Bloque de PetCare para el Caddyfile compartido del chatbot (importar o pegar).
+#
+# - PETCARE_DOMINIO es un subdominio de UN solo nivel (por ejemplo petcare.automatizacionro.work):
+#   el certificado gratuito de Cloudflare no cubre dos niveles.
+# - El snippet "instancia" del Caddyfile compartido hace reverse_proxy al contenedor indicado en el
+#   puerto 3000 y SUSTITUYE X-Forwarded-For por la cabecera CF-Connecting-IP (la IP real del visitante
+#   que añade Cloudflare). Caddy solo debe confiar en los rangos de Cloudflare (trusted_proxies), así
+#   que un X-Forwarded-For falso no llega a la app. Compruébalo con deploy/prueba-ip.sh.
+# - La IP del contenedor de Caddy en la red chatbot_proxy va en TRUSTED_PROXY_IPS de la app.
+
+{$PETCARE_DOMINIO} {
+	import instancia petcare-app
+}

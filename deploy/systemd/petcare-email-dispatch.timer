@@ -1,0 +1,10 @@
+[Unit]
+Description=PetCare: envía los correos pendientes de la bandeja de salida (cada minuto)
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Persistent=true
+RandomizedDelaySec=5
+
+[Install]
+WantedBy=timers.target
