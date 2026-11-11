@@ -58,6 +58,27 @@ al contenedor) y repite `content-load`. Los cambios se ven al momento (no hay ca
 
 Si se quita una especie del YAML, sus mascotas pasan a "Otra"; `content-load` avisa de cuántas.
 
+### Actualizar a la feature 003 (reserva de citas)
+
+1. Haz una copia de seguridad (`deploy/backup.sh`).
+2. Aplica la migración `0002_appointments` con `cli/migrate.mjs`. Empieza por
+   `CREATE EXTENSION IF NOT EXISTS btree_gist` (extensión *trusted*: la crea el dueño de la base de
+   datos sin superusuario; la imagen oficial `postgres:16` ya la trae) y añade las tablas de citas
+   y la restricción `appointments_no_overlap`, que impide dos citas solapadas del mismo profesional.
+   Comprobado en local (desarrollo 5434 y pruebas 5433, `postgres:16`): `btree_gist` 1.7.
+3. Recarga el contenido con `cli/content-load.mjs`: carga el bloque `booking:` (reglas, servicios
+   reservables y qué profesional atiende cada uno) y pone `reservas.href` a `/pide-cita`, así que
+   "Pide cita", "Mis citas" y "Pedir cita" dejan de llevar a "Próximamente". La carga nunca toca
+   las citas: un servicio que desaparece del YAML solo deja de ofrecerse. Para desactivar la reserva
+   online, pon `reservas.href: null` y vuelve a cargar.
+4. No hay variables nuevas. `FORM_SECRET` firma también los enlaces de gestión que recibe la clínica
+   en su correo y la referencia de la página de confirmación: **si lo cambias, los enlaces de gestión
+   de los correos ya enviados dejan de valer** (las citas siguen; se gestionan llamando o desde
+   "Mis citas").
+5. Temporizadores: no hay ninguno nuevo. `petcare-email-dispatch` (cada minuto) encola también los
+   recordatorios de cita (24 h antes, `reminder_hours_before`) y `petcare-purge` anonimiza las citas de
+   invitado de más de `retention_months` (12) y borra sus correos ya enviados a las 24 h.
+
 ## 5. Caddy compartido
 
 1. Copia `deploy/caddy/petcare.caddy` junto al Caddyfile del chatbot e impórtalo (o pega el bloque).
@@ -75,9 +96,13 @@ systemctl list-timers 'petcare-*'
 ```
 
 - `petcare-email-dispatch` (cada minuto): reintenta los correos pendientes (8 intentos en unas 24 h).
+  Desde la feature 003, al principio de cada pasada encola los recordatorios de cita que tocan. Tiene
+  que ejecutarse al menos cada 15 minutos para que el recordatorio salga a su hora.
 - `petcare-purge` (diario): borra los mensajes de más de 12 meses y el registro del límite de más de 24 h.
   Desde la feature 002, en el mismo temporizador, también las cuentas sin verificar de más de 7 días,
   las sesiones y los enlaces caducados, y los envíos procesados y correos de cuenta de más de 24 h.
+  Desde la feature 003, también anonimiza las citas de invitado de más de 12 meses (`retention_months`)
+  y borra los correos de cita ya enviados de más de 24 h.
 - `petcare-backup` (diario): `pg_dump` comprimido en `/var/backups/petcare`, rotado a 14 días.
 
 ## 7. Comprobaciones

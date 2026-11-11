@@ -3,9 +3,10 @@ import { ACCOUNT_MESSAGES, deleteAccountSchema, validateForm } from '@/domain/ac
 import { getDb } from '@/db/client';
 import { recordHit } from '@/db/queries/rate-limit';
 import { customers } from '@/db/schema';
-import { enqueueAccountEmail, getAccountEmailContext } from '@/email/account-outbox';
+import { enqueueAccountEmail, getAccountEmailContext } from '@/email/outbox';
 import { accountDeleted } from '@/email/templates/account-deleted';
 import { verifyPassword } from '@/lib/auth/password';
+import { anonymizeCustomerAppointments, cancelForSystem } from '@/lib/booking/cancel';
 import { logger } from '@/lib/logger';
 import { checkPolicy, errorCode, formRecord, policyBucket, type FlowContext, type FormState } from './common';
 
@@ -37,27 +38,39 @@ export async function processDeleteAccount(
     const retryMinutes = await checkPolicy('login_account', bucket, ctx.now);
     if (retryMinutes !== null) return { result: { status: 'rate_limited', retryMinutes }, outboxIds: [] };
 
-    const outboxId = await getDb().transaction(async (tx) => {
+    const outboxIds = await getDb().transaction(async (tx) => {
       const [row] = await tx.select().from(customers).where(eq(customers.id, customer.id)).for('update');
       if (!row) throw new Error('customer_not_found');
-      if (!(await verifyPassword(row.passwordHash, validation.data.current_password)).ok) throw new WrongPassword();
+      if (!(await verifyPassword(row.passwordHash, validation.data.current_password)).ok)
+        throw new WrongPassword();
       const mail = await enqueueAccountEmail(tx, {
         kind: 'account_deleted',
         customerId: row.id,
         to: row.email,
-        email: accountDeleted(await getAccountEmailContext(tx), { email: row.email, firstName: row.firstName }),
+        email: accountDeleted(await getAccountEmailContext(tx), {
+          email: row.email,
+          firstName: row.firstName,
+        }),
       });
+      // Citas (feature 003, B12): las futuras se cancelan como "system" (con aviso a la clínica, no al
+      // cliente, que ya recibe este correo) y todas se anonimizan antes de borrar el cliente.
+      const appointmentEmails = await cancelForSystem(tx, row.id, ctx.now);
+      await anonymizeCustomerAppointments(tx, row.id, ctx.now);
       await tx.delete(customers).where(eq(customers.id, row.id));
-      return mail.id;
+      return [mail.id, ...appointmentEmails];
     });
     logger.info({ customer_id: customer.id }, 'account_deleted');
-    return { result: { status: 'ok' }, outboxIds: [outboxId] };
+    return { result: { status: 'ok' }, outboxIds };
   } catch (error) {
     if (error instanceof WrongPassword) {
       // Un fallo cuenta en login_account (A12): no sirve para adivinar la contraseña.
       await recordHit(bucket, ctx.now);
       return {
-        result: { status: 'invalid', fieldErrors: { current_password: ACCOUNT_MESSAGES.current_password_wrong }, values: {} },
+        result: {
+          status: 'invalid',
+          fieldErrors: { current_password: ACCOUNT_MESSAGES.current_password_wrong },
+          values: {},
+        },
         outboxIds: [],
       };
     }

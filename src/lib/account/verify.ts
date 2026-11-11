@@ -4,7 +4,7 @@ import { getDb } from '@/db/client';
 import { findCustomerByEmail } from '@/db/queries/customers';
 import { recordHit } from '@/db/queries/rate-limit';
 import { customers } from '@/db/schema';
-import { enqueueAccountEmail, getAccountEmailContext } from '@/email/account-outbox';
+import { enqueueAccountEmail, getAccountEmailContext } from '@/email/outbox';
 import { verifyEmail } from '@/email/templates/verify-email';
 import { consumeToken, issueToken, peekToken } from '@/lib/auth/tokens';
 import { logger } from '@/lib/logger';

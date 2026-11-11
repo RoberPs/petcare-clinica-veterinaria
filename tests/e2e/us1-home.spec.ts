@@ -13,7 +13,7 @@ test.describe('US1 · portada', () => {
   });
 
   const destinations: [string, RegExp][] = [
-    ['Pide cita online', /\/proximamente\/reservas$/],
+    ['Pide cita online', /\/pide-cita$/],
     ['Contacto', /\/contacto$/],
     ['Conoce la clínica', /\/la-clinica$/],
     ['Nuestros productos', /\/proximamente\/tienda$/],

@@ -53,6 +53,8 @@ export default tseslint.config(
             { group: ['@/db/*', '@/lib/*', '@/app/*', '@/components/*', '@/email/*'], message: 'src/domain no depende de otras capas.' },
             // También por ruta relativa: la autenticación (src/lib/auth) y la base de datos (src/db) nunca entran en el dominio.
             { group: ['**/lib/auth/*', '**/lib/*', '**/db/*', '**/db'], message: 'src/domain no puede importar src/lib ni src/db.' },
+            // La lógica con efectos de las citas (src/lib/booking) tampoco entra en el dominio.
+            { group: ['@/lib/booking/*', '**/lib/booking/*', '**/lib/booking'], message: 'src/domain no puede importar src/lib/booking.' },
           ],
         },
       ],

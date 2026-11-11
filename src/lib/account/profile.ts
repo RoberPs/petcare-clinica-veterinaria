@@ -4,7 +4,7 @@ import { getDb } from '@/db/client';
 import { getCustomerById } from '@/db/queries/customers';
 import { recordHit } from '@/db/queries/rate-limit';
 import { customerConsents, customers } from '@/db/schema';
-import { enqueueAccountEmail, getAccountEmailContext } from '@/email/account-outbox';
+import { enqueueAccountEmail, getAccountEmailContext } from '@/email/outbox';
 import { passwordChanged } from '@/email/templates/password-changed';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import { revokeOtherSessions } from '@/lib/auth/session';

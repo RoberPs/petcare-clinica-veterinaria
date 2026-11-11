@@ -47,7 +47,7 @@ test.describe('US3 · mis mascotas', () => {
     await expect(cards.nth(0)).toContainText('Bruno');
     await expect(cards.nth(0)).toContainText('Perro · 4 años');
     await expect(cards.nth(1)).toContainText('Otra · 5 meses');
-    await expect(cards.nth(0).getByRole('link', { name: 'Pedir cita para Bruno' })).toHaveAttribute('href', '/proximamente/reservas');
+    await expect(cards.nth(0).getByRole('link', { name: 'Pedir cita para Bruno' })).toHaveAttribute('href', /^\/pide-cita\?mascota=[0-9a-f-]{36}$/);
     await axeCheck(page);
   });
 

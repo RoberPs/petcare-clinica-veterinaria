@@ -18,3 +18,17 @@ export function sectionHref(key: SectionKey, sections: readonly Section[]): stri
   const href = sections.find((s) => s.key === key)?.href;
   return href ? href : `/proximamente/${key}`;
 }
+
+/** true si la sección ya existe (tiene `href`). */
+export function isSectionEnabled(key: SectionKey, sections: readonly Section[]): boolean {
+  return !!sections.find((s) => s.key === key)?.href;
+}
+
+/**
+ * "Pedir cita" de una mascota (B14): la reserva con la mascota preelegida, o "Próximamente" si la
+ * reserva está desactivada.
+ */
+export function petAppointmentHref(sections: readonly Section[], petId: string): string {
+  const base = sectionHref('reservas', sections);
+  return isSectionEnabled('reservas', sections) ? `${base}?mascota=${encodeURIComponent(petId)}` : base;
+}

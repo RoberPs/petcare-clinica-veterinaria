@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { AccountHero } from '@/components/AccountHero';
 import { AccountNav } from '@/components/AccountNav';
-import { sectionHref } from '@/domain/sections';
+import { isSectionEnabled, sectionHref } from '@/domain/sections';
 import { getSiteData } from '@/db/queries/site';
 import { privateMetadata } from '@/lib/auth/private-metadata';
 import { requireCustomer } from '@/lib/auth/require-customer';
@@ -16,12 +16,16 @@ export const metadata: Metadata = { ...privateMetadata, title: 'Mi cuenta' };
 export default async function AccountLayout({ children }: { children: ReactNode }) {
   const customer = await requireCustomer();
   const { sections } = await getSiteData();
+  // "Mis citas" (B14): la lista propia si la reserva está activa; si no, "Próximamente".
+  const appointmentsHref = isSectionEnabled('reservas', sections)
+    ? '/mi-cuenta/citas'
+    : sectionHref('reservas', sections);
 
   return (
     <>
       <AccountHero firstName={customer.firstName} />
       <div className="container account-grid">
-        <AccountNav appointmentsHref={sectionHref('reservas', sections)} ordersHref={sectionHref('tienda', sections)} />
+        <AccountNav appointmentsHref={appointmentsHref} ordersHref={sectionHref('tienda', sections)} />
         <div className="account-main">{children}</div>
       </div>
     </>

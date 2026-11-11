@@ -1,12 +1,26 @@
 import { and, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from './client';
-import { accountTokens, contactMessages, customers, customerSessions, emailOutbox, processedSubmissions, rateLimitHits } from './schema';
+import {
+  accountTokens,
+  appointments,
+  bookingSettings,
+  contactMessages,
+  customers,
+  customerSessions,
+  emailOutbox,
+  processedSubmissions,
+  rateLimitHits,
+} from './schema';
 
 // Conservación (FR-030, R15): los mensajes se borran a los 12 meses (su bandeja de salida, en cascada)
 // y los registros del límite por origen a las 24 horas.
 //
 // Feature 002 (A13): cuentas sin verificar a los 7 días (con todo lo suyo, en cascada), sesiones y
 // tokens caducados, envíos ya procesados y correos de cuenta enviados o fallidos a las 24 horas.
+//
+// Feature 003 (B12, FR-030): las citas de invitado se anonimizan cuando su fecha tiene más de
+// retention_months (12 por defecto). Los correos de cita cerrados se borran a las 24 h con los de
+// cuenta (ninguno tiene mensaje de contacto). Las citas de cliente se anonimizan al borrar la cuenta.
 
 export interface PurgeResult {
   messages: number;
@@ -16,6 +30,7 @@ export interface PurgeResult {
   tokens: number;
   submissions: number;
   accountEmails: number;
+  guestAppointments: number;
 }
 
 export async function purgeExpired(db: Db): Promise<PurgeResult> {
@@ -63,6 +78,28 @@ export async function purgeExpired(db: Db): Promise<PurgeResult> {
       )
       .returning({ id: emailOutbox.id });
 
+    const [settings] = await tx.select({ months: bookingSettings.retentionMonths }).from(bookingSettings).limit(1);
+    const months = settings?.months ?? 12;
+    const guestAppointments = await tx
+      .update(appointments)
+      .set({
+        contactName: null,
+        contactEmail: null,
+        contactEmailNormalized: null,
+        contactPhone: null,
+        reason: null,
+        anonymizedAt: sql`now()`,
+        updatedAt: sql`now()`,
+      })
+      .where(
+        and(
+          sql`${appointments.bookedAs} = 'guest'`,
+          isNull(appointments.anonymizedAt),
+          lt(appointments.startsAt, sql`now() - make_interval(months => ${months})`),
+        ),
+      )
+      .returning({ id: appointments.id });
+
     return {
       messages: messages.length,
       hits: hits.length,
@@ -71,6 +108,7 @@ export async function purgeExpired(db: Db): Promise<PurgeResult> {
       tokens: tokens.length,
       submissions: submissions.length,
       accountEmails: accountEmails.length,
+      guestAppointments: guestAppointments.length,
     };
   });
 }

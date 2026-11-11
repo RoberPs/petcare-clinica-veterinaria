@@ -28,9 +28,9 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 1. [`.specify/memory/constitution.md`](.specify/memory/constitution.md) (v1.1.0). **Prevalece
    sobre todo.** Ante un conflicto con una spec, un plan o una tarea, gana la constitución.
 2. La spec y el plan de la feature activa, que indica `.specify/feature.json`. Hoy es
-   [`specs/002-client-accounts-pets/`](specs/002-client-accounts-pets/): `spec.md`, `plan.md`,
-   `research.md` (decisiones A1–A14), `data-model.md` y `contracts/`. Las decisiones R1–R17 de
-   la 001 siguen vigentes.
+   [`specs/003-online-appointment-booking/`](specs/003-online-appointment-booking/): `spec.md`,
+   `plan.md`, `research.md` (decisiones B1–B17), `data-model.md` y `contracts/`. Siguen vigentes
+   las decisiones R1–R17 de la 001 y A1–A14 de la 002.
 3. [`design/README.md`](design/README.md), la guía visual.
 
 ## Estado actual
@@ -40,8 +40,12 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 - Feature **002 — cuentas de cliente y mascotas**: **implementada** (tareas en
   `specs/002-client-accounts-pets/tasks.md`; desviaciones anotadas en su `checklists/requirements.md`).
   Añade `@node-rs/argon2` y la migración `0001_client_accounts`.
+- Feature **003 — reserva de citas online**: **implementada** (tareas en
+  `specs/003-online-appointment-booking/tasks.md`; desviaciones anotadas en su
+  `checklists/requirements.md`). Añade la migración `0002_appointments` con `btree_gist` (sin
+  dependencias nuevas); la lógica con efectos vive en `src/lib/booking/`.
 - **Repositorio**: `RoberPs/petcare-clinica-veterinaria` (propio, sin historial de otros
-  proyectos). **Rama de git**: `002-client-accounts-pets`.
+  proyectos). **Rama de git**: `003-online-appointment-booking`.
 - PostgreSQL local: desarrollo en el puerto **5434** (el 5432 lo usa un PostgreSQL nativo) y
   pruebas en el **5433**.
 

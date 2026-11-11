@@ -9,6 +9,7 @@ import { loadContentFile } from '../../src/content/load';
 import * as schema from '../../src/db/schema';
 import { testEnv } from '../test-env';
 import * as fx from '../account-fixtures';
+import * as bfx from '../booking-fixtures';
 
 export { DEFAULT_PASSWORD, type TestCustomer } from '../account-fixtures';
 
@@ -58,6 +59,17 @@ export async function query<T = Record<string, unknown>>(sql: string, params: un
 // ---------- Cuentas (feature 002) ----------
 
 export const createCustomer = (options: fx.CreateCustomerOptions = {}) => fx.createCustomer(testPool(), options);
-export const createSessionFor = (customerId: string, remember = false) => fx.createSessionFor(testPool(), customerId, remember);
+export const createSessionFor = (customerId: string, remember = false, now?: Date) =>
+  fx.createSessionFor(testPool(), customerId, remember, now);
 export const createPet = (customerId: string, options: fx.CreatePetOptions = {}) => fx.createPet(testPool(), customerId, options);
 export const resetAccountState = () => fx.resetAccountState(testPool());
+
+// ---------- Citas (feature 003) ----------
+
+export { BOOKING_MONDAY_9AM, madrid } from '../booking-fixtures';
+export const createAppointmentInDb = (options: bfx.CreateAppointmentOptions) => bfx.createAppointment(testPool(), options);
+
+/** Vacía las citas, los intentos y la bandeja de salida (el contenido se conserva). */
+export async function resetBookingState(): Promise<void> {
+  await testPool().query('TRUNCATE appointments, rate_limit_hits, email_outbox CASCADE');
+}

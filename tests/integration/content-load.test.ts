@@ -47,6 +47,8 @@ describe('carga del archivo de contenido', () => {
     await loadContentFile(db, 'content/petcare.yaml');
     const content = parse(readFileSync('content/petcare.yaml', 'utf8'));
     content.services = content.services.filter((s: { slug: string }) => s.slug !== 'salud-dental');
+    // El servicio reservable que enlazaba a la ficha (feature 003) deja de enlazarla.
+    for (const b of content.booking?.services ?? []) if (b.service === 'salud-dental') delete b.service;
     const file = join(mkdtempSync(join(tmpdir(), 'petcare-')), 'sin-dental.yaml');
     writeFileSync(file, stringify(content));
     await loadContentFile(db, file);

@@ -61,7 +61,56 @@ describe('exportación de datos (A11)', () => {
         { name: 'Toby', species: 'Perro', species_key: 'perro', birth_date: '2022-08-01', age_at_export: '4 años', created_at: '2026-11-01T10:00:00.000Z', updated_at: '2026-11-01T10:00:00.000Z' },
         { name: 'Pío', species: 'Otra', species_key: null, birth_date: '2026-06-11', age_at_export: '5 meses', created_at: '2026-11-01T10:00:00.000Z', updated_at: '2026-11-01T10:00:00.000Z' },
       ],
+      citas: [],
     });
+  });
+
+  it('incluye las citas (feature 003) de la más reciente a la más antigua, con su estado', () => {
+    const appt = (startsAt: string, extra: Record<string, unknown> = {}) => ({
+      id: 'a',
+      serviceName: 'Consulta general',
+      staffName: 'Dra. Prueba',
+      petName: 'Toby',
+      petSpeciesLabel: 'Perro',
+      startsAt: new Date(startsAt),
+      endsAt: new Date(new Date(startsAt).getTime() + 30 * 60_000),
+      status: 'confirmed' as const,
+      cancelledBy: null,
+      reason: null,
+      contactPhone: '600 123 456',
+      createdAt: new Date('2026-11-01T08:00:00Z'),
+      ...extra,
+    });
+    const out = buildAccountExport(
+      {
+        ...input,
+        appointments: [
+          appt('2026-11-02T09:00:00Z'),
+          appt('2026-11-20T09:00:00Z', { reason: 'Vacuna' }),
+          appt('2026-11-15T09:00:00Z', { status: 'cancelled' as const, cancelledBy: 'clinic' as const }),
+        ],
+      },
+      now,
+    );
+    expect(out.citas.map((c) => [c.inicio, c.estado, c.cancelada_por])).toEqual([
+      ['2026-11-20T10:00:00+01:00', 'confirmada', null],
+      ['2026-11-15T10:00:00+01:00', 'cancelada', 'clinica'],
+      ['2026-11-02T10:00:00+01:00', 'realizada', null],
+    ]);
+    expect(out.citas[0]).toEqual({
+      servicio: 'Consulta general',
+      profesional: 'Dra. Prueba',
+      mascota: 'Toby',
+      especie: 'Perro',
+      inicio: '2026-11-20T10:00:00+01:00',
+      fin: '2026-11-20T10:30:00+01:00',
+      estado: 'confirmada',
+      cancelada_por: null,
+      motivo: 'Vacuna',
+      telefono_contacto: '600 123 456',
+      reservada_el: '2026-11-01T09:00:00+01:00',
+    });
+    expect(JSON.stringify(out.citas)).not.toContain('"id"');
   });
 
   it('no incluye ids internos, el hash de la contraseña ni nada de seguridad', () => {

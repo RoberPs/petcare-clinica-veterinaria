@@ -6,7 +6,7 @@ interface Props {
   pet: Pick<Pet, 'id' | 'name' | 'speciesKey' | 'speciesLabel'>;
   /** Edad ya calculada con petAge() ("4 años", "5 meses"…). */
   age: string;
-  /** Destino de "Pedir cita": sectionHref('reservas'). */
+  /** Destino de "Pedir cita": petAppointmentHref() (la reserva con la mascota preelegida). */
   appointmentHref: string;
   /** En la lista de mascotas se muestran "Editar" y "Eliminar"; en el resumen, no. */
   manage?: boolean;
@@ -30,10 +30,18 @@ export function PetCard({ pet, age, appointmentHref, manage = false }: Props) {
         </Link>
         {manage ? (
           <>
-            <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/mi-cuenta/mascotas/${pet.id}/editar`}>
+            <Link
+              prefetch={false}
+              className="btn btn--ghost btn--sm"
+              href={`/mi-cuenta/mascotas/${pet.id}/editar`}
+            >
               Editar<span className="visually-hidden"> a {pet.name}</span>
             </Link>
-            <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/mi-cuenta/mascotas/${pet.id}/eliminar`}>
+            <Link
+              prefetch={false}
+              className="btn btn--ghost btn--sm"
+              href={`/mi-cuenta/mascotas/${pet.id}/eliminar`}
+            >
               Eliminar<span className="visually-hidden"> a {pet.name}</span>
             </Link>
           </>
