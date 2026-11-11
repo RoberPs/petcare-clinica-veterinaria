@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Notice } from '@/components/Notice';
 import { PetCard } from '@/components/PetCard';
-import { sectionHref } from '@/domain/sections';
+import { petAppointmentHref } from '@/domain/sections';
 import { listPets } from '@/db/queries/pets';
 import { getSiteData } from '@/db/queries/site';
 import { withAges } from '@/lib/account/pet-view';
@@ -15,8 +15,11 @@ type Props = { searchParams: Promise<{ aviso?: string | string[] }> };
 // Lista de mascotas (US3): ordenadas por nombre, o el estado vacío.
 export default async function PetsPage({ searchParams }: Props) {
   const customer = await requireCustomer();
-  const [{ aviso }, pets, { sections }] = await Promise.all([searchParams, listPets(customer.id), getSiteData()]);
-  const appointmentHref = sectionHref('reservas', sections);
+  const [{ aviso }, pets, { sections }] = await Promise.all([
+    searchParams,
+    listPets(customer.id),
+    getSiteData(),
+  ]);
 
   return (
     <>
@@ -34,7 +37,13 @@ export default async function PetsPage({ searchParams }: Props) {
           <h2>Tus mascotas</h2>
           <ul className="pets">
             {(await withAges(pets)).map((pet) => (
-              <PetCard key={pet.id} pet={pet} age={pet.age} appointmentHref={appointmentHref} manage />
+              <PetCard
+                key={pet.id}
+                pet={pet}
+                age={pet.age}
+                appointmentHref={petAppointmentHref(sections, pet.id)}
+                manage
+              />
             ))}
             <li className="pet pet--add">
               <Link prefetch={false} href="/mi-cuenta/mascotas/nueva" className="pet--add__link">

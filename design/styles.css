@@ -376,6 +376,46 @@ ul.pets { list-style: none; margin: 0; padding: 0; }
 .form legend { padding: 0; margin-bottom: var(--space-2); font-weight: var(--fw-semibold); }
 .field input[readonly] { background: var(--color-sky-light); }
 
+/* ===== Reserva de citas (feature 003) ===== */
+/* Horas como radios con aspecto .slot (B5): el radio queda oculto pero accesible por teclado. */
+.slot-option { position: relative; display: inline-flex; }
+.slot-option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.slot-option .slot { display: inline-block; }
+.slot-option input:hover + .slot { border-color: var(--color-sky); }
+.slot-option input:checked + .slot { background: var(--color-navy); color: var(--color-white); border-color: var(--color-navy); }
+.slot-option input:focus-visible + .slot { outline: var(--outline-width) solid var(--color-navy); outline-offset: var(--outline-offset); }
+.slot-option input:disabled + .slot { opacity: .4; text-decoration: line-through; cursor: not-allowed; }
+.slots-empty { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-3); }
+.slots-empty p { margin: 0; }
+.slots-empty a, .panel .product__meta a, .summary a { text-decoration: underline; text-underline-offset: var(--underline-offset-sm); }
+.panel .field + .field, .panel .field-row + .field, .panel .field + .field-row, .panel .field + .check, .panel .field-row + .check { margin-top: var(--space-4); }
+.panel .form-actions, .form-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.steps { list-style: none; padding: 0; flex-wrap: wrap; }
+.steps__item { display: flex; }
+.steps a { padding: var(--space-1-5) var(--space-3); border-radius: var(--radius-sm); background: var(--color-chip); color: var(--color-teal-dark); }
+.summary h2 { font-size: var(--fs-lead); margin: 0; }
+.summary__row { gap: var(--space-3); }
+.summary__row span:last-child { text-align: right; }
+.summary__change { font-size: var(--fs-chip); }
+.summary p { margin: 0; }
+.badge--muted { background: var(--color-chip); color: var(--color-teal-dark); }
+.next-appointment { background: var(--color-white); border-radius: var(--radius-card-tl); padding: var(--space-5-5); display: flex; flex-direction: column; gap: var(--space-2); border-left: var(--border-width-thick) solid var(--color-sky); }
+.next-appointment p { margin: 0; }
+.next-appointment a { text-decoration: underline; text-underline-offset: var(--underline-offset-sm); }
+.appointment-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.appointment-actions a { text-decoration: underline; text-underline-offset: var(--underline-offset-sm); }
+/* En pantallas estrechas, cada cita es un bloque con la etiqueta de cada dato (sin scroll horizontal). */
+@media (max-width: 900px) {
+  table.orders--stack thead { position: absolute; width: var(--border-width); height: var(--border-width); overflow: hidden; clip: rect(0 0 0 0); }
+  table.orders--stack, table.orders--stack tbody, table.orders--stack tr, table.orders--stack td { display: block; width: 100%; }
+  table.orders--stack tr { border-bottom: var(--border-1); padding: var(--space-2) 0; }
+  table.orders--stack td { display: flex; justify-content: space-between; gap: var(--space-3); border-bottom: 0; padding: var(--space-1-5) var(--space-4); text-align: right; }
+  table.orders--stack td::before { content: attr(data-label); font-weight: var(--fw-semibold); text-align: left; }
+}
+dl.appointment-details { display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); margin: 0; }
+dl.appointment-details dt { font-weight: var(--fw-semibold); }
+dl.appointment-details dd { margin: 0; }
+
 @media (max-width: 900px) {
   .contact-grid, .shop-layout, .detail, .cart-layout, .account-grid, .field-row { grid-template-columns: 1fr; }
   .cart-item { grid-template-columns: var(--size-thumb-sm) 1fr; }

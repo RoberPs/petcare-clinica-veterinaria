@@ -84,6 +84,14 @@ describe('políticas con nombre (A6)', () => {
     expect(isPolicyLimited('login_origin', 20)).toBe(true);
   });
 
+  it('booking_origin: 5 reservas cada 10 minutos por origen (B9), separado del contacto', () => {
+    expect(RATE_POLICIES.booking_origin).toMatchObject({ max: 5, windowMinutes: 10, key: 'origin' });
+    expect(isPolicyLimited('booking_origin', 4)).toBe(false);
+    expect(isPolicyLimited('booking_origin', 5)).toBe(true);
+    expect(toPolicyBucket('booking_origin', '203.0.113.7', SECRET)).toMatch(/^booking_origin:[0-9a-f]{64}$/);
+    expect(toPolicyBucket('booking_origin', '203.0.113.7', SECRET)).not.toBe(toPolicyBucket('contact', '203.0.113.7', SECRET));
+  });
+
   it('calcula los minutos hasta que vuelve a haber hueco (como mínimo 1)', () => {
     const now = new Date('2026-11-11T10:00:00Z');
     expect(retryAfterMinutes(new Date('2026-11-11T09:50:00Z'), 'login_account', now)).toBe(5);

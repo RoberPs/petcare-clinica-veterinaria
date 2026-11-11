@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { sendAccountEmailsNow } from '@/email/account-outbox';
+import { sendAccountEmailsNow } from '@/email/outbox';
 import { actionContext } from '@/lib/account/action-context';
 import type { FormState } from '@/lib/account/form-state';
 import { processChangePassword, processUpdateMarketing, processUpdateProfile } from '@/lib/account/profile';

@@ -1,4 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
+import { appointmentView } from './appointment-view';
 import { petAge, todayInClinicZone } from './pet-age';
 import { CLINIC_TZ, todayInClinic } from './time';
 
@@ -31,12 +32,29 @@ export interface AccountExportInput {
     createdAt: Date;
     updatedAt: Date;
   }[];
+  /** Citas con customer_id de la cuenta (feature 003, contracts/export-format.md). */
+  appointments?: {
+    serviceName: string;
+    staffName: string;
+    petName: string;
+    petSpeciesLabel: string;
+    startsAt: Date;
+    endsAt: Date;
+    status: 'confirmed' | 'cancelled';
+    cancelledBy: 'customer' | 'clinic' | 'system' | null;
+    reason: string | null;
+    contactPhone: string | null;
+    createdAt: Date;
+  }[];
 }
+
+const STATE_EXPORT = { confirmed: 'confirmada', cancelled: 'cancelada', done: 'realizada' } as const;
+const ACTOR_EXPORT = { customer: 'cliente', clinic: 'clinica', system: 'sistema' } as const;
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
 /** Instante en Europe/Madrid con su desfase, sin fracciones: "2026-11-11T10:15:00+01:00". */
-function zonedIso(now: Date): string {
+export function zonedIso(now: Date): string {
   return Temporal.Instant.fromEpochMilliseconds(now.getTime())
     .toZonedDateTimeISO(CLINIC_TZ)
     .toString({ timeZoneName: 'never', smallestUnit: 'second' });
@@ -75,6 +93,22 @@ export function buildAccountExport(data: AccountExportInput, now: Date) {
       created_at: iso(p.createdAt),
       updated_at: iso(p.updatedAt),
     })),
+    citas: [...(data.appointments ?? [])]
+      .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
+      .map((a) => ({
+        servicio: a.serviceName,
+        profesional: a.staffName,
+        mascota: a.petName,
+        especie: a.petSpeciesLabel,
+        inicio: zonedIso(a.startsAt),
+        fin: zonedIso(a.endsAt),
+        // El estado visible no depende del plazo de cambio: se pasa 0.
+        estado: STATE_EXPORT[appointmentView(a, now, 0).state],
+        cancelada_por: a.cancelledBy ? ACTOR_EXPORT[a.cancelledBy] : null,
+        motivo: a.reason,
+        telefono_contacto: a.contactPhone,
+        reservada_el: zonedIso(a.createdAt),
+      })),
   };
 }
 

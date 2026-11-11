@@ -182,6 +182,56 @@ export async function loadContent(db: Db, content: ContentFile): Promise<LoadSum
       await tx.insert(s.sections).values(v).onConflictDoUpdate({ target: s.sections.key, set: { ...v, updatedAt: now } });
     }
 
+    // Reserva de citas (feature 003): reglas, servicios reservables y su reparto de profesionales.
+    // Nunca toca appointments (B15): un servicio que desaparece solo se despublica.
+    if (content.booking) {
+      const r = content.booking.rules;
+      const rules = {
+        singleton: true,
+        slotStepMinutes: r.slot_step_minutes,
+        minLeadMinutes: r.min_lead_minutes,
+        horizonDays: r.horizon_days,
+        changeCutoffHours: r.change_cutoff_hours,
+        maxActivePerEmail: r.max_active_per_email,
+        maxActivePerCustomer: r.max_active_per_customer,
+        reminderHoursBefore: r.reminder_hours_before,
+        retentionMonths: r.retention_months,
+      };
+      await tx
+        .insert(s.bookingSettings)
+        .values(rules)
+        .onConflictDoUpdate({ target: s.bookingSettings.singleton, set: { ...rules, updatedAt: now } });
+
+      const teamIds = new Map(
+        (await tx.select({ id: s.teamMembers.id, slug: s.teamMembers.slug }).from(s.teamMembers)).map((m) => [m.slug, m.id]),
+      );
+      const serviceIds = new Map(
+        (await tx.select({ id: s.services.id, slug: s.services.slug }).from(s.services)).map((m) => [m.slug, m.id]),
+      );
+      for (const [i, bs] of content.booking.services.entries()) {
+        const v = {
+          slug: bs.slug,
+          name: bs.name,
+          durationMinutes: bs.duration_minutes,
+          serviceId: bs.service ? (serviceIds.get(bs.service) ?? null) : null,
+          position: i,
+          published: true,
+        };
+        const [row] = await tx
+          .insert(s.bookingServices)
+          .values(v)
+          .onConflictDoUpdate({ target: s.bookingServices.slug, set: { ...v, updatedAt: now } })
+          .returning({ id: s.bookingServices.id });
+        await tx.delete(s.bookingServiceStaff).where(eq(s.bookingServiceStaff.bookingServiceId, row!.id));
+        await tx
+          .insert(s.bookingServiceStaff)
+          .values(bs.staff.map((m) => ({ bookingServiceId: row!.id, teamMemberId: teamIds.get(m)! })));
+      }
+      await unpublishMissing(tx, s.bookingServices, content.booking.services.map((x) => x.slug));
+    } else {
+      await unpublishMissing(tx, s.bookingServices, []);
+    }
+
     // Especies (A10): upsert por clave y borrado de las ausentes. Sus mascotas pasan a "Otra"
     // por la clave foránea (ON DELETE SET NULL).
     for (const [i, sp] of content.species.entries()) {

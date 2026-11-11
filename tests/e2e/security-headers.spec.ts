@@ -1,4 +1,4 @@
-import { createCustomer, resetAccountState } from './db';
+import { createAppointmentInDb, createCustomer, madrid, resetAccountState, resetBookingState } from './db';
 import { dismissCookies, expect, isNoJs, loginAs, test } from './fixtures';
 
 // CSP con nonce por petición (R14) y ninguna infracción de CSP en la consola.
@@ -69,6 +69,33 @@ test.describe('cabeceras de seguridad de la cuenta', () => {
     for (const path of PRIVATE) await check(path);
     const robots = await (await page.request.get('/robots.txt')).text();
     expect(robots).toContain('Disallow: /mi-cuenta');
+  });
+
+  // Feature 003: la confirmación, "Mis citas" y el enlace de gestión (contracts/routes.md).
+  test('no-store y noindex en la confirmación, Mis citas y el enlace de gestión', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'son cabeceras: basta con un proyecto');
+    await resetAccountState();
+    await resetBookingState();
+    const c = await createCustomer();
+    const appt = await createAppointmentInDb({ customerId: c.id, startsAt: madrid('2026-12-21', '10:00') });
+    const check = async (path: string) => {
+      const response = await page.goto(path);
+      const headers = response!.headers();
+      expect(headers['cache-control'], path).toContain('no-store');
+      expect(headers['content-security-policy'], path).toMatch(/'nonce-[^']+'/);
+      await expect(page.locator('meta[name="robots"]').first(), path).toHaveAttribute('content', /noindex/);
+      return headers;
+    };
+    await check('/pide-cita/confirmada');
+    const manage = await check('/gestion-cita/token-de-prueba.no-valido');
+    expect(manage['x-robots-tag']).toContain('noindex');
+    expect(manage['referrer-policy']).toBe('same-origin');
+    await loginAs(page, c);
+    for (const path of ['/mi-cuenta/citas', `/mi-cuenta/citas/${appt.id}/cancelar`, `/mi-cuenta/citas/${appt.id}/cambiar`]) await check(path);
+    // Los pasos 1 y 2 de /pide-cita son indexables, pero tampoco se guardan en caché.
+    const booking = await page.goto('/pide-cita');
+    expect(booking!.headers()['cache-control']).toContain('no-store');
+    await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0);
   });
 
   test('la cookie pc_session es HttpOnly, SameSite=Lax y Path=/ (Secure solo con https)', async ({ page }, info) => {

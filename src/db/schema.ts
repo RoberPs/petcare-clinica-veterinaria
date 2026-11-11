@@ -9,6 +9,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   smallint,
   text,
   time,
@@ -260,6 +261,11 @@ export const outboxKind = pgEnum('outbox_kind', [
   'password_reset',
   'password_changed',
   'account_deleted',
+  'appointment_confirmed',
+  'appointment_changed',
+  'appointment_cancelled',
+  'appointment_reminder',
+  'clinic_appointment',
 ]);
 export const outboxStatus = pgEnum('outbox_status', ['pending', 'sent', 'failed', 'skipped_rate_limit']);
 
@@ -279,6 +285,8 @@ export const emailOutbox = pgTable(
     contactMessageId: uuid('contact_message_id').references(() => contactMessages.id, { onDelete: 'cascade' }),
     // Sobrevive al borrado de la cuenta (SET NULL): así se envía el aviso "account_deleted".
     customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+    // Correos de cita (feature 003): sirve para trazar y para purgar.
+    appointmentId: uuid('appointment_id').references(() => appointments.id, { onDelete: 'set null' }),
     payload: jsonb('payload').$type<OutboxPayload>(),
     kind: outboxKind('kind').notNull(),
     recipientHash: text('recipient_hash').notNull(),
@@ -300,6 +308,7 @@ export const emailOutbox = pgTable(
     index('email_outbox_pending_idx').on(t.nextAttemptAt).where(sql`${t.status} = 'pending'`),
     index('email_outbox_ack_idx').on(t.recipientHash, t.createdAt),
     index('email_outbox_customer_idx').on(t.customerId),
+    index('email_outbox_appointment_idx').on(t.appointmentId),
   ],
 );
 
@@ -442,5 +451,143 @@ export const processedSubmissions = pgTable(
   (t) => [
     check('processed_submissions_scope', sql`${t.scope} in ('register', 'pet_create')`),
     index('processed_submissions_created_idx').on(t.createdAt),
+  ],
+);
+
+// ---------- Reserva de citas (feature 003, data-model.md) ----------
+
+export const bookingSettings = pgTable(
+  'booking_settings',
+  {
+    singleton: boolean('singleton').primaryKey().default(true),
+    slotStepMinutes: smallint('slot_step_minutes').notNull().default(30),
+    minLeadMinutes: integer('min_lead_minutes').notNull().default(120),
+    horizonDays: smallint('horizon_days').notNull().default(60),
+    changeCutoffHours: smallint('change_cutoff_hours').notNull().default(24),
+    maxActivePerEmail: smallint('max_active_per_email').notNull().default(3),
+    maxActivePerCustomer: smallint('max_active_per_customer').notNull().default(9),
+    reminderHoursBefore: smallint('reminder_hours_before').notNull().default(24),
+    retentionMonths: smallint('retention_months').notNull().default(12),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('booking_settings_singleton', sql`${t.singleton}`),
+    check('booking_settings_step', sql`${t.slotStepMinutes} between 5 and 120`),
+    check('booking_settings_lead', sql`${t.minLeadMinutes} between 0 and 10080`),
+    check('booking_settings_horizon', sql`${t.horizonDays} between 1 and 365`),
+    check('booking_settings_cutoff', sql`${t.changeCutoffHours} between 0 and 168`),
+    check('booking_settings_per_email', sql`${t.maxActivePerEmail} between 1 and 20`),
+    check('booking_settings_per_customer', sql`${t.maxActivePerCustomer} between 1 and 50`),
+    check('booking_settings_reminder', sql`${t.reminderHoursBefore} between 0 and 72`),
+    check('booking_settings_retention', sql`${t.retentionMonths} between 1 and 60`),
+  ],
+);
+
+export const bookingServices = pgTable(
+  'booking_services',
+  {
+    id: id(),
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+    durationMinutes: smallint('duration_minutes').notNull(),
+    serviceId: uuid('service_id').references(() => services.id, { onDelete: 'set null' }),
+    position: smallint('position').notNull().default(0),
+    published: published(),
+    ...timestamps,
+  },
+  (t) => [
+    check('booking_services_slug', sql`${t.slug} ~ '^[a-z0-9-]{1,60}$'`),
+    check('booking_services_name_len', sql`char_length(${t.name}) between 1 and 80`),
+    check('booking_services_duration', sql`${t.durationMinutes} between 5 and 480 and ${t.durationMinutes} % 5 = 0`),
+    index('booking_services_order_idx').on(t.published, t.position),
+  ],
+);
+
+export const bookingServiceStaff = pgTable(
+  'booking_service_staff',
+  {
+    bookingServiceId: uuid('booking_service_id')
+      .notNull()
+      .references(() => bookingServices.id, { onDelete: 'cascade' }),
+    teamMemberId: uuid('team_member_id')
+      .notNull()
+      .references(() => teamMembers.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.bookingServiceId, t.teamMemberId] })],
+);
+
+export const appointmentStatus = pgEnum('appointment_status', ['confirmed', 'cancelled']);
+export const appointmentActor = pgEnum('appointment_actor', ['customer', 'clinic', 'system']);
+export const appointmentBookedAs = pgEnum('appointment_booked_as', ['guest', 'customer']);
+
+// La restricción appointments_no_overlap (EXCLUDE USING gist) va en SQL en 0002_appointments (B2).
+export const appointments = pgTable(
+  'appointments',
+  {
+    id: id(),
+    submissionId: uuid('submission_id').notNull().unique(),
+    bookingServiceId: uuid('booking_service_id')
+      .notNull()
+      .references(() => bookingServices.id, { onDelete: 'restrict' }),
+    teamMemberId: uuid('team_member_id')
+      .notNull()
+      .references(() => teamMembers.id, { onDelete: 'restrict' }),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    status: appointmentStatus('status').notNull().default('confirmed'),
+    cancelledBy: appointmentActor('cancelled_by'),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    bookedAs: appointmentBookedAs('booked_as').notNull(),
+    customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+    petId: uuid('pet_id').references(() => pets.id, { onDelete: 'set null' }),
+    petName: text('pet_name').notNull(),
+    petSpeciesLabel: text('pet_species_label').notNull(),
+    contactName: text('contact_name'),
+    contactEmail: text('contact_email'),
+    contactEmailNormalized: text('contact_email_normalized'),
+    contactPhone: text('contact_phone'),
+    reason: text('reason'),
+    privacyAcceptedAt: timestamp('privacy_accepted_at', { withTimezone: true }).notNull(),
+    privacyVersion: text('privacy_version').notNull(),
+    manageVersion: integer('manage_version').notNull().default(1),
+    reminderSentAt: timestamp('reminder_sent_at', { withTimezone: true }),
+    anonymizedAt: timestamp('anonymized_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    check('appointments_range', sql`${t.endsAt} > ${t.startsAt}`),
+    check(
+      'appointments_cancelled',
+      sql`(${t.cancelledBy} is not null) = (${t.status} = 'cancelled') and (${t.cancelledAt} is not null) = (${t.status} = 'cancelled')`,
+    ),
+    check('appointments_pet_name_len', sql`char_length(${t.petName}) between 1 and 40`),
+    check(
+      'appointments_contact_name_len',
+      sql`${t.contactName} is null or char_length(${t.contactName}) between 2 and 100`,
+    ),
+    check('appointments_contact_email_len', sql`${t.contactEmail} is null or char_length(${t.contactEmail}) <= 254`),
+    check(
+      'appointments_contact_phone_len',
+      sql`${t.contactPhone} is null or char_length(${t.contactPhone}) between 9 and 20`,
+    ),
+    check('appointments_reason_len', sql`${t.reason} is null or char_length(${t.reason}) <= 500`),
+    // Anonimizada ⇔ sin datos de contacto (B12). El teléfono puede faltar en una cita sin anonimizar.
+    check(
+      'appointments_anonymized',
+      sql`(${t.anonymizedAt} is not null) = (${t.contactName} is null and ${t.contactEmail} is null and ${t.contactEmailNormalized} is null)`,
+    ),
+    check(
+      'appointments_anonymized_rest',
+      sql`${t.anonymizedAt} is null or (${t.reason} is null and ${t.contactPhone} is null)`,
+    ),
+    index('appointments_staff_start_idx').on(t.teamMemberId, t.startsAt),
+    index('appointments_customer_idx').on(t.customerId, t.startsAt.desc()),
+    index('appointments_email_active_idx').on(t.contactEmailNormalized).where(sql`${t.status} = 'confirmed'`),
+    index('appointments_guest_retention_idx')
+      .on(t.startsAt)
+      .where(sql`${t.bookedAs} = 'guest' and ${t.anonymizedAt} is null`),
+    index('appointments_reminder_idx')
+      .on(t.startsAt)
+      .where(sql`${t.status} = 'confirmed' and ${t.reminderSentAt} is null`),
   ],
 );

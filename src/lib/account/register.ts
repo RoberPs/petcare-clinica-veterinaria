@@ -3,7 +3,7 @@ import { normalizeEmail, registerSchema, validateForm } from '@/domain/account-s
 import { getDb } from '@/db/client';
 import { recordHit } from '@/db/queries/rate-limit';
 import { customerConsents, customers, legalPages } from '@/db/schema';
-import { enqueueAccountEmail, getAccountEmailContext } from '@/email/account-outbox';
+import { enqueueAccountEmail, getAccountEmailContext } from '@/email/outbox';
 import { accountExists } from '@/email/templates/account-exists';
 import { verifyEmail } from '@/email/templates/verify-email';
 import { hashPassword } from '@/lib/auth/password';

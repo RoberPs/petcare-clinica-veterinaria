@@ -49,8 +49,9 @@ export const isNoJs = (projectName: string) => projectName === 'no-js';
 // ---------- Cuentas (feature 002) ----------
 
 /** Inicia sesión inyectando la cookie pc_session de una sesión creada en la base de datos. */
-export async function loginAs(page: Page, customer: Pick<TestCustomer, 'id'>, remember = false): Promise<void> {
-  const token = await createSessionFor(customer.id, remember);
+export async function loginAs(page: Page, customer: Pick<TestCustomer, 'id'>, remember = false, now?: Date): Promise<void> {
+  // `now`: con la hora del servidor fijada (x-test-now), la sesión tiene que ser vigente a esa hora.
+  const token = await createSessionFor(customer.id, remember, now);
   await page.context().addCookies([
     { name: 'pc_session', value: token, domain: 'localhost', path: '/', httpOnly: true, sameSite: 'Lax', secure: false },
   ]);
@@ -94,5 +95,20 @@ export function extractLink(email: FakeEmailRecord): string {
   return match[1]!;
 }
 
-export const test = base;
+// ---------- Citas (feature 003) ----------
+
+/** Hora fija de las pruebas de reserva: lunes laborable 16/11/2026 a las 09:00 en Madrid. */
+export const BOOKING_NOW = '2026-11-16T08:00:00.000Z';
+
+/** Fija la hora del servidor (x-test-now, R17) en todas las peticiones de la página. */
+export async function setTestNow(page: Page, iso: string = BOOKING_NOW): Promise<void> {
+  await page.context().setExtraHTTPHeaders({ 'x-test-now': iso });
+}
+
+export const test = base.extend<{ bookingClock: string }>({
+  bookingClock: async ({ page }, provide) => {
+    await setTestNow(page, BOOKING_NOW);
+    await provide(BOOKING_NOW);
+  },
+});
 export { expect };

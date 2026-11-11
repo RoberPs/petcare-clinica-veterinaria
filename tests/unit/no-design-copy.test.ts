@@ -56,6 +56,16 @@ function walkFiles(dir: string, out: string[] = []): string[] {
 // Rótulos de interfaz que pide la spec o el plan (no son textos de ejemplo de las maquetas).
 const ACCOUNT_UI_LABELS = new Set(['¿olvidaste tu contraseña?', '¿aún no tienes cuenta?']);
 
+describe('SC-010: sin los textos de ejemplo de design/cita.html (feature 003)', () => {
+  const sources = [...walkFiles('src'), ...walkFiles('content')].map((f) => ({ f, text: readFileSync(f, 'utf8') }));
+
+  it('ni src/ ni content/ contienen los profesionales ni la mascota de ejemplo', () => {
+    const samples = ['Dra. María García', 'Dr. Javier Ruiz', 'Dra. Laura Pérez', 'Toby (perro)'];
+    const found = sources.flatMap(({ f, text }) => samples.filter((s) => text.includes(s)).map((s) => `${f}: ${s}`));
+    expect(found).toEqual([]);
+  });
+});
+
 describe('SC-010: sin copia de textos de las maquetas de la cuenta', () => {
   const files = [...walkFiles('src'), ...walkFiles('content')];
   const sources = files.map((f) => ({ f, text: readFileSync(f, 'utf8') }));

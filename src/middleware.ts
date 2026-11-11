@@ -10,6 +10,8 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('x-pathname', request.nextUrl.pathname);
+  // Ruta con la query, para volver al mismo paso (p. ej. de /pide-cita) tras el aviso de cookies o el login.
+  requestHeaders.set('x-return-to', `${request.nextUrl.pathname}${request.nextUrl.search}`);
   requestHeaders.set('Content-Security-Policy', csp);
 
   // Una sección desconocida va a la página 404 normal (con notFound() dentro de la página dinámica,

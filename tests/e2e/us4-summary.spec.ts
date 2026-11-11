@@ -19,21 +19,21 @@ test.describe('US4 · resumen', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Hola, Lucía' })).toBeVisible();
     const nav = page.getByRole('navigation', { name: 'Mi cuenta' });
     await expect(nav.getByRole('link', { name: 'Resumen' })).toHaveAttribute('aria-current', 'page');
-    await expect(nav.getByRole('link', { name: 'Mis citas' })).toHaveAttribute('href', '/proximamente/reservas');
+    await expect(nav.getByRole('link', { name: 'Mis citas' })).toHaveAttribute('href', '/mi-cuenta/citas');
     await expect(nav.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/proximamente/tienda');
 
     const cards = page.locator('ul.pets > li.pet:not(.pet--add)');
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(0)).toContainText(/Bruno.*Perro · \d+ años/s);
     await expect(cards.nth(1)).toContainText(/Pío.*Otra · \d+ (año|años)/s);
-    await expect(page.getByRole('link', { name: 'Pedir cita para Bruno' })).toHaveAttribute('href', '/proximamente/reservas');
+    await expect(page.getByRole('link', { name: 'Pedir cita para Bruno' })).toHaveAttribute('href', /^\/pide-cita\?mascota=[0-9a-f-]{36}$/);
     await expect(page.getByRole('link', { name: 'Añadir mascota' })).toHaveAttribute('href', '/mi-cuenta/mascotas/nueva');
     // No hay bloque de pedidos (la tienda llegará en otra feature).
     await expect(page.getByText('Últimos pedidos')).toHaveCount(0);
     await axeCheck(page);
 
     await nav.getByRole('link', { name: 'Mis citas' }).click();
-    await expect(page).toHaveURL(/\/proximamente\/reservas$/);
+    await expect(page).toHaveURL(/\/mi-cuenta\/citas$/);
   });
 
   test('sin mascotas muestra el estado vacío con "Añadir mascota"', async ({ page }) => {

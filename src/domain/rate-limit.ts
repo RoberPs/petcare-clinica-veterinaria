@@ -66,6 +66,8 @@ export const RATE_POLICIES = {
   login_origin: { max: 20, windowMinutes: 15, key: 'origin' },
   /** Registro, reenvío de verificación y recuperación de contraseña, por origen. */
   auth_origin: { max: 10, windowMinutes: 10, key: 'origin' },
+  /** Reservas de cita (feature 003, B9), por origen: el mismo criterio que el contacto. */
+  booking_origin: { max: 5, windowMinutes: 10, key: 'origin' },
 } as const satisfies Record<string, RatePolicy>;
 
 export type RatePolicyName = keyof typeof RATE_POLICIES;

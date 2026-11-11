@@ -5,6 +5,7 @@ import { lockCustomer } from '@/db/queries/customers';
 import { countPets, deletePet, getPet, insertPet, updatePet, type Pet } from '@/db/queries/pets';
 import { listSpecies } from '@/db/queries/species';
 import { claimSubmission } from '@/lib/auth/submission';
+import { cancelUpcomingFor } from '@/lib/booking/cancel';
 import { verifySubmissionToken } from '@/lib/form-token';
 import { logger } from '@/lib/logger';
 import type { PetFormState } from './form-state';
@@ -31,7 +32,11 @@ async function validatePet(form: FormData, now: Date) {
   return validateForm(petSchema(keys, todayInClinicZone(now).toString()), formRecord(form));
 }
 
-export async function processCreatePet(form: FormData, customerId: string, ctx: { now: Date }): Promise<PetFormState> {
+export async function processCreatePet(
+  form: FormData,
+  customerId: string,
+  ctx: { now: Date },
+): Promise<PetFormState> {
   // Idempotencia (A5). El usuario ya está identificado: no se exige el tiempo mínimo anti-robots.
   const token = verifySubmissionToken(form.get('submission_token'), ctx.now, { minAgeMs: 0 });
   if (!token.ok) return { status: 'expired' };
@@ -50,7 +55,12 @@ export async function processCreatePet(form: FormData, customerId: string, ctx: 
         // Se deshace también el registro del envío: si el cliente borra una mascota, puede reintentarlo.
         throw new PetLimitReached();
       }
-      const petId = await insertPet(customerId, { name: data.name, speciesKey: data.species, birthDate: data.birth_date }, ctx.now, tx);
+      const petId = await insertPet(
+        customerId,
+        { name: data.name, speciesKey: data.species, birthDate: data.birth_date },
+        ctx.now,
+        tx,
+      );
       logger.info({ customer_id: customerId, pet_id: petId }, 'pet_created');
       return { status: 'ok' };
     });
@@ -61,13 +71,24 @@ export async function processCreatePet(form: FormData, customerId: string, ctx: 
   }
 }
 
+class PetNotFound extends Error {
+  constructor() {
+    super('pet_not_found');
+  }
+}
+
 class PetLimitReached extends Error {
   constructor() {
     super('pet_limit_reached');
   }
 }
 
-export async function processUpdatePet(form: FormData, customerId: string, petId: string, ctx: { now: Date }): Promise<PetFormState> {
+export async function processUpdatePet(
+  form: FormData,
+  customerId: string,
+  petId: string,
+  ctx: { now: Date },
+): Promise<PetFormState> {
   // Antes de validar: a quien no es el dueño no se le da ninguna pista (ni errores de campo).
   if (!(await getPet(customerId, petId))) {
     denied(customerId, petId, 'update');
@@ -77,7 +98,11 @@ export async function processUpdatePet(form: FormData, customerId: string, petId
   if (!validation.ok) return { status: 'invalid', ...validation };
   const data = validation.data;
   try {
-    const updated = await updatePet(customerId, petId, { name: data.name, speciesKey: data.species, birthDate: data.birth_date });
+    const updated = await updatePet(customerId, petId, {
+      name: data.name,
+      speciesKey: data.species,
+      birthDate: data.birth_date,
+    });
     if (!updated) {
       denied(customerId, petId, 'update');
       return { status: 'not_found' };
@@ -90,15 +115,31 @@ export async function processUpdatePet(form: FormData, customerId: string, petId
   }
 }
 
-export async function processDeletePet(customerId: string, petId: string): Promise<PetFormState> {
+/**
+ * Elimina la mascota. Antes, en la misma transacción, cancela sus citas futuras (feature 003, B12):
+ * quedan como canceladas por el cliente y la clínica recibe el aviso. `onEmails` recibe los ids de
+ * esos correos para el intento inmediato.
+ */
+export async function processDeletePet(
+  customerId: string,
+  petId: string,
+  ctx: { now?: Date; onEmails?: (ids: string[]) => void } = {},
+): Promise<PetFormState> {
   try {
-    if (!(await deletePet(customerId, petId))) {
+    const now = ctx.now ?? new Date();
+    const emailIds = await getDb().transaction(async (tx) => {
+      const ids = await cancelUpcomingFor(tx, customerId, now, { actor: 'customer', petId });
+      if (!(await deletePet(customerId, petId, tx))) throw new PetNotFound();
+      return ids;
+    });
+    ctx.onEmails?.(emailIds);
+    logger.info({ customer_id: customerId, pet_id: petId, cancelled: emailIds.length }, 'pet_deleted');
+    return { status: 'ok' };
+  } catch (error) {
+    if (error instanceof PetNotFound) {
       denied(customerId, petId, 'delete');
       return { status: 'not_found' };
     }
-    logger.info({ customer_id: customerId, pet_id: petId }, 'pet_deleted');
-    return { status: 'ok' };
-  } catch (error) {
     logger.error({ customer_id: customerId, code: errorCode(error) }, 'pet_delete_failed');
     return { status: 'error' };
   }

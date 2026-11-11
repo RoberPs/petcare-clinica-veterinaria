@@ -2,7 +2,18 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { loadContentFile } from '@/content/load';
 import { handleExportRequest } from '@/lib/account/export';
 import { getPool } from '@/db/client';
-import { createCustomer, createPet, createSessionFor, q, resetAccountState, setupTestDb, teardownTestDb, truncateAll } from './helpers/db';
+import {
+  createAppointment,
+  createCustomer,
+  createPet,
+  createSessionFor,
+  madrid,
+  q,
+  resetAccountState,
+  setupTestDb,
+  teardownTestDb,
+  truncateAll,
+} from './helpers/db';
 
 // "Descargar mis datos" (US7, SC-008): todo lo del cliente y nada de otra cuenta.
 
@@ -73,6 +84,17 @@ describe('descargar mis datos (US7)', () => {
     expect(flat).not.toContain(other.email);
     expect(flat).not.toContain(c.id);
     expect(flat).not.toContain('argon2');
+  });
+
+  it('incluye solo las citas de la cuenta (no las de invitado con el mismo correo, Q2)', async () => {
+    const c = await createCustomer({ email: 'exporta-citas@example.test' });
+    const pet = await createPet(c.id, { name: 'Toby' });
+    await createAppointment({ customerId: c.id, petId: pet.id, petName: 'Toby', startsAt: madrid('2026-12-01', '10:00'), reason: 'Revisión' });
+    await createAppointment({ contactEmail: 'exporta-citas@example.test', petName: 'Invitada', startsAt: madrid('2026-12-02', '10:00') });
+    const res = await handleExportRequest(exportRequest(await createSessionFor(c.id)), new Date());
+    const data = JSON.parse(await res.text());
+    expect(data.citas).toHaveLength(1);
+    expect(data.citas[0]).toMatchObject({ mascota: 'Toby', servicio: 'Consulta general', motivo: 'Revisión', inicio: '2026-12-01T10:00:00+01:00' });
   });
 
   it('sin sesión redirige a iniciar sesión', async () => {

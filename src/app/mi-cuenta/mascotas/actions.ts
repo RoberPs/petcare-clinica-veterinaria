@@ -6,6 +6,7 @@ import type { PetFormState } from '@/lib/account/form-state';
 import { PET_NOT_FOUND_PATH } from '@/lib/account/pet-view';
 import { processCreatePet, processDeletePet, processUpdatePet } from '@/lib/account/pets';
 import { requireCustomer } from '@/lib/auth/require-customer';
+import { sendEmailsNow } from '@/email/outbox';
 
 // Server Actions de las mascotas. Cada una vuelve a comprobar la sesión (A3): el layout no se
 // ejecuta al invocar una acción. El id de la mascota va ligado con bind() desde la página.
@@ -32,7 +33,10 @@ export async function updatePet(petId: string, _prev: PetFormState, form: FormDa
 
 export async function deletePet(petId: string): Promise<void> {
   const customer = await requireCustomer();
-  const result = await processDeletePet(customer.id, petId);
+  const { now } = await actionContext();
+  const result = await processDeletePet(customer.id, petId, { now, onEmails: sendEmailsNow });
   if (result.status === 'ok') redirect(`${LIST}?aviso=mascota-eliminada`);
-  redirect(result.status === 'not_found' ? PET_NOT_FOUND_PATH : `${LIST}/${encodeURIComponent(petId)}/eliminar`);
+  redirect(
+    result.status === 'not_found' ? PET_NOT_FOUND_PATH : `${LIST}/${encodeURIComponent(petId)}/eliminar`,
+  );
 }

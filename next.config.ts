@@ -23,6 +23,22 @@ const PRIVATE_ROUTES = [
   '/recuperar-contrasena/:path*',
   '/restablecer-contrasena',
   '/api/account/:path*',
+  // Reserva de citas (feature 003, contracts/routes.md).
+  '/pide-cita/confirmada',
+  '/gestion-cita/:path*',
+];
+
+/** Rutas dinámicas e indexables que tampoco se guardan en caché (los pasos 1 y 2 de /pide-cita). */
+const NO_STORE_ROUTES = ['/pide-cita'];
+
+/**
+ * Enlace de gestión de la clínica (B7): el token va en la ruta, así que nunca sale del sitio como
+ * Referer. Es "same-origin" y no "no-referrer" porque con "no-referrer" el navegador envía
+ * `Origin: null` en los POST sin JavaScript y Next.js rechaza la Server Action (CSRF).
+ */
+const MANAGE_HEADERS = [
+  { key: 'Referrer-Policy', value: 'same-origin' },
+  { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
 ];
 
 const nextConfig: NextConfig = {
@@ -43,7 +59,8 @@ const nextConfig: NextConfig = {
       { source: '/:path*', headers: securityHeaders },
       // Cuenta y autenticación (A3, FR-013): nunca en caché, para que "atrás" tras cerrar sesión
       // vuelva a pedir la página al servidor.
-      ...PRIVATE_ROUTES.map((source) => ({ source, headers: [{ key: 'Cache-Control', value: 'private, no-store' }] })),
+      ...[...PRIVATE_ROUTES, ...NO_STORE_ROUTES].map((source) => ({ source, headers: [{ key: 'Cache-Control', value: 'private, no-store' }] })),
+      { source: '/gestion-cita/:path*', headers: MANAGE_HEADERS },
     ];
   },
 };

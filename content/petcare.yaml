@@ -369,8 +369,49 @@ legal_pages:
 
       Para cualquier duda sobre estos términos, escribe a ${LEGAL_CONTACT_EMAIL}.
 
+booking:
+  rules:
+    slot_step_minutes: 30
+    min_lead_minutes: 120
+    horizon_days: 60
+    change_cutoff_hours: 24
+    max_active_per_email: 3
+    max_active_per_customer: 9
+    reminder_hours_before: 24
+    retention_months: 12
+  services:
+    - slug: consulta-general
+      name: Consulta general
+      duration_minutes: 30
+      service: consulta-general
+      staff: [nerea-olmedo, inigo-barral, carlota-vives]
+    - slug: vacunacion
+      name: Vacunación
+      duration_minutes: 15
+      service: vacunacion-y-desparasitacion
+      staff: [nerea-olmedo, inigo-barral, carlota-vives]
+    - slug: revision-dental
+      name: Revisión dental
+      duration_minutes: 30
+      service: salud-dental
+      staff: [carlota-vives]
+    - slug: cirugia
+      name: Cirugía
+      duration_minutes: 60
+      service: cirugia-programada
+      staff: [inigo-barral]
+    - slug: dermatologia
+      name: Dermatología
+      duration_minutes: 30
+      service: dermatologia
+      staff: [carlota-vives]
+    - slug: otro
+      name: Otro
+      duration_minutes: 30
+      staff: [nerea-olmedo, inigo-barral, carlota-vives]
+
 sections:
-  - { key: reservas, label: Pide cita, href: null }
+  - { key: reservas, label: Pide cita, href: /pide-cita }
   - { key: tienda, label: Nuestros productos, href: null }
   - { key: carrito, label: Carrito, href: null }
   - { key: consejos, label: Consejos de salud, href: null }

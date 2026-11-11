@@ -79,7 +79,50 @@ const speciesItem = z.object({
   label: text(40),
 });
 
-export const contentSchema = z.object({
+// Reserva de citas (feature 003, contracts/content-file.md). Las reglas tienen valores por defecto.
+const intIn = (min: number, max: number, def: number) =>
+  z.number().int(`debe ser un número entero`).min(min, `debe estar entre ${min} y ${max}`).max(max, `debe estar entre ${min} y ${max}`).default(def);
+
+export const bookingRulesSchema = z.object({
+  slot_step_minutes: intIn(5, 120, 30),
+  min_lead_minutes: intIn(0, 10_080, 120),
+  horizon_days: intIn(1, 365, 60),
+  change_cutoff_hours: intIn(0, 168, 24),
+  max_active_per_email: intIn(1, 20, 3),
+  max_active_per_customer: intIn(1, 50, 9),
+  reminder_hours_before: intIn(0, 72, 24),
+  retention_months: intIn(1, 60, 12),
+});
+
+const bookingService = z.object({
+  slug: slug.refine((v) => v.length <= 60, 'el slug no puede superar 60 caracteres'),
+  name: text(80),
+  duration_minutes: z
+    .number()
+    .int('la duración debe ser un número entero de minutos')
+    .min(5, 'la duración debe estar entre 5 y 480 minutos')
+    .max(480, 'la duración debe estar entre 5 y 480 minutos')
+    .refine((v) => v % 5 === 0, 'la duración debe ser un múltiplo de 5 minutos'),
+  service: slug.nullish(),
+  staff: z
+    .array(slug, { error: 'falta la lista de profesionales (staff)' })
+    .min(1, 'cada servicio necesita al menos un profesional')
+    .max(20, 'no puede haber más de 20 profesionales por servicio')
+    .superRefine((v, ctx) => uniqueBy(v, (x) => x, ctx, 'profesional')),
+});
+
+export const bookingSchema = z.object({
+  rules: bookingRulesSchema.default(bookingRulesSchema.parse({})),
+  services: z
+    .array(bookingService, { error: 'falta la lista de servicios reservables (services)' })
+    .min(1, 'tiene que haber al menos un servicio reservable')
+    .max(20, 'no puede haber más de 20 servicios reservables')
+    .superRefine((v, ctx) => uniqueBy(v, (sv) => sv.slug, ctx, 'slug')),
+});
+
+const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+const contentObject = z.object({
   clinic: clinicSchema,
   species: z
     .array(speciesItem, { error: 'falta la lista de especies (species)' })
@@ -187,6 +230,42 @@ export const contentSchema = z.object({
         if (!list.some((s) => s.key === key)) ctx.addIssue({ code: 'custom', message: `falta la sección "${key}"` });
       }
     }),
+  booking: bookingSchema.nullish(),
+});
+
+/** Comprobaciones que cruzan bloques: el de reservas con el equipo, los servicios, el horario y las secciones. */
+export const contentSchema = contentObject.superRefine((c, ctx) => {
+  const reservas = c.sections.find((sec) => sec.key === 'reservas');
+  if (!c.booking) {
+    if (reservas?.href) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['booking'],
+        message: 'falta el bloque booking: es obligatorio si sections.reservas.href no es nulo',
+      });
+    }
+    return;
+  }
+  const team = new Set(c.team.map((m) => m.slug));
+  const services = new Set(c.services.map((sv) => sv.slug));
+  const longest = c.opening_hours.reduce((max, h) => Math.max(max, toMinutes(h.closes) - toMinutes(h.opens)), 0);
+  c.booking.services.forEach((sv, i) => {
+    sv.staff.forEach((m, j) => {
+      if (!team.has(m)) {
+        ctx.addIssue({ code: 'custom', path: ['booking', 'services', i, 'staff', j], message: `no existe el profesional "${m}" en team` });
+      }
+    });
+    if (sv.service && !services.has(sv.service)) {
+      ctx.addIssue({ code: 'custom', path: ['booking', 'services', i, 'service'], message: `no existe el servicio "${sv.service}" en services` });
+    }
+    if (sv.duration_minutes > longest) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['booking', 'services', i, 'duration_minutes'],
+        message: `la duración (${sv.duration_minutes} min) no cabe en ningún tramo del horario (el más largo es de ${longest} min)`,
+      });
+    }
+  });
 });
 
 export type ContentFile = z.infer<typeof contentSchema>;
