@@ -34,7 +34,7 @@ describe('purga por conservación', () => {
     await getPool().query("UPDATE rate_limit_hits SET hit_at = now() - interval '25 hours' WHERE ctid IN (SELECT ctid FROM rate_limit_hits LIMIT 1)");
 
     const result = await purgeExpired(await setupTestDb());
-    expect(result).toEqual({ messages: 1, hits: 1 });
+    expect(result).toMatchObject({ messages: 1, hits: 1 });
     expect(await q('SELECT email FROM contact_messages')).toEqual([{ email: 'nueva@example.test' }]);
     expect(await q('SELECT count(*)::int AS n FROM email_outbox')).toEqual([{ n: 2 }]);
     expect(await q('SELECT count(*)::int AS n FROM rate_limit_hits')).toEqual([{ n: 1 }]);

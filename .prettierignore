@@ -11,3 +11,4 @@ drizzle/
 design/
 package-lock.json
 specs/
+src/domain/common-passwords.ts

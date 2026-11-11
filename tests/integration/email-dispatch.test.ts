@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { startFakeEmailServer, type FakeEmailServer } from '../../scripts/fake-email-provider';
-import { getPool } from '@/db/client';
+import { getDb, getPool } from '@/db/client';
+import { enqueueAccountEmail } from '@/email/account-outbox';
 import { loadContentFile } from '@/content/load';
 import { backoffMs, dispatchPending, MAX_ATTEMPTS } from '@/email/dispatch';
 import { createFakeProvider } from '@/email/fake';
@@ -116,5 +117,64 @@ describe('envío de la bandeja de salida', () => {
       { kind: 'visitor_ack', status: 'failed' },
     ]);
     expect(await q('SELECT count(*)::int AS n FROM contact_messages')).toEqual([{ n: 1 }]);
+  });
+
+  describe('correos de cuenta con payload (feature 002, A8)', () => {
+    const payloadEmail = (to: string) => ({
+      to: { email: to, name: 'Ana' },
+      subject: 'Confirma tu correo',
+      text: 'Enlace: https://example.test/verificar-correo?token=SECRETO',
+      html: '<p>Enlace</p>',
+    });
+    const enqueue = (kind: 'verify_email' | 'password_changed', to = 'ana@example.test') =>
+      getDb().transaction((tx) => enqueueAccountEmail(tx, { kind, customerId: null, to, email: payloadEmail(to) }));
+
+    it('envía el payload tal cual y lo borra al pasar a sent', async () => {
+      const { id, queued } = await enqueue('verify_email');
+      expect(queued).toBe(true);
+      await dispatchPending({ provider: provider() });
+      const [row] = await q('SELECT status, payload, contact_message_id FROM email_outbox WHERE id = $1', [id]);
+      expect(row).toMatchObject({ status: 'sent', payload: null, contact_message_id: null });
+      expect(fake.emails).toHaveLength(1);
+      expect(String(fake.emails[0]!.body.textContent)).toContain('token=SECRETO');
+      expect(fake.emails[0]!.body.subject).toBe('Confirma tu correo');
+    });
+
+    it('borra el payload también al quedar failed', async () => {
+      const { id } = await enqueue('password_changed');
+      fake.setFailures(1, 401);
+      await dispatchPending({ provider: provider() });
+      const [row] = await q('SELECT status, payload FROM email_outbox WHERE id = $1', [id]);
+      expect(row).toMatchObject({ status: 'failed', payload: null });
+    });
+
+    it('conserva el payload mientras se reintenta', async () => {
+      const { id } = await enqueue('verify_email');
+      fake.setFailures(1, 503);
+      await dispatchPending({ provider: provider() });
+      const [row] = await q('SELECT status, payload FROM email_outbox WHERE id = $1', [id]);
+      expect(row.status).toBe('pending');
+      expect(row.payload).not.toBeNull();
+    });
+
+    it('limita a 3 por tipo, dirección y hora (el 4.º queda skipped_rate_limit, sin payload)', async () => {
+      for (let i = 0; i < 3; i++) expect((await enqueue('verify_email', 'Ana@Example.test')).queued).toBe(true);
+      const fourth = await enqueue('verify_email', 'ana@example.test');
+      expect(fourth.queued).toBe(false);
+      const [row] = await q('SELECT status, payload FROM email_outbox WHERE id = $1', [fourth.id]);
+      expect(row).toMatchObject({ status: 'skipped_rate_limit', payload: null });
+      // Otra dirección u otro tipo sin límite no se ven afectados.
+      expect((await enqueue('verify_email', 'otra@example.test')).queued).toBe(true);
+      for (let i = 0; i < 4; i++) expect((await enqueue('password_changed')).queued).toBe(true);
+    });
+
+    it('dispatchById solo envía las filas pedidas', async () => {
+      const a = await enqueue('verify_email', 'a@example.test');
+      await enqueue('verify_email', 'b@example.test');
+      await dispatchPending({ provider: provider(), outboxIds: [a.id] });
+      const rows = await q('SELECT recipient_hash, status FROM email_outbox ORDER BY status');
+      expect(rows.map((r) => r.status).sort()).toEqual(['pending', 'sent']);
+      expect(fake.emails).toHaveLength(1);
+    });
   });
 });

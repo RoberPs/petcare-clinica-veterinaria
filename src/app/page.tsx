@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Icon } from '@/components/Icon';
+import { Notice } from '@/components/Notice';
 import { sectionHref } from '@/domain/sections';
 import { getHomeData } from '@/db/queries/home';
 import { getSiteData } from '@/db/queries/site';
@@ -16,12 +17,21 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Portada (US1): propuesta, tres CTA, tres accesos rápidos, cifras y avisos con fuente. Sin boletín.
-export default async function HomePage() {
-  const { site, stats, notices } = await getHomeData();
+type Props = { searchParams: Promise<{ aviso?: string | string[] }> };
+
+export default async function HomePage({ searchParams }: Props) {
+  const [{ site, stats, notices }, { aviso }] = await Promise.all([getHomeData(), searchParams]);
   const { clinic, sections } = site;
+  // Solo los avisos de cerrar sesión y de cuenta eliminada llegan a la portada (A14).
+  const notice = aviso === 'sesion-cerrada' || aviso === 'cuenta-eliminada' ? aviso : undefined;
 
   return (
     <>
+      {notice ? (
+        <div className="container page-notice">
+          <Notice code={notice} />
+        </div>
+      ) : null}
       <section className="hero">
         <div className="container hero__grid">
           <div className="hero__card">

@@ -42,3 +42,40 @@ describe('SC-010: sin copia de textos de design/', () => {
     expect(copies).toEqual([]);
   });
 });
+
+// Feature 002: los textos de ejemplo de las maquetas de la cuenta no se publican (principio II).
+function walkFiles(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) walkFiles(full, out);
+    else if (/\.(tsx?|ya?ml)$/.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+// Rótulos de interfaz que pide la spec o el plan (no son textos de ejemplo de las maquetas).
+const ACCOUNT_UI_LABELS = new Set(['¿olvidaste tu contraseña?', '¿aún no tienes cuenta?']);
+
+describe('SC-010: sin copia de textos de las maquetas de la cuenta', () => {
+  const files = [...walkFiles('src'), ...walkFiles('content')];
+  const sources = files.map((f) => ({ f, text: readFileSync(f, 'utf8') }));
+
+  it('ni src/ ni content/ contienen los datos de ejemplo de cuenta.html, login.html y registro.html', () => {
+    const samples = ['Hola, María', 'Toby', 'Luna', '#1042', '#1037', '57,70 €'];
+    const found = sources.flatMap(({ f, text }) => samples.filter((s) => text.includes(s)).map((s) => `${f}: ${s}`));
+    expect(found).toEqual([]);
+  });
+
+  it('ni src/ ni content/ copian frases de más de 20 caracteres de esas maquetas', () => {
+    const phrases = new Set<string>();
+    for (const name of ['cuenta.html', 'login.html', 'registro.html']) {
+      const html = readFileSync(join('design', name), 'utf8').replace(/<script[\s\S]*?<\/script>/g, ' ');
+      for (const m of html.matchAll(/>([^<>]+)</g)) phrases.add(normalize(m[1]!));
+    }
+    const long = [...phrases].filter((t) => t.length > 20 && !ACCOUNT_UI_LABELS.has(t) && !REQUIRED_BY_SPEC.has(t));
+    expect(long.length).toBeGreaterThan(0);
+    const copies = sources.flatMap(({ f, text }) => long.filter((p) => normalize(text).includes(p)).map((p) => `${f}: ${p}`));
+    expect(copies).toEqual([]);
+  });
+});
+

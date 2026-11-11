@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { bucketKey, isRateLimited, toBucket } from '@/domain/rate-limit';
+import {
+  bucketKey,
+  isPolicyLimited,
+  isRateLimited,
+  RATE_POLICIES,
+  retryAfterMinutes,
+  toBucket,
+  toPolicyBucket,
+} from '@/domain/rate-limit';
 import { getClientIp } from '@/lib/client-ip';
 
 const SECRET = 'secreto-de-pruebas-unitarias-de-32-caracteres-o-mas';
@@ -45,5 +53,42 @@ describe('getClientIp', () => {
   it('sin proxy usa el último valor (el que añade el servidor)', () => {
     expect(getClientIp(headers('1.2.3.4, 127.0.0.1'), [])).toBe('127.0.0.1');
     expect(getClientIp(headers(null), [])).toBe('desconocida');
+  });
+});
+
+describe('políticas con nombre (A6)', () => {
+  it('tienen los límites decididos y "contact" no cambia', () => {
+    expect(RATE_POLICIES.contact).toMatchObject({ max: 5, windowMinutes: 10 });
+    expect(RATE_POLICIES.login_account).toMatchObject({ max: 5, windowMinutes: 15 });
+    expect(RATE_POLICIES.login_origin).toMatchObject({ max: 20, windowMinutes: 15 });
+    expect(RATE_POLICIES.auth_origin).toMatchObject({ max: 10, windowMinutes: 10 });
+    expect(toPolicyBucket('contact', '203.0.113.7', SECRET)).toBe(toBucket('203.0.113.7', SECRET));
+  });
+
+  it('el bucket lleva el prefijo de la política y nunca la clave en claro', () => {
+    const b = toPolicyBucket('login_account', 'Ana@Example.test', SECRET);
+    expect(b).toMatch(/^login_account:[0-9a-f]{64}$/);
+    expect(b).not.toContain('ana');
+    expect(toPolicyBucket('login_account', ' ana@example.TEST ', SECRET)).toBe(b);
+  });
+
+  it('las políticas por origen agrupan IPv6 por /64 y no se mezclan entre sí', () => {
+    expect(toPolicyBucket('auth_origin', '2001:db8:1:2::1', SECRET)).toBe(toPolicyBucket('auth_origin', '2001:db8:1:2:ffff::9', SECRET));
+    expect(toPolicyBucket('auth_origin', '203.0.113.7', SECRET)).not.toBe(toPolicyBucket('login_origin', '203.0.113.7', SECRET));
+  });
+
+  it('bloquea al llegar al máximo', () => {
+    expect(isPolicyLimited('login_account', 4)).toBe(false);
+    expect(isPolicyLimited('login_account', 5)).toBe(true);
+    expect(isPolicyLimited('login_origin', 19)).toBe(false);
+    expect(isPolicyLimited('login_origin', 20)).toBe(true);
+  });
+
+  it('calcula los minutos hasta que vuelve a haber hueco (como mínimo 1)', () => {
+    const now = new Date('2026-11-11T10:00:00Z');
+    expect(retryAfterMinutes(new Date('2026-11-11T09:50:00Z'), 'login_account', now)).toBe(5);
+    expect(retryAfterMinutes(new Date('2026-11-11T09:45:30Z'), 'login_account', now)).toBe(1);
+    expect(retryAfterMinutes(new Date('2026-11-11T09:59:59Z'), 'login_account', now)).toBe(15);
+    expect(retryAfterMinutes(new Date('2026-11-11T09:40:00Z'), 'login_account', now)).toBe(1);
   });
 });

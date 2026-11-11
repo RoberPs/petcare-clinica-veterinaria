@@ -1,4 +1,4 @@
-import { and, asc, eq, lte } from 'drizzle-orm';
+import { and, asc, eq, inArray, lte } from 'drizzle-orm';
 import { summarizeHours } from '@/domain/hours';
 import { getDb, type Db } from '@/db/client';
 import { clinic, contactMessages, emailOutbox, openingHours } from '@/db/schema';
@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger';
 import { getEmailProvider } from './provider';
 import { clinicNotification } from './templates/clinic-notification';
 import { visitorAck } from './templates/visitor-ack';
-import type { EmailClinic, EmailProvider } from './types';
+import type { EmailClinic, EmailProvider, OutgoingEmail } from './types';
 
 // Envío de la bandeja de salida (R7): intento inmediato y reintentos con espera creciente.
 
@@ -39,13 +39,24 @@ async function loadEmailClinic(db: Db): Promise<EmailClinic> {
   };
 }
 
-async function processRow(db: Db, row: OutboxRow, provider: EmailProvider, emailClinic: EmailClinic, now: Date) {
+/** Correo de una fila: el payload ya renderizado (cuentas, A8) o la plantilla del mensaje de contacto. */
+async function emailForRow(db: Db, row: OutboxRow, emailClinic: EmailClinic): Promise<OutgoingEmail | null> {
+  if (row.payload) return row.payload;
+  if (!row.contactMessageId) return null;
   const [msg] = await db.select().from(contactMessages).where(eq(contactMessages.id, row.contactMessageId));
-  if (!msg) return; // purgado: la fila desaparece en cascada
-  const email =
-    row.kind === 'clinic_notification'
-      ? clinicNotification(emailClinic, msg)
-      : visitorAck(emailClinic, { name: msg.name, email: msg.email });
+  if (!msg) return null; // purgado: la fila desaparece en cascada
+  return row.kind === 'clinic_notification'
+    ? clinicNotification(emailClinic, msg)
+    : visitorAck(emailClinic, { name: msg.name, email: msg.email });
+}
+
+async function processRow(db: Db, row: OutboxRow, provider: EmailProvider, emailClinic: EmailClinic, now: Date) {
+  const email = await emailForRow(db, row, emailClinic);
+  if (!email) {
+    // Fila sin nada que enviar (no debería ocurrir): se cierra para no reintentarla.
+    await db.update(emailOutbox).set({ status: 'failed', lastErrorCode: 'no_content', payload: null }).where(eq(emailOutbox.id, row.id));
+    return;
+  }
 
   const result = await provider.send(email);
   const attempts = row.attempts + 1;
@@ -53,7 +64,15 @@ async function processRow(db: Db, row: OutboxRow, provider: EmailProvider, email
   if (result.ok) {
     await db
       .update(emailOutbox)
-      .set({ status: 'sent', attempts, sentAt: now, providerMessageId: result.providerMessageId ?? null, lastErrorCode: null })
+      .set({
+        status: 'sent',
+        attempts,
+        sentAt: now,
+        providerMessageId: result.providerMessageId ?? null,
+        lastErrorCode: null,
+        // El enlace con el token y la dirección no se quedan guardados (A8).
+        payload: null,
+      })
       .where(eq(emailOutbox.id, row.id));
     logger.info({ outbox_id: row.id, message_id: row.contactMessageId, kind: row.kind, attempts }, 'email_sent');
     return;
@@ -67,6 +86,7 @@ async function processRow(db: Db, row: OutboxRow, provider: EmailProvider, email
       attempts,
       lastErrorCode: result.code,
       nextAttemptAt: final ? row.nextAttemptAt : new Date(now.getTime() + backoffMs(attempts)),
+      ...(final ? { payload: null } : {}),
     })
     .where(eq(emailOutbox.id, row.id));
   const log = { outbox_id: row.id, message_id: row.contactMessageId, kind: row.kind, attempts, code: result.code };
@@ -79,7 +99,14 @@ async function processRow(db: Db, row: OutboxRow, provider: EmailProvider, email
  * FOR UPDATE SKIP LOCKED dentro de su propia transacción, así que varios procesos no envían dos veces.
  */
 export async function dispatchPending(
-  options: { limit?: number; messageId?: string; provider?: EmailProvider; db?: Db; now?: () => Date } = {},
+  options: {
+    limit?: number;
+    messageId?: string;
+    outboxIds?: string[];
+    provider?: EmailProvider;
+    db?: Db;
+    now?: () => Date;
+  } = {},
 ): Promise<{ processed: number }> {
   const db = options.db ?? getDb();
   const provider = options.provider ?? getEmailProvider();
@@ -93,6 +120,7 @@ export async function dispatchPending(
       const now = clock();
       const filters = [eq(emailOutbox.status, 'pending'), lte(emailOutbox.nextAttemptAt, now)];
       if (options.messageId) filters.push(eq(emailOutbox.contactMessageId, options.messageId));
+      if (options.outboxIds) filters.push(inArray(emailOutbox.id, options.outboxIds));
       const [row] = await tx
         .select()
         .from(emailOutbox)
@@ -116,5 +144,16 @@ export async function dispatchForMessage(messageId: string): Promise<void> {
     await dispatchPending({ messageId, limit: 2 });
   } catch (error) {
     logger.error({ message_id: messageId, code: error instanceof Error ? error.message : 'unknown' }, 'email_dispatch_error');
+  }
+}
+
+/** Intento inmediato de uno o varios correos de cuenta (con after()). Los fallos quedan para email:dispatch. */
+export async function dispatchById(outboxIds: string | string[]): Promise<void> {
+  const ids = Array.isArray(outboxIds) ? outboxIds : [outboxIds];
+  if (ids.length === 0) return;
+  try {
+    await dispatchPending({ outboxIds: ids, limit: ids.length });
+  } catch (error) {
+    logger.error({ code: error instanceof Error ? error.message : 'unknown' }, 'email_dispatch_error');
   }
 }

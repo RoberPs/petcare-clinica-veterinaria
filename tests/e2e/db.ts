@@ -8,6 +8,9 @@ import { parse, stringify } from 'yaml';
 import { loadContentFile } from '../../src/content/load';
 import * as schema from '../../src/db/schema';
 import { testEnv } from '../test-env';
+import * as fx from '../account-fixtures';
+
+export { DEFAULT_PASSWORD, type TestCustomer } from '../account-fixtures';
 
 // Acceso directo a la base de datos de pruebas desde Playwright (cargar contenido y consultar mensajes).
 let pool: Pool | null = null;
@@ -51,3 +54,10 @@ export async function query<T = Record<string, unknown>>(sql: string, params: un
   const res = await testPool().query(sql, params);
   return res.rows as T[];
 }
+
+// ---------- Cuentas (feature 002) ----------
+
+export const createCustomer = (options: fx.CreateCustomerOptions = {}) => fx.createCustomer(testPool(), options);
+export const createSessionFor = (customerId: string, remember = false) => fx.createSessionFor(testPool(), customerId, remember);
+export const createPet = (customerId: string, options: fx.CreatePetOptions = {}) => fx.createPet(testPool(), customerId, options);
+export const resetAccountState = () => fx.resetAccountState(testPool());

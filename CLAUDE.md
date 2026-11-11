@@ -13,7 +13,8 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 1. **Busca primero**: cuando sepas qué buscas, busca con grep antes de leer un archivo entero y
    lee solo lo que necesites.
 2. **Explora con un subagente**: cuando haya que recorrer varias carpetas sin saber dónde está
-   algo, usa un subagente y trae solo el resumen, así el contexto principal queda limpio.
+   algo, usa un subagente con el modelo **Sonnet 5.5** (`model: sonnet`) y trae solo el resumen,
+   así el contexto principal queda limpio.
 3. **Solo el diff**: al cambiar un archivo, muestra el diff, no el archivo completo. Nada de
    reimprimir archivos. Al crear uno nuevo, muestra la ruta y un resumen de 2 o 3 líneas.
 4. **No repitas**: no repitas ni reabras lo ya decidido, ni en esta sesión ni lo que ya consta en
@@ -27,16 +28,20 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 1. [`.specify/memory/constitution.md`](.specify/memory/constitution.md) (v1.1.0). **Prevalece
    sobre todo.** Ante un conflicto con una spec, un plan o una tarea, gana la constitución.
 2. La spec y el plan de la feature activa, que indica `.specify/feature.json`. Hoy es
-   [`specs/001-public-clinic-website/`](specs/001-public-clinic-website/): `spec.md`, `plan.md`,
-   `research.md` (decisiones R1–R17), `data-model.md` y `contracts/`.
+   [`specs/002-client-accounts-pets/`](specs/002-client-accounts-pets/): `spec.md`, `plan.md`,
+   `research.md` (decisiones A1–A14), `data-model.md` y `contracts/`. Las decisiones R1–R17 de
+   la 001 siguen vigentes.
 3. [`design/README.md`](design/README.md), la guía visual.
 
 ## Estado actual
 
 - Feature **001 — web pública**: **implementada** (tareas en `specs/001-public-clinic-website/tasks.md`).
   Despliegue preparado en [`deploy/README.md`](deploy/README.md).
+- Feature **002 — cuentas de cliente y mascotas**: **implementada** (tareas en
+  `specs/002-client-accounts-pets/tasks.md`; desviaciones anotadas en su `checklists/requirements.md`).
+  Añade `@node-rs/argon2` y la migración `0001_client_accounts`.
 - **Repositorio**: `RoberPs/petcare-clinica-veterinaria` (propio, sin historial de otros
-  proyectos). **Rama de git**: `001-public-clinic-website`.
+  proyectos). **Rama de git**: `002-client-accounts-pets`.
 - PostgreSQL local: desarrollo en el puerto **5434** (el 5432 lo usa un PostgreSQL nativo) y
   pruebas en el **5433**.
 

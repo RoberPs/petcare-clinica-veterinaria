@@ -18,7 +18,7 @@ try {
   const summary = await loadContentFile(getDb(), file);
   console.log(
     `Contenido cargado desde ${file}: ${summary.services} servicios, ${summary.team} profesionales, ` +
-      `${summary.faqs} preguntas y ${summary.closures} cierres.`,
+      `${summary.faqs} preguntas, ${summary.closures} cierres y ${summary.species} especies.`,
   );
 } catch (error) {
   if (error instanceof ContentValidationError) {

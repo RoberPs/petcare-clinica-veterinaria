@@ -32,6 +32,11 @@ export default tseslint.config(
     },
   },
   {
+    // Lista generada por scripts/generate-common-passwords.ts (A7): no se revisa como código escrito a mano.
+    files: ['src/domain/common-passwords.ts'],
+    rules: { quotes: 'off', 'max-len': 'off' },
+  },
+  {
     // En las pruebas se manipulan objetos de contenido sin tipar.
     files: ['tests/**/*.ts'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
@@ -46,6 +51,8 @@ export default tseslint.config(
           patterns: [
             { group: ['next', 'next/*', 'react', 'react/*', 'react-dom', 'drizzle-orm', 'drizzle-orm/*', 'pg'], message: 'src/domain debe ser TypeScript puro.' },
             { group: ['@/db/*', '@/lib/*', '@/app/*', '@/components/*', '@/email/*'], message: 'src/domain no depende de otras capas.' },
+            // También por ruta relativa: la autenticación (src/lib/auth) y la base de datos (src/db) nunca entran en el dominio.
+            { group: ['**/lib/auth/*', '**/lib/*', '**/db/*', '**/db'], message: 'src/domain no puede importar src/lib ni src/db.' },
           ],
         },
       ],

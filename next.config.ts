@@ -11,6 +11,20 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
 ];
 
+// Rutas privadas y de autenticación (contracts/routes.md).
+const PRIVATE_ROUTES = [
+  '/mi-cuenta',
+  '/mi-cuenta/:path*',
+  '/iniciar-sesion',
+  '/crear-cuenta',
+  '/crear-cuenta/:path*',
+  '/verificar-correo',
+  '/recuperar-contrasena',
+  '/recuperar-contrasena/:path*',
+  '/restablecer-contrasena',
+  '/api/account/:path*',
+];
+
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
@@ -18,12 +32,19 @@ const nextConfig: NextConfig = {
   // también sin JavaScript y antes de cualquier script.
   htmlLimitedBots: /.*/,
   reactStrictMode: true,
+  // Argon2id (A1) es un módulo nativo: se carga desde node_modules en tiempo de ejecución, sin empaquetar.
+  serverExternalPackages: ['@node-rs/argon2'],
   images: {
     // Las imágenes de la demo son SVG propios; se sirven tal cual (sin optimizador) y con dimensiones.
     dangerouslyAllowSVG: false,
   },
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Cuenta y autenticación (A3, FR-013): nunca en caché, para que "atrás" tras cerrar sesión
+      // vuelva a pedir la página al servidor.
+      ...PRIVATE_ROUTES.map((source) => ({ source, headers: [{ key: 'Cache-Control', value: 'private, no-store' }] })),
+    ];
   },
 };
 

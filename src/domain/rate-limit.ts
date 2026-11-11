@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 
 // Límite por origen (R6): 5 envíos cada 10 minutos por IPv4 o por prefijo IPv6 /64.
 // La IP nunca se guarda en claro: el "bucket" es HMAC-SHA256(secreto, "contact:" + clave).
+// La feature 002 añade políticas con nombre (A6) sobre la misma tabla rate_limit_hits.
 
 export const RATE_LIMIT = { max: 5, windowMinutes: 10 } as const;
 
@@ -46,4 +47,48 @@ export function toBucket(ip: string, secret: string): string {
 
 export function isRateLimited(recentHits: number): boolean {
   return recentHits >= RATE_LIMIT.max;
+}
+
+// ---------- Políticas con nombre (feature 002, A6) ----------
+
+export interface RatePolicy {
+  max: number;
+  windowMinutes: number;
+  /** Qué identifica al que lo intenta: el origen (IP o /64) o la cuenta (correo normalizado). */
+  key: 'origin' | 'account';
+}
+
+export const RATE_POLICIES = {
+  contact: { max: RATE_LIMIT.max, windowMinutes: RATE_LIMIT.windowMinutes, key: 'origin' },
+  /** Fallos de inicio de sesión por cuenta (también si el correo no existe). */
+  login_account: { max: 5, windowMinutes: 15, key: 'account' },
+  /** Fallos de inicio de sesión por origen. */
+  login_origin: { max: 20, windowMinutes: 15, key: 'origin' },
+  /** Registro, reenvío de verificación y recuperación de contraseña, por origen. */
+  auth_origin: { max: 10, windowMinutes: 10, key: 'origin' },
+} as const satisfies Record<string, RatePolicy>;
+
+export type RatePolicyName = keyof typeof RATE_POLICIES;
+
+/**
+ * Bucket de una política: "<política>:" + HMAC. La clave es la IP (agrupada como bucketKey) o el
+ * correo normalizado; ninguna se guarda en claro. La política "contact" conserva su formato de la 001.
+ */
+export function toPolicyBucket(policy: RatePolicyName, key: string, secret: string): string {
+  if (policy === 'contact') return toBucket(key, secret);
+  const value = RATE_POLICIES[policy].key === 'origin' ? bucketKey(key) : key.trim().toLowerCase();
+  return `${policy}:${createHmac('sha256', secret).update(`${policy}:${value}`).digest('hex')}`;
+}
+
+export function isPolicyLimited(policy: RatePolicyName, recentHits: number): boolean {
+  return recentHits >= RATE_POLICIES[policy].max;
+}
+
+/**
+ * Minutos hasta que vuelve a haber hueco: el intento más antiguo de la ventana más la duración de
+ * la ventana. Siempre al menos 1, para que el mensaje "en N minutos" tenga sentido.
+ */
+export function retryAfterMinutes(oldestHitInWindow: Date, policy: RatePolicyName, now: Date): number {
+  const freeAt = oldestHitInWindow.getTime() + RATE_POLICIES[policy].windowMinutes * 60_000;
+  return Math.max(1, Math.ceil((freeAt - now.getTime()) / 60_000));
 }

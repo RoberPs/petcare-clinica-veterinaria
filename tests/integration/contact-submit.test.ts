@@ -43,7 +43,9 @@ describe('envío del formulario de contacto', () => {
     expect(out.result.status).toBe('ok');
     expect(out.newMessageId).toBeDefined();
     const [msg] = await q('SELECT *, age(purge_after, created_at) AS keep FROM contact_messages');
-    expect(msg).toMatchObject({ name: 'Ana Prueba', phone: null, email: 'ana@example.test', reason_label: 'Consulta sobre una cita', privacy_version: '2026-11-10' });
+    // La versión vigente de la política de privacidad (cambia al actualizar content/petcare.yaml).
+    const [privacy] = await q("SELECT version FROM legal_pages WHERE kind = 'privacidad'");
+    expect(msg).toMatchObject({ name: 'Ana Prueba', phone: null, email: 'ana@example.test', reason_label: 'Consulta sobre una cita', privacy_version: privacy.version });
     expect(msg.privacy_accepted_at).toBeInstanceOf(Date);
     expect(msg.keep).toMatchObject({ years: 1 });
     const outbox = await q('SELECT kind, status, attempts FROM email_outbox ORDER BY kind');

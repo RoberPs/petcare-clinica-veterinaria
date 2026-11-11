@@ -1,22 +1,23 @@
 import { testEnv } from '../test-env';
 import { axeCheck, dismissCookies, expect, test } from './fixtures';
 
-const PAGES: [string, string, string][] = [
-  ['Aviso legal', '/aviso-legal', 'Aviso legal'],
-  ['Política de privacidad', '/privacidad', 'Política de privacidad'],
-  ['Política de cookies', '/politica-de-cookies', 'Política de cookies'],
-  ['Términos de uso', '/terminos', 'Términos de uso'],
+// La privacidad y las cookies se actualizaron con la feature 002 (cuentas y cookies de sesión).
+const PAGES: [string, string, string, string][] = [
+  ['Aviso legal', '/aviso-legal', 'Aviso legal', '10 de noviembre de 2026'],
+  ['Política de privacidad', '/privacidad', 'Política de privacidad', '11 de noviembre de 2026'],
+  ['Política de cookies', '/politica-de-cookies', 'Política de cookies', '11 de noviembre de 2026'],
+  ['Términos de uso', '/terminos', 'Términos de uso', '10 de noviembre de 2026'],
 ];
 
 test.describe('US8 · páginas legales', () => {
-  for (const [link, path, title] of PAGES) {
+  for (const [link, path, title, updated] of PAGES) {
     test(`"${link}" desde el pie lleva a su página con título y fecha`, async ({ page }) => {
       await page.goto('/');
       await dismissCookies(page);
       await page.getByRole('contentinfo').getByRole('link', { name: link, exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`${path}$`));
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
-      await expect(page.getByText('Última actualización: 10 de noviembre de 2026')).toBeVisible();
+      await expect(page.getByText(`Última actualización: ${updated}`)).toBeVisible();
       await expect(page.getByRole('main')).toContainText(testEnv.LEGAL_OWNER_NAME!);
       await expect(page.getByRole('main')).toContainText('ficticia');
       await expect(page.getByRole('main')).not.toContainText(/\bNIF\s*:/);
