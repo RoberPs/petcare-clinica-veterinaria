@@ -202,6 +202,13 @@ activity_stats:
 # Sin avisos de salud: solo se publican si tienen una fuente real verificable.
 health_notices: []
 
+species:
+  - { key: perro, label: Perro }
+  - { key: gato, label: Gato }
+  - { key: conejo, label: Conejo }
+  - { key: huron, label: Hurón }
+  - { key: ave, label: Ave }
+
 contact_reasons:
   - { slug: informacion-general, label: Información general }
   - { slug: consulta-cita, label: Consulta sobre una cita }
@@ -238,8 +245,8 @@ legal_pages:
       responsabilidad de sus titulares.
   - kind: privacidad
     title: Política de privacidad
-    version: '2026-11-10'
-    updated_on: '2026-11-10'
+    version: '2026-11-11'
+    updated_on: '2026-11-11'
     body_md: |
       ## Quién trata tus datos
 
@@ -260,13 +267,39 @@ legal_pages:
       dirección IP junto al mensaje: solo se usa, cifrada y durante 24 horas, para frenar envíos
       automáticos.
 
+      Si creas una **cuenta de cliente**:
+
+      - **Nombre y apellidos**: para saludarte y saber quién eres cuando pidas cita.
+      - **Correo electrónico**: para iniciar sesión, confirmar que es tuyo y enviarte los avisos de
+        tu cuenta (confirmación, cambio de contraseña, eliminación).
+      - **Contraseña**: para proteger tu cuenta. Solo guardamos una huella cifrada (Argon2id), nunca
+        la contraseña.
+      - **Teléfono y dirección** (opcionales): para contactarte y, en el futuro, para los envíos de
+        la tienda.
+      - **Tus mascotas** (nombre, especie y fecha de nacimiento): para tener su ficha a mano y
+        preparar sus citas.
+      - **Preferencia de consejos y novedades** (opcional): solo te escribimos si la activas.
+      - La fecha y la versión de esta política y de los términos cuando los aceptas, y los cambios de
+        tu preferencia de comunicaciones.
+
+      Para frenar los accesos indebidos contamos los intentos fallidos de inicio de sesión, siempre
+      cifrados y durante 24 horas como mucho.
+
       ## Base legal
 
-      Tu consentimiento, que das al marcar la casilla de privacidad antes de enviar el formulario.
+      - **Formulario de contacto**: tu consentimiento, que das al marcar la casilla de privacidad.
+      - **Cuenta de cliente y mascotas**: la ejecución del contrato (los términos de uso) que aceptas
+        al crear la cuenta.
+      - **Consejos y novedades**: tu consentimiento, que puedes retirar cuando quieras desde
+        "Datos personales".
 
       ## Cuánto tiempo los guardamos
 
-      Los mensajes se borran automáticamente a los **12 meses**.
+      - Los mensajes de contacto se borran automáticamente a los **12 meses**.
+      - Los datos de tu cuenta y de tus mascotas se guardan **hasta que eliminas la cuenta**. Al
+        eliminarla se borran en el acto y de forma definitiva.
+      - Las cuentas que no se confirman se borran a los **7 días**.
+      - Las sesiones caducan solas (a las 2 horas sin actividad, o a los 30 días con "Recordarme").
 
       ## Quién más interviene
 
@@ -278,15 +311,26 @@ legal_pages:
       Puedes pedir el acceso, la rectificación, la supresión, la limitación, la oposición y la
       portabilidad de tus datos escribiendo a **${LEGAL_CONTACT_EMAIL}**. Si crees que no se han
       respetado, puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).
+
+      Si tienes cuenta, desde **Mi cuenta → Datos personales** puedes, sin escribirnos:
+
+      - corregir tus datos y los de tus mascotas;
+      - **descargar tus datos** en un archivo JSON (portabilidad);
+      - **eliminar tu cuenta**, con todos sus datos y mascotas (supresión);
+      - activar o desactivar los consejos y novedades.
   - kind: cookies
     title: Política de cookies
-    version: '2026-11-10'
-    updated_on: '2026-11-10'
+    version: '2026-11-11'
+    updated_on: '2026-11-11'
     body_md: |
       ## Qué cookies usamos
 
       - **pc_consent** (propia y necesaria): recuerda si aceptas o rechazas las cookies de terceros.
         Dura 12 meses y no sirve para seguirte.
+      - **pc_session** (propia y necesaria): mantiene abierta tu sesión si tienes cuenta. Se borra al
+        cerrar el navegador o, si marcas "Recordarme", a los 30 días. Solo se crea al iniciar sesión.
+      - **pc_login_hint** (propia y necesaria): rellena tu correo en "Iniciar sesión" justo después
+        de confirmarlo. Dura 10 minutos.
 
       No usamos cookies de analítica ni de publicidad.
 
@@ -330,4 +374,4 @@ sections:
   - { key: tienda, label: Nuestros productos, href: null }
   - { key: carrito, label: Carrito, href: null }
   - { key: consejos, label: Consejos de salud, href: null }
-  - { key: cuenta, label: Mi cuenta, href: null }
+  - { key: cuenta, label: Mi cuenta, href: /mi-cuenta }

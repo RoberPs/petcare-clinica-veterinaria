@@ -351,6 +351,31 @@ body.has-cookie-banner { padding-bottom: var(--cookie-banner-space); }
 .cookie-settings form { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .cookie-settings .btn { min-width: var(--select-min); justify-content: center; }
 
+/* ===== Área de cliente (feature 002) ===== */
+.notice-status { padding: var(--space-3) var(--space-4); }
+.page-notice { padding-top: var(--space-4); }
+.side-nav form { display: contents; }
+.side-nav button { padding: var(--space-2-5) var(--space-3-5); border-radius: var(--radius-nav); border: 0; background: none; color: inherit; font: inherit; font-weight: var(--fw-medium); text-align: left; cursor: pointer; }
+.side-nav button:hover { background: var(--color-sky-light); }
+.account-main { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.account-main h2 { margin: 0; }
+.pet--add { justify-content: center; align-items: center; border: var(--outline-width) dashed var(--color-sky); background: transparent; }
+ul.pets { list-style: none; margin: 0; padding: 0; }
+.pet--add__link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; height: 100%; }
+.pet--add__plus { font-size: var(--fs-icon-md); line-height: 1; }
+.pet__avatar svg { width: var(--size-icon-img); height: var(--size-icon-img); }
+.pet__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: auto; }
+.pet h3 { margin: 0; }
+.auth__card--wide { width: min(var(--container-card), 92vw); }
+.auth__card h1 { margin: 0; }
+.auth__card > p { margin: 0; }
+.auth__options { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-2); font-size: var(--fs-sm); }
+.auth__options a { text-decoration: underline; text-underline-offset: var(--underline-offset-sm); }
+.check a { text-decoration: underline; text-underline-offset: var(--underline-offset-sm); }
+.form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.form legend { padding: 0; margin-bottom: var(--space-2); font-weight: var(--fw-semibold); }
+.field input[readonly] { background: var(--color-sky-light); }
+
 @media (max-width: 900px) {
   .contact-grid, .shop-layout, .detail, .cart-layout, .account-grid, .field-row { grid-template-columns: 1fr; }
   .cart-item { grid-template-columns: var(--size-thumb-sm) 1fr; }

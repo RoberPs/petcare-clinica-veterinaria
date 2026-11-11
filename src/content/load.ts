@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { and, eq, notInArray, sql } from 'drizzle-orm';
+import { and, count, eq, isNotNull, notInArray, sql } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import { parse as parseYaml } from 'yaml';
 import type { Db } from '@/db/client';
@@ -60,10 +60,14 @@ export interface LoadSummary {
   team: number;
   faqs: number;
   closures: number;
+  species: number;
+  /** Mascotas cuya especie ha desaparecido del archivo y pasan a "Otra" (species_key = NULL). */
+  petsMovedToOther: number;
 }
 
 export async function loadContent(db: Db, content: ContentFile): Promise<LoadSummary> {
   const c = content.clinic;
+  let petsMovedToOther = 0;
   await db.transaction(async (tx) => {
     const clinicValues = {
       singleton: true,
@@ -177,13 +181,35 @@ export async function loadContent(db: Db, content: ContentFile): Promise<LoadSum
       const v = { key: sec.key, label: sec.label, href: sec.href };
       await tx.insert(s.sections).values(v).onConflictDoUpdate({ target: s.sections.key, set: { ...v, updatedAt: now } });
     }
+
+    // Especies (A10): upsert por clave y borrado de las ausentes. Sus mascotas pasan a "Otra"
+    // por la clave foránea (ON DELETE SET NULL).
+    for (const [i, sp] of content.species.entries()) {
+      const v = { key: sp.key, label: sp.label, sortOrder: i };
+      await tx.insert(s.species).values(v).onConflictDoUpdate({ target: s.species.key, set: v });
+    }
+    const keys = content.species.map((sp) => sp.key);
+    const [moved] = await tx
+      .select({ n: count() })
+      .from(s.pets)
+      .where(and(isNotNull(s.pets.speciesKey), notInArray(s.pets.speciesKey, keys)));
+    petsMovedToOther = moved?.n ?? 0;
+    await tx.delete(s.species).where(notInArray(s.species.key, keys));
   });
+
+  if (petsMovedToOther > 0) {
+    console.warn(
+      `Aviso: ${petsMovedToOther} mascota(s) tenían una especie que ya no está en el archivo y pasan a "Otra".`,
+    );
+  }
 
   return {
     services: content.services.length,
     team: content.team.length,
     faqs: content.faq_topics.reduce((n, t) => n + t.faqs.length, 0),
     closures: content.closures.length,
+    species: content.species.length,
+    petsMovedToOther,
   };
 }
 

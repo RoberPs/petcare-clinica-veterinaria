@@ -45,6 +45,19 @@ docker compose -f deploy/docker-compose.prod.yml exec petcare-app node cli/conte
 Para cambiar el contenido: edita `content/petcare.yaml`, reconstruye la imagen (o copia el archivo
 al contenedor) y repite `content-load`. Los cambios se ven al momento (no hay caché que invalidar).
 
+### Actualizar a la feature 002 (cuentas de cliente y mascotas)
+
+1. Reconstruye la imagen (`up -d --build`): añade `@node-rs/argon2`, que trae binarios para Alpine.
+2. Aplica la migración `0001_client_accounts` con `cli/migrate.mjs`. Crea las tablas de cuentas,
+   sesiones, enlaces, especies y mascotas, y generaliza `email_outbox`. No toca los datos de la 001.
+3. Recarga el contenido con `cli/content-load.mjs`: carga las `species` y pone `cuenta.href` a
+   `/mi-cuenta` (el enlace "Mi cuenta" deja de llevar a "Próximamente"). La política de privacidad y
+   la de cookies suben de versión.
+4. Comprueba que `SITE_URL` es la URL `https://` pública: con ella se construyen los enlaces de los
+   correos de cuenta y la cookie `pc_session` lleva `Secure`. No hay variables nuevas obligatorias.
+
+Si se quita una especie del YAML, sus mascotas pasan a "Otra"; `content-load` avisa de cuántas.
+
 ## 5. Caddy compartido
 
 1. Copia `deploy/caddy/petcare.caddy` junto al Caddyfile del chatbot e impórtalo (o pega el bloque).
@@ -63,6 +76,8 @@ systemctl list-timers 'petcare-*'
 
 - `petcare-email-dispatch` (cada minuto): reintenta los correos pendientes (8 intentos en unas 24 h).
 - `petcare-purge` (diario): borra los mensajes de más de 12 meses y el registro del límite de más de 24 h.
+  Desde la feature 002, en el mismo temporizador, también las cuentas sin verificar de más de 7 días,
+  las sesiones y los enlaces caducados, y los envíos procesados y correos de cuenta de más de 24 h.
 - `petcare-backup` (diario): `pg_dump` comprimido en `/var/backups/petcare`, rotado a 14 días.
 
 ## 7. Comprobaciones

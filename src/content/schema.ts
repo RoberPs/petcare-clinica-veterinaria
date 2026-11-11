@@ -68,8 +68,24 @@ const closure = z
   .object({ slug, starts_on: isoDate, ends_on: isoDate, reason: text(120) })
   .refine((c) => c.starts_on <= c.ends_on, { message: 'starts_on no puede ser posterior a ends_on', path: ['ends_on'] });
 
+// Especies de mascota (feature 002, contracts/content-file.md). "other" está reservada: es la opción
+// "Otra" que añade la interfaz.
+export const SPECIES_KEY_RE = /^[a-z][a-z0-9-]{0,31}$/;
+const speciesItem = z.object({
+  key: z
+    .string()
+    .regex(SPECIES_KEY_RE, 'la clave de la especie debe empezar por una letra y usar a-z, 0-9 y guiones (máximo 32)')
+    .refine((k) => k !== 'other', 'la clave "other" está reservada para la opción "Otra"'),
+  label: text(40),
+});
+
 export const contentSchema = z.object({
   clinic: clinicSchema,
+  species: z
+    .array(speciesItem, { error: 'falta la lista de especies (species)' })
+    .min(1, 'tiene que haber al menos una especie')
+    .max(20, 'no puede haber más de 20 especies')
+    .superRefine((v, ctx) => uniqueBy(v, (sp) => sp.key, ctx, 'key')),
   opening_hours: z.array(openingSlot).superRefine((slots, ctx) => {
     slots.forEach((a, i) => {
       slots.forEach((b, j) => {

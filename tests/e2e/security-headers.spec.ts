@@ -1,4 +1,5 @@
-import { dismissCookies, expect, isNoJs, test } from './fixtures';
+import { createCustomer, resetAccountState } from './db';
+import { dismissCookies, expect, isNoJs, loginAs, test } from './fixtures';
 
 // CSP con nonce por petición (R14) y ninguna infracción de CSP en la consola.
 test.describe('cabeceras de seguridad', () => {
@@ -45,3 +46,52 @@ test.describe('cabeceras de seguridad', () => {
     });
   }
 });
+
+// Feature 002: cuenta y autenticación.
+test.describe('cabeceras de seguridad de la cuenta', () => {
+  const PUBLIC = ['/crear-cuenta', '/iniciar-sesion', '/recuperar-contrasena', '/verificar-correo', '/restablecer-contrasena'];
+  const PRIVATE = ['/mi-cuenta', '/mi-cuenta/mascotas', '/mi-cuenta/datos'];
+
+  test('no-store, noindex y CSP con nonce en las rutas de la cuenta', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'son cabeceras: basta con un proyecto');
+    await resetAccountState();
+    const c = await createCustomer();
+    const check = async (path: string) => {
+      const response = await page.goto(path);
+      const headers = response!.headers();
+      expect(headers['cache-control'], path).toContain('no-store');
+      expect(headers['content-security-policy'], path).toMatch(/'nonce-[^']+'/);
+      expect(headers['x-frame-options'], path).toBe('DENY');
+      await expect(page.locator('meta[name="robots"]').first(), path).toHaveAttribute('content', /noindex/);
+    };
+    for (const path of PUBLIC) await check(path);
+    await loginAs(page, c);
+    for (const path of PRIVATE) await check(path);
+    const robots = await (await page.request.get('/robots.txt')).text();
+    expect(robots).toContain('Disallow: /mi-cuenta');
+  });
+
+  test('la cookie pc_session es HttpOnly, SameSite=Lax y Path=/ (Secure solo con https)', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'basta con un proyecto');
+    await resetAccountState();
+    const c = await createCustomer();
+    await page.goto('/iniciar-sesion');
+    await dismissCookies(page);
+    await page.getByLabel('Correo electrónico').fill(c.email);
+    await page.getByLabel('Contraseña', { exact: true }).fill(c.password);
+    const [response] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/iniciar-sesion')),
+      page.getByRole('button', { name: 'Iniciar sesión' }).click(),
+    ]);
+    const setCookie = (await response.headerValue('set-cookie')) ?? '';
+    const session = setCookie.split('\n').find((line) => line.startsWith('pc_session='))!;
+    expect(session).toMatch(/HttpOnly/i);
+    expect(session).toMatch(/SameSite=lax/i);
+    expect(session).toMatch(/Path=\//);
+    // En las pruebas la web va por http://localhost: sin Secure (el navegador no la guardaría).
+    // En producción SITE_URL es https y la cookie lleva Secure (cookieIsSecure()).
+    expect(session).not.toMatch(/;\s*Secure/i);
+    await expect(page).toHaveURL(/\/mi-cuenta$/);
+  });
+});
+

@@ -78,3 +78,43 @@ describe('esquema del archivo de contenido', () => {
     expect(parseContent(content, env).ok).toBe(false);
   });
 });
+
+describe('especies (feature 002)', () => {
+  const withSpecies = (species: unknown) => {
+    const content = petcare();
+    content.species = species;
+    return parseContent(content, env);
+  };
+  const issuesOf = (result: ReturnType<typeof parseContent>) => (result.ok ? [] : result.issues);
+
+  it('content/petcare.yaml trae especies válidas y en orden', () => {
+    const result = parseContent(petcare(), env);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.species.map((s) => s.key)).toEqual(['perro', 'gato', 'conejo', 'huron', 'ave']);
+  });
+
+  it('rechaza la clave reservada "other"', () => {
+    const issues = issuesOf(withSpecies([{ key: 'other', label: 'Otra' }]));
+    expect(issues.some((i) => i.path === 'species[0].key' && i.message.includes('reservada'))).toBe(true);
+  });
+
+  it('rechaza claves duplicadas', () => {
+    const issues = issuesOf(withSpecies([{ key: 'perro', label: 'Perro' }, { key: 'perro', label: 'Can' }]));
+    expect(issues.some((i) => i.path === 'species[1]' && i.message.includes('repetido'))).toBe(true);
+  });
+
+  it('rechaza una lista vacía, una lista ausente y más de 20 especies', () => {
+    expect(issuesOf(withSpecies([])).some((i) => i.path === 'species')).toBe(true);
+    expect(issuesOf(withSpecies(undefined)).some((i) => i.path === 'species')).toBe(true);
+    const many = Array.from({ length: 21 }, (_, i) => ({ key: `especie-${i}`, label: `Especie ${i}` }));
+    expect(issuesOf(withSpecies(many)).some((i) => i.path === 'species')).toBe(true);
+  });
+
+  it('rechaza claves con formato no válido y etiquetas vacías o largas', () => {
+    expect(issuesOf(withSpecies([{ key: 'Perro', label: 'Perro' }]))[0]?.path).toBe('species[0].key');
+    expect(issuesOf(withSpecies([{ key: '1perro', label: 'Perro' }]))[0]?.path).toBe('species[0].key');
+    expect(issuesOf(withSpecies([{ key: 'perro', label: '  ' }]))[0]?.path).toBe('species[0].label');
+    expect(issuesOf(withSpecies([{ key: 'perro', label: 'x'.repeat(41) }]))[0]?.path).toBe('species[0].label');
+  });
+});

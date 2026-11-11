@@ -18,7 +18,8 @@ test.describe('US2 · cabecera y pie comunes', () => {
     await expect(cta.nth(1)).toHaveText('Pide cita');
     await expect(cta.nth(2)).toHaveText('Contacto');
     await expect(cta.nth(3)).toHaveAttribute('aria-label', 'Carrito');
-    await expect(cta.nth(0)).toHaveAttribute('href', '/proximamente/cuenta');
+    // Desde la feature 002, "Mi cuenta" lleva al área personal (cuenta.href = /mi-cuenta).
+    await expect(cta.nth(0)).toHaveAttribute('href', '/mi-cuenta');
     await expect(cta.nth(3)).toHaveAttribute('href', '/proximamente/carrito');
     await axeCheck(page);
   });

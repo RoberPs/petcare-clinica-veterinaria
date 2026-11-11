@@ -5,6 +5,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -251,16 +252,34 @@ export const contactMessages = pgTable(
   ],
 );
 
-export const outboxKind = pgEnum('outbox_kind', ['clinic_notification', 'visitor_ack']);
+export const outboxKind = pgEnum('outbox_kind', [
+  'clinic_notification',
+  'visitor_ack',
+  'verify_email',
+  'account_exists',
+  'password_reset',
+  'password_changed',
+  'account_deleted',
+]);
 export const outboxStatus = pgEnum('outbox_status', ['pending', 'sent', 'failed', 'skipped_rate_limit']);
+
+/** Correo ya renderizado (A8): solo existe mientras el correo está pendiente. */
+export interface OutboxPayload {
+  to: { email: string; name?: string };
+  subject: string;
+  html: string;
+  text: string;
+}
 
 export const emailOutbox = pgTable(
   'email_outbox',
   {
     id: id(),
-    contactMessageId: uuid('contact_message_id')
-      .notNull()
-      .references(() => contactMessages.id, { onDelete: 'cascade' }),
+    // Nulo en los correos de cuenta (A8): esos llevan el payload ya renderizado.
+    contactMessageId: uuid('contact_message_id').references(() => contactMessages.id, { onDelete: 'cascade' }),
+    // Sobrevive al borrado de la cuenta (SET NULL): así se envía el aviso "account_deleted".
+    customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+    payload: jsonb('payload').$type<OutboxPayload>(),
     kind: outboxKind('kind').notNull(),
     recipientHash: text('recipient_hash').notNull(),
     status: outboxStatus('status').notNull().default('pending'),
@@ -274,8 +293,13 @@ export const emailOutbox = pgTable(
   (t) => [
     unique('email_outbox_message_kind').on(t.contactMessageId, t.kind),
     check('email_outbox_attempts', sql`${t.attempts} between 0 and 8`),
+    check(
+      'email_outbox_source',
+      sql`${t.contactMessageId} is not null or ${t.payload} is not null or ${t.status} in ('sent', 'failed', 'skipped_rate_limit')`,
+    ),
     index('email_outbox_pending_idx').on(t.nextAttemptAt).where(sql`${t.status} = 'pending'`),
     index('email_outbox_ack_idx').on(t.recipientHash, t.createdAt),
+    index('email_outbox_customer_idx').on(t.customerId),
   ],
 );
 
@@ -287,4 +311,136 @@ export const rateLimitHits = pgTable(
     hitAt: timestamp('hit_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('rate_limit_hits_bucket_idx').on(t.bucket, t.hitAt)],
+);
+
+// ---------- Cuentas de cliente (feature 002, data-model.md) ----------
+
+export const customers = pgTable(
+  'customers',
+  {
+    id: id(),
+    email: text('email').notNull(),
+    emailNormalized: text('email_normalized').notNull().unique(),
+    firstName: text('first_name').notNull(),
+    lastName: text('last_name').notNull(),
+    phone: text('phone'),
+    addressLine: text('address_line'),
+    postalCode: text('postal_code'),
+    city: text('city'),
+    province: text('province'),
+    passwordHash: text('password_hash').notNull(),
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+    marketingOptIn: boolean('marketing_opt_in').notNull().default(false),
+    marketingOptInChangedAt: timestamp('marketing_opt_in_changed_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    check('customers_email_len', sql`char_length(${t.email}) between 3 and 254`),
+    check('customers_first_name_len', sql`char_length(${t.firstName}) between 1 and 80`),
+    check('customers_last_name_len', sql`char_length(${t.lastName}) between 1 and 80`),
+    check('customers_phone_len', sql`${t.phone} is null or char_length(${t.phone}) <= 30`),
+    check('customers_address_len', sql`${t.addressLine} is null or char_length(${t.addressLine}) <= 120`),
+    check('customers_postal_code', sql`${t.postalCode} is null or ${t.postalCode} ~ '^[0-9]{5}$'`),
+    check('customers_city_len', sql`${t.city} is null or char_length(${t.city}) <= 80`),
+    check('customers_province_len', sql`${t.province} is null or char_length(${t.province}) <= 80`),
+    check('customers_postal_city', sql`(${t.postalCode} is null) = (${t.city} is null)`),
+    index('customers_unverified_idx').on(t.createdAt).where(sql`${t.emailVerifiedAt} is null`),
+  ],
+);
+
+export const consentKind = pgEnum('consent_kind', ['privacy_terms', 'marketing_opt_in', 'marketing_opt_out']);
+
+export const customerConsents = pgTable(
+  'customer_consents',
+  {
+    id: id(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    kind: consentKind('kind').notNull(),
+    privacyVersion: text('privacy_version'),
+    termsVersion: text('terms_version'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('customer_consents_customer_idx').on(t.customerId, t.createdAt)],
+);
+
+export const customerSessions = pgTable(
+  'customer_sessions',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    remember: boolean('remember').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    index('customer_sessions_customer_idx').on(t.customerId),
+    index('customer_sessions_expires_idx').on(t.expiresAt),
+  ],
+);
+
+export const tokenPurpose = pgEnum('token_purpose', ['verify_email', 'reset_password']);
+
+export const accountTokens = pgTable(
+  'account_tokens',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    purpose: tokenPurpose('purpose').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('account_tokens_customer_purpose_idx').on(t.customerId, t.purpose)],
+);
+
+export const species = pgTable(
+  'species',
+  {
+    key: text('key').primaryKey(),
+    label: text('label').notNull(),
+    sortOrder: smallint('sort_order').notNull(),
+  },
+  (t) => [
+    check('species_key_format', sql`${t.key} ~ '^[a-z][a-z0-9-]{0,31}$' and ${t.key} <> 'other'`),
+    check('species_label_len', sql`char_length(${t.label}) between 1 and 40`),
+  ],
+);
+
+export const pets = pgTable(
+  'pets',
+  {
+    id: id(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    speciesKey: text('species_key').references(() => species.key, { onDelete: 'set null', onUpdate: 'cascade' }),
+    birthDate: date('birth_date').notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    check('pets_name_len', sql`char_length(${t.name}) between 1 and 40 and ${t.name} = btrim(${t.name})`),
+    index('pets_customer_name_idx').on(t.customerId, t.name),
+  ],
+);
+
+export const processedSubmissions = pgTable(
+  'processed_submissions',
+  {
+    submissionId: uuid('submission_id').primaryKey(),
+    scope: text('scope').notNull(),
+    resultRef: text('result_ref'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('processed_submissions_scope', sql`${t.scope} in ('register', 'pet_create')`),
+    index('processed_submissions_created_idx').on(t.createdAt),
+  ],
 );
