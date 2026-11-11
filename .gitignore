@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+cli/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.lighthouseci/
+*.log
+*.tsbuildinfo
+next-env.d.ts
+
+# Secretos: solo .env.example va al repositorio.
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.idea/
+
+# Material de referencia de terceros (no se publica) y caché de Spec Kit
+design/reference/
+.specify/extensions/.cache/
