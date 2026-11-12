@@ -67,3 +67,18 @@
   cita", "Mis citas" y "Pedir cita"; `content-load.test.ts` y `us3-services.spec.ts` quitan también los enlaces del bloque `booking:` a
   las fichas que eliminan; `account-export.test.ts` espera la clave `citas`; y `loginAs`
   admite la hora de la sesión para las pruebas con `x-test-now`.
+
+## Ajustes tras las pruebas manuales del quickstart (2026-11-12)
+
+- **Paso de fecha y hora (escenario 4)**: al cambiar la fecha del calendario sin pulsar "Ver horas",
+  se seguían viendo las horas del día pintado y la cita iba a ese día. Con JavaScript,
+  `SlotDateGuard` oculta esas horas y avisa (`role="status"`) hasta pulsar "Ver horas". No envía el
+  formulario al cambiar la fecha (WCAG 3.2.2). Sin JavaScript sigue como en B5. Se añade
+  `[hidden] { display: none !important; }` a `design/styles.css`.
+- **Aviso nuevo `dia-sin-horas`**: una hora en un día sin horario (cierre, domingo o completo) ya no
+  dice "Esa hora se acaba de ocupar".
+
+## Cierre
+
+- **Quickstart manual completado (2026-11-12)**: los 11 escenarios de `quickstart.md` son
+  correctos, con y sin JavaScript. La feature 003 queda **cerrada**.

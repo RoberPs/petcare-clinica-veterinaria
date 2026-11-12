@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { createAppointmentInDb, createCustomer, madrid, query, resetAccountState, resetBookingState } from './db';
-import { BOOKING_NOW, dismissCookies, expect, fakeEmails, loginAs, setTestNow, test } from './fixtures';
+import { BOOKING_NOW, dismissCookies, expect, fakeEmails, isNoJs, loginAs, setTestNow, test } from './fixtures';
 
 // Escenarios de quickstart.md que no cubrían del todo los e2e de cada historia: 2 (recargar y Atrás),
 // 4 (sábado por la tarde y cierre), 8 (envío forzado fuera de plazo) y 10 (invitado con el correo
@@ -52,6 +52,31 @@ test.describe('quickstart: escenarios restantes', () => {
     await expect(page.getByText('No quedan horas libres el martes, 8 de diciembre de 2026.')).toBeVisible();
     await page.getByRole('link', { name: 'Ver horas del miércoles, 9 de diciembre de 2026' }).click();
     await expect(page.getByRole('group', { name: 'Horas disponibles' }).getByRole('radio', { name: '09:30' })).toBeVisible();
+  });
+
+  test('4: cambiar la fecha sin pulsar "Ver horas" oculta las horas del día anterior', async ({ page }, info) => {
+    test.skip(isNoJs(info.project.name), 'mejora con JavaScript; sin él se sigue pulsando "Ver horas" (B5)');
+    await page.goto(`/pide-cita?servicio=consulta-general&profesional=sin-preferencia&fecha=${TUESDAY}`);
+    await dismissCookies(page);
+    const hours = page.getByRole('group', { name: 'Horas disponibles' });
+    await expect(hours.getByRole('radio', { name: '10:00' })).toBeVisible();
+
+    await page.getByLabel('Fecha', { exact: true }).fill('2026-12-08');
+    await expect(hours).toBeHidden();
+    await expect(page.getByRole('status').filter({ hasText: 'Has cambiado la fecha' })).toBeVisible();
+    // Volver a la fecha pintada recupera sus horas.
+    await page.getByLabel('Fecha', { exact: true }).fill(TUESDAY);
+    await expect(hours.getByRole('radio', { name: '10:00' })).toBeVisible();
+
+    await page.getByLabel('Fecha', { exact: true }).fill('2026-12-08');
+    await page.getByRole('button', { name: 'Ver horas' }).click();
+    await expect(page.getByText('No quedan horas libres el martes, 8 de diciembre de 2026.')).toBeVisible();
+  });
+
+  test('4: una hora forzada en un día sin horario no dice "se acaba de ocupar"', async ({ page }) => {
+    await page.goto('/pide-cita?servicio=consulta-general&profesional=sin-preferencia&fecha=2026-12-13&hora=10:00');
+    await expect(page.locator('.form-summary')).toContainText('Ese día no hay horas libres');
+    await expect(page.locator('.form-summary')).not.toContainText('se acaba de ocupar');
   });
 
   test('8: un envío hecho ya fuera de plazo se rechaza en el servidor', async ({ page }) => {

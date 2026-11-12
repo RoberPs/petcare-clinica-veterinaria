@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { describedBy, FieldError, fieldId } from './FormParts';
+import { SlotDateGuard } from './SlotDateGuard';
 
 // Elección de fecha y hora (paso 2, cambio de cita y gestión de la clínica). Sin hooks ni
 // dependencias de servidor: también lo usa DetailsStep (cliente) cuando la hora se ha ocupado.
@@ -74,7 +75,10 @@ interface Props extends SlotRadiosProps {
   extraFields?: React.ReactNode;
 }
 
-const hiddenInputs = (hidden: Props['hidden']) =>
+const HOURS_FORM_ID = 'form-horas';
+const PENDING_ID = 'aviso-fecha-pendiente';
+
+const hiddenInputs =(hidden: Props['hidden']) =>
   Object.entries(hidden)
     .filter(([, v]) => v)
     .map(([k, v]) => <input key={k} type="hidden" name={k} value={v!} />);
@@ -104,6 +108,8 @@ export function SlotPicker(props: Props) {
             aria-describedby={describedBy('fecha', errors)}
           />
           <FieldError name="fecha" errors={errors} />
+          <p className="field__hint" id={PENDING_ID} role="status" hidden />
+          <SlotDateGuard date={date} hoursFormId={HOURS_FORM_ID} messageId={PENDING_ID} />
         </div>
         <div className="form-actions">
           <button className="btn btn--ghost" type="submit">
@@ -114,6 +120,7 @@ export function SlotPicker(props: Props) {
       {errors.fecha ? null : (
         <form
           className="form"
+          id={HOURS_FORM_ID}
           {...(props.postAction ? { action: props.postAction } : { method: 'get', action })}
           noValidate
         >

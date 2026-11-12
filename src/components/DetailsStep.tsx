@@ -60,10 +60,14 @@ const LABELS: Record<string, string> = {
   fecha: 'Fecha',
 };
 
+/** Sin ninguna hora libre ese día (cierre, domingo o completo) no es "se acaba de ocupar". */
+const takenNotice = (taken: TakenSlots) =>
+  taken.slots.length === 0 ? NOTICES['dia-sin-horas'] : NOTICES['hora-ocupada'];
+
 function stateMessage(state: BookingFormState, phone: React.ReactNode): React.ReactNode {
   switch (state.status) {
     case 'slot_taken':
-      return NOTICES['hora-ocupada'];
+      return takenNotice(state);
     case 'rate_limited': {
       const n = state.retryMinutes;
       return (
@@ -106,7 +110,7 @@ export function DetailsStep(props: Props) {
   const phone = <a href={`tel:${props.phoneE164}`}>{props.phoneDisplay}</a>;
   const v = (name: string, fallback?: string) => values[name] ?? fallback;
   const taken: TakenSlots | null = state.status === 'slot_taken' ? state : (props.taken ?? null);
-  const message = state.status === 'idle' && taken ? NOTICES['hora-ocupada'] : stateMessage(state, phone);
+  const message = state.status === 'idle' && taken ? takenNotice(taken) : stateMessage(state, phone);
 
   return (
     <form className="form" action={formAction} noValidate={hydrated}>

@@ -15,6 +15,7 @@ export const NOTICES = {
   'cuenta-eliminada': 'Hemos eliminado tu cuenta y todos sus datos.',
   // Reserva de citas (feature 003).
   'hora-ocupada': 'Esa hora se acaba de ocupar. Elige otra de las horas libres.',
+  'dia-sin-horas': 'Ese día no hay horas libres. Elige otro día.',
   'cita-cancelada': 'Hemos cancelado la cita y enviado la confirmación por correo.',
   'cita-cambiada': 'Hemos cambiado la cita y enviado los nuevos datos por correo.',
   'fuera-de-plazo': 'Ya no se puede cancelar ni cambiar esta cita desde la web. Llama a la clínica.',
