@@ -18,8 +18,13 @@ try {
   const summary = await loadContentFile(getDb(), file);
   console.log(
     `Contenido cargado desde ${file}: ${summary.services} servicios, ${summary.team} profesionales, ` +
-      `${summary.faqs} preguntas, ${summary.closures} cierres y ${summary.species} especies.`,
+      `${summary.faqs} preguntas, ${summary.closures} cierres y ${summary.species} especies. ` +
+      `Tienda: ${summary.products} productos, ${summary.shopCategories} categorías y ${summary.shopPets} mascotas` +
+      ` (${summary.productsHidden} productos despublicados).`,
   );
+  for (const slug of summary.compareAtIgnored) {
+    console.warn(`Aviso: ${slug} tiene compare_at_price menor o igual que price; no se mostrará en oferta.`);
+  }
 } catch (error) {
   if (error instanceof ContentValidationError) {
     console.error(`No se ha cargado nada: ${file} tiene ${error.issues.length} error(es):`);

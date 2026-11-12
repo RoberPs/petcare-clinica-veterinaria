@@ -14,8 +14,9 @@ tocar el código.
 | Módulo | Estado |
 |---|---|
 | Web pública: portada, tratamientos, la clínica, contacto, preguntas frecuentes y páginas legales | ✅ implementada (feature 001) |
-| Reserva de citas online | ⏳ futura (hoy lleva a "Próximamente") |
-| Tienda online: catálogo, producto, carrito y checkout con pagos de prueba | ⏳ futura |
+| Reserva de citas online | ✅ implementada (feature 003) |
+| Tienda online: catálogo y ficha de producto | ✅ implementada (feature 004, sin compra) |
+| Tienda online: carrito y checkout con pagos de prueba | ⏳ futura |
 | Consejos de salud (artículos) | ⏳ futura |
 | Área de cliente: mascotas, citas y pedidos | ⏳ futura |
 | Panel de administración | ⏳ futura (hasta entonces, el contenido se carga desde un archivo) |
@@ -105,6 +106,30 @@ npm run dev            # http://localhost:3000
 
 El PostgreSQL de desarrollo escucha en el puerto **5434** y el de pruebas en el **5433**.
 
+### Catálogo de la tienda (bloque `shop:`)
+
+El catálogo (feature 004, sin compra) se carga con el resto del contenido desde el bloque `shop:`
+de `content/<clinica>.yaml`. El formato completo está en
+[`specs/004-product-catalog/contracts/content-file.md`](specs/004-product-catalog/contracts/content-file.md).
+
+- `settings`: plazo de envío (`shipping_text`), productos por página (`page_size`, de 4 a 48),
+  meta descripción del listado y el aviso de demostración (`demo_notice`).
+- `categories` y `pets`: listas con `slug` y `name`, en el orden de los filtros.
+- `products`: en el orden "Destacados". Cada uno lleva `slug`, `name`, `category`, `pets` (una o
+  varias), `price`, `vat_rate` (0, 4, 10 o 21), `stock`, `short_description` y `description`
+  (Markdown). Son opcionales `compare_at_price` (oferta si es mayor que `price`), `is_new`,
+  `ingredients`, `usage`, `image` e `image_alt`.
+- **Precios**: en euros con IVA incluido, como cadena y con punto decimal (`price: "39.90"`), con 2
+  decimales como máximo. La carga los guarda en céntimos.
+- **Imágenes**: en `public/media/<clinica>/productos/` y referenciadas como
+  `media/<clinica>/productos/<slug>.svg`. Si hay `image`, `image_alt` es obligatorio y el archivo
+  tiene que existir; sin imagen se usa una genérica.
+- Quitar un producto del archivo lo despublica (conserva su `id`) y volver a ponerlo lo republica.
+- **Desactivar el aviso de demostración**: `demo_notice: { enabled: false }` (o quitar el bloque).
+- **Desactivar la tienda**: `{ key: tienda, ..., href: null }` en `sections`. `/productos` y las
+  fichas dan 404 y los enlaces vuelven a "Próximamente". Con la tienda activa, el bloque `shop:` es
+  obligatorio.
+
 ## Comandos
 
 ```bash
@@ -112,7 +137,7 @@ npm run lint              # ESLint, tsc y check:design (sin CSS fuera de design/
 npm test                  # unitarias
 npm run test:integration  # PostgreSQL real (docker compose up -d db-test)
 npm run test:e2e          # Playwright: 3 perfiles (móvil 360, escritorio y sin JavaScript) y axe
-npm run test:lighthouse   # Lighthouse CI móvil sobre / (requiere npm run build)
+npm run test:lighthouse   # Lighthouse CI móvil sobre /, /productos y una ficha (requiere npm run build)
 npm run email:dispatch    # reintenta los correos pendientes
 npm run email:fake:list   # correos recibidos por el proveedor falso
 npm run retention:purge   # borra los mensajes de más de 12 meses

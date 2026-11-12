@@ -1,9 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { isSectionKey } from '@/domain/sections';
 import { buildCsp } from '@/lib/csp';
+import { catalogRouteExists } from '@/db/queries/catalog-visibility';
 
+/**
+ * Catálogo (feature 004): /productos con la tienda apagada y una ficha inexistente o no visible
+ * van al 404 normal por el mismo motivo que /proximamente. Si la consulta falla, la página decide.
+ */
+async function catalogRouteOk(pathname: string): Promise<boolean> {
+  const match = pathname.match(/^\/productos(?:\/([^/]+))?\/?$/);
+  if (!match) return true;
+  try {
+    return await catalogRouteExists(match[1] ? decodeURIComponent(match[1]) : null);
+  } catch {
+    return true;
+  }
+}
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const csp = buildCsp(nonce);
 
@@ -17,15 +31,17 @@ export function middleware(request: NextRequest) {
   // Una sección desconocida va a la página 404 normal (con notFound() dentro de la página dinámica,
   // Next.js deja el cuerpo para el cliente y sin JavaScript no se vería nada).
   const coming = request.nextUrl.pathname.match(/^\/proximamente\/([^/]+)\/?$/);
-  const response =
-    coming && !isSectionKey(decodeURIComponent(coming[1]!))
-      ? NextResponse.rewrite(new URL('/__no-encontrada', request.url), { request: { headers: requestHeaders } })
-      : NextResponse.next({ request: { headers: requestHeaders } });
+  const missing = (coming && !isSectionKey(decodeURIComponent(coming[1]!))) || !(await catalogRouteOk(request.nextUrl.pathname));
+  const response = missing
+    ? NextResponse.rewrite(new URL('/__no-encontrada', request.url), { request: { headers: requestHeaders } })
+    : NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set('Content-Security-Policy', csp);
   return response;
 }
 
 export const config = {
+  // Node.js (Next 15.5) para poder consultar PostgreSQL desde el middleware.
+  runtime: 'nodejs',
   matcher: [
     {
       source: '/((?!api/health|_next/static|_next/image|media/|favicon.ico).*)',

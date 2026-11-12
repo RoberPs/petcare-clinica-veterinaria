@@ -94,3 +94,17 @@ describe('sin datos personales en los logs de cuentas', () => {
     expect(whole).toEqual([]);
   });
 });
+
+// Feature 004 (contracts/routes.md): el catálogo no registra el término buscado ni otros parámetros.
+describe('el catálogo no escribe logs', () => {
+  const catalogFiles = [
+    'src/db/queries/catalog.ts',
+    'src/components/CatalogFilters.tsx',
+    'src/app/productos/page.tsx',
+    'src/app/productos/[slug]/page.tsx',
+  ];
+  it.each(catalogFiles)('%s no llama al logger ni a console', (f) => {
+    const text = readFileSync(f, 'utf8');
+    expect(text).not.toMatch(/\b(logger|log|console)\.(info|warn|error|debug|log)\(/);
+  });
+});

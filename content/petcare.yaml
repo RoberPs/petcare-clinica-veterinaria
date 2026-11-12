@@ -150,7 +150,7 @@ faq_topics:
         question: ¿Vendéis piensos y antiparasitarios?
         answer_md: >-
           Sí. Tenemos una selección de alimentación y productos de higiene que recomendamos en
-          consulta. Pronto podrás verla en [Nuestros productos](section:tienda).
+          consulta. Puedes verla en [Nuestros productos](section:tienda).
       - slug: recoger-pedido
         question: ¿Puedo encargar un producto y recogerlo después?
         answer_md: >-
@@ -410,9 +410,446 @@ booking:
       duration_minutes: 30
       staff: [nerea-olmedo, inigo-barral, carlota-vives]
 
+
+# Catálogo de la tienda (feature 004, contracts/content-file.md). Productos genéricos de demostración,
+# sin marcas; los precios van en euros con IVA incluido, como cadena.
+shop:
+  settings:
+    shipping_text: 24-48 h
+    page_size: 12
+    meta_description: Alimentación, higiene, juguetes, accesorios y cuidado para perros, gatos y otros animales, seleccionados por nuestro equipo.
+    demo_notice:
+      enabled: true
+      text: "Tienda de demostración: estos productos no están a la venta."
+  categories:
+    - { slug: alimentacion, name: Alimentación }
+    - { slug: higiene, name: Higiene }
+    - { slug: juguetes, name: Juguetes }
+    - { slug: accesorios, name: Accesorios }
+    - { slug: salud-bienestar, name: Salud y bienestar }
+  pets:
+    - { slug: perro, name: Perro }
+    - { slug: gato, name: Gato }
+    - { slug: otros, name: Otros animales }
+  products:
+    - slug: pienso-perro-adulto
+      name: Pienso de pollo para perro adulto, 12 kg
+      category: alimentacion
+      pets: [perro]
+      price: "42.50"
+      compare_at_price: "47.90"
+      vat_rate: 10
+      stock: 14
+      is_new: true
+      image: media/petcare/productos/pienso-perro-adulto.svg
+      image_alt: Saco de pienso ilustrado con una huella en la etiqueta
+      short_description: Croquetas de pollo para el día a día de perros adultos de tamaño medio.
+      description: |
+        Croquetas de tamaño medio pensadas para el día a día de un perro adulto activo. Aportan
+        proteína de calidad, fibra para una buena digestión y ácidos grasos que ayudan a mantener
+        el pelo brillante.
+
+        Si tu perro tiene alguna necesidad especial, pregúntanos en consulta cuál le conviene más.
+      ingredients: |
+        Carne de pollo deshidratada (26 %), arroz, maíz, grasa animal, pulpa de remolacha, aceite de
+        pescado, minerales y vitaminas.
+      usage: |
+        Reparte la ración diaria en dos tomas y deja siempre agua fresca a su alcance. Haz el cambio
+        desde otro pienso de forma gradual, durante 7 días.
+
+    - slug: pienso-gato-esterilizado
+      name: Pienso para gato esterilizado 3 kg
+      category: alimentacion
+      pets: [gato]
+      price: "24.50"
+      vat_rate: 10
+      stock: 20
+      image: media/petcare/productos/pienso-gato-esterilizado.svg
+      image_alt: Saco de pienso ilustrado en tonos azules
+      short_description: Receta baja en grasa que ayuda a mantener el peso del gato esterilizado.
+      description: |
+        Tras la esterilización, muchos gatos necesitan menos calorías. Esta receta controla la grasa
+        y aumenta la fibra para que se sientan saciados, y cuida las vías urinarias.
+      ingredients: |
+        Pavo deshidratado (30 %), arroz, proteína de guisante, fibra vegetal, aceite de pescado,
+        taurina, minerales y vitaminas.
+      usage: |
+        Sigue la tabla de la bolsa según el peso ideal de tu gato, no el actual, y divide la ración
+        en varias tomas al día.
+
+    - slug: comida-humeda-gato
+      name: Sobres de comida húmeda para gato, 12 unidades
+      category: alimentacion
+      pets: [gato]
+      price: "14.90"
+      vat_rate: 10
+      stock: 30
+      image: media/petcare/productos/comida-humeda-gato.svg
+      image_alt: Caja ilustrada con varias latas redondas
+      short_description: Doce raciones individuales en salsa para complementar el pienso seco.
+      description: |
+        Raciones de 85 g en salsa suave. Aportan hidratación extra, algo especialmente útil en gatos
+        que beben poco.
+      ingredients: |
+        Carne y subproductos animales (pollo 4 %), pescado, cereales, minerales y azúcares.
+      usage: |
+        Una ración al día como complemento del pienso. Una vez abierta, guárdala en la nevera y
+        úsala en 24 horas.
+
+    - slug: heno-conejo
+      name: Heno natural para conejos 1 kg
+      category: alimentacion
+      pets: [otros]
+      price: "6.90"
+      vat_rate: 10
+      stock: 25
+      image: media/petcare/productos/heno-conejo.svg
+      image_alt: Fardo de heno ilustrado atado con una cinta verde
+      short_description: Heno de hierba seca, la base de la dieta de conejos y cobayas.
+      description: |
+        Heno largo y aromático que ayuda al desgaste natural de los dientes y al buen funcionamiento
+        del intestino de conejos, cobayas y chinchillas.
+      ingredients: |
+        Heno de gramíneas (100 %).
+      usage: |
+        Debe estar disponible a todas horas. Cámbialo a diario y guárdalo en un lugar seco.
+
+    - slug: barritas-dentales-perro
+      name: Barritas dentales para perro
+      category: alimentacion
+      pets: [perro]
+      price: "7.50"
+      vat_rate: 10
+      stock: 40
+      image: media/petcare/productos/barritas-dentales-perro.svg
+      image_alt: Barrita masticable con forma de hueso ilustrada
+      short_description: Premios masticables que ayudan a reducir la placa dental.
+      description: |
+        Su textura obliga a masticar despacio, lo que ayuda a arrastrar la placa. No sustituyen al
+        cepillado, pero lo complementan.
+      ingredients: |
+        Almidón de patata, glicerina, celulosa, extracto de menta y minerales.
+      usage: |
+        Un snack al día para perros de más de 10 kg. Vigila a tu perro mientras lo come.
+
+    - slug: champu-piel-sensible
+      name: Champú para piel sensible 250 ml
+      category: higiene
+      pets: [perro, gato]
+      price: "12.90"
+      vat_rate: 21
+      stock: 18
+      image: media/petcare/productos/champu-piel-sensible.svg
+      image_alt: Bote de champú ilustrado en color verde menta
+      short_description: Champú suave con avena, sin perfume, para pieles delicadas.
+      description: |
+        Limpia sin resecar y calma la piel que pica. Su pH está adaptado a perros y gatos, y no lleva
+        perfume para que no moleste a los animales más sensibles.
+      ingredients: |
+        Agua, extracto de avena, glicerina, tensioactivos suaves de origen vegetal y pantenol.
+      usage: |
+        Moja bien el pelo, aplica el champú, masajea durante 5 minutos y aclara con abundante agua.
+        Evita los ojos.
+
+    - slug: arena-aglomerante-gato
+      name: Arena aglomerante para gato 10 l
+      category: higiene
+      pets: [gato]
+      price: "11.90"
+      vat_rate: 21
+      stock: 0
+      image: media/petcare/productos/arena-aglomerante-gato.svg
+      image_alt: Bolsa de arena ilustrada en tonos azules
+      short_description: Arena de bentonita que forma bolas compactas y controla el olor.
+      description: |
+        Absorbe la orina al momento y forma bolas fáciles de retirar, así que la bandeja dura más
+        limpia.
+      usage: |
+        Llena la bandeja con 5 a 7 cm de arena. Retira las bolas a diario y cámbiala entera cada
+        dos o tres semanas.
+
+    - slug: toallitas-limpieza
+      name: Toallitas de limpieza para mascotas
+      category: higiene
+      pets: [perro, gato]
+      price: "5.90"
+      vat_rate: 21
+      stock: 50
+      image: media/petcare/productos/toallitas-limpieza.svg
+      image_alt: Paquete de toallitas ilustrado con una toallita asomando
+      short_description: Toallitas húmedas para patas, hocico y pelo después del paseo.
+      description: |
+        Paquete de 40 toallitas grandes y resistentes para una limpieza rápida entre baños.
+      usage: |
+        Pasa la toallita en el sentido del pelo. No la uses en heridas ni en los ojos.
+
+    - slug: cepillo-desenredante
+      name: Cepillo desenredante
+      category: higiene
+      pets: [perro, gato]
+      price: "10.50"
+      compare_at_price: "13.90"
+      vat_rate: 21
+      stock: 12
+      image: media/petcare/productos/cepillo-desenredante.svg
+      image_alt: Cepillo de púas ilustrado con mango azul marino
+      short_description: Cepillo de púas flexibles para pelo medio y largo.
+      description: |
+        Deshace los nudos sin tirones y retira el pelo muerto. Cepillar con regularidad reduce las
+        bolas de pelo en los gatos.
+      usage: |
+        Cepilla en el sentido del pelo, por zonas pequeñas. En los nudos grandes, sujeta el pelo
+        por la base para no tirar de la piel.
+
+    - slug: pelota-caucho-flotante
+      name: Pelota de caucho flotante
+      category: juguetes
+      pets: [perro]
+      price: "8.40"
+      vat_rate: 21
+      stock: 22
+      image: media/petcare/productos/pelota-caucho-flotante.svg
+      image_alt: Pelota ilustrada en verde con dos líneas blancas
+      short_description: Pelota de caucho que bota y flota, para jugar dentro y fuera de casa.
+      description: |
+        Caucho natural muy resistente a los mordiscos. Su tamaño evita que se la trague un perro
+        mediano o grande.
+
+    - slug: raton-hierba-gatera
+      name: Ratón de tela con hierba gatera
+      category: juguetes
+      pets: [gato]
+      price: "4.50"
+      vat_rate: 21
+      stock: 35
+      image: media/petcare/productos/raton-hierba-gatera.svg
+      image_alt: Ratón de juguete ilustrado en gris con orejas rosas
+      short_description: Ratón de tela relleno de hierba gatera para estimular el juego.
+      description: |
+        Un clásico que despierta el instinto de caza. La hierba gatera anima a muchos gatos a jugar y
+        a moverse más.
+
+    - slug: tunel-roedores
+      name: Túnel de juego para roedores
+      category: juguetes
+      pets: [otros]
+      price: "10.50"
+      vat_rate: 21
+      stock: 8
+      image: media/petcare/productos/tunel-roedores.svg
+      image_alt: Túnel en forma de arco ilustrado en azul claro
+      short_description: Túnel plegable donde conejos y cobayas pueden esconderse y jugar.
+      description: |
+        Les da un lugar donde refugiarse y explorar, lo que reduce el estrés de los animales de
+        presa.
+      usage: |
+        Colócalo en una zona tranquila del recinto. Lávalo a mano con agua templada.
+
+    - slug: varita-plumas-gato
+      name: Varita de plumas para gato
+      category: juguetes
+      pets: [gato]
+      price: "5.40"
+      vat_rate: 21
+      stock: 0
+      image: media/petcare/productos/varita-plumas-gato.svg
+      image_alt: Varita de juguete ilustrada con tres plumas de colores
+      short_description: Varita flexible con plumas para jugar con tu gato.
+      description: |
+        Permite jugar a distancia y simular el vuelo de un pájaro. Diez minutos de juego al día
+        ayudan a mantener a raya el aburrimiento.
+      usage: |
+        Guárdala al terminar de jugar: las plumas y el cordel no deben quedar a su alcance sin
+        vigilancia.
+
+    - slug: rascador-torre
+      name: Rascador de torre para gato
+      category: accesorios
+      pets: [gato]
+      price: "49.90"
+      vat_rate: 21
+      stock: 5
+      is_new: true
+      image: media/petcare/productos/rascador-torre.svg
+      image_alt: Rascador de varios niveles ilustrado con una pelota colgante
+      short_description: Rascador de dos alturas con plataforma y juguete colgante.
+      description: |
+        Rascar es una necesidad para el gato: cuida sus uñas y marca su territorio. Este rascador le
+        ofrece un lugar propio para hacerlo y una plataforma desde la que vigilar.
+      usage: |
+        Colócalo cerca de su zona de descanso. Si al principio no lo usa, frota un poco de hierba
+        gatera en el poste.
+
+    - slug: correa-ajustable
+      name: Correa ajustable de nailon
+      category: accesorios
+      pets: [perro]
+      price: "14.50"
+      vat_rate: 21
+      stock: 16
+      image: media/petcare/productos/correa-ajustable.svg
+      image_alt: Correa ilustrada en verde azulado con mosquetón
+      short_description: Correa de 1,2 a 2 m con asa acolchada y mosquetón giratorio.
+      description: |
+        Nailon resistente y lavable. La longitud se ajusta en tres posiciones para la ciudad o para
+        pasear por el campo.
+      usage: |
+        Revisa el mosquetón cada cierto tiempo y cambia la correa si ves el tejido deshilachado.
+
+    - slug: cama-acolchada
+      name: Cama acolchada lavable
+      category: accesorios
+      pets: [perro, gato]
+      price: "34.90"
+      vat_rate: 21
+      stock: 7
+      image: media/petcare/productos/cama-acolchada.svg
+      image_alt: Cama redonda ilustrada en rosa con una huella en el centro
+      short_description: Cama redonda con borde alto para descansar enroscado.
+      description: |
+        Relleno suave que recupera la forma y funda que se quita y se lava a máquina. El borde alto
+        da sensación de refugio.
+      usage: |
+        Lava la funda a 30 °C y déjala secar al aire.
+
+    - slug: comedero-doble
+      name: Comedero doble de acero
+      category: accesorios
+      pets: [perro, gato]
+      price: "15.90"
+      vat_rate: 21
+      stock: 19
+      image: media/petcare/productos/comedero-doble.svg
+      image_alt: Base con dos cuencos ilustrados, uno con agua y otro con pienso
+      short_description: Dos cuencos de acero inoxidable sobre una base antideslizante.
+      description: |
+        El acero no guarda olores y se limpia fácilmente. La base evita que el comedero se desplace
+        mientras come.
+      usage: |
+        Lava los cuencos a diario. Aptos para el lavavajillas.
+
+    - slug: transportin-ventilado
+      name: Transportín ventilado
+      category: accesorios
+      pets: [gato, otros]
+      price: "32.00"
+      vat_rate: 21
+      stock: 6
+      image: media/petcare/productos/transportin-ventilado.svg
+      image_alt: Transportín ilustrado con asa y rejilla delantera
+      short_description: Transportín rígido con rejilla y asa para gatos y animales pequeños.
+      description: |
+        Ideal para las visitas a la clínica. La parte superior se abre, así que es más fácil sacar a
+        un animal nervioso sin forzarlo.
+      usage: |
+        Déjalo abierto en casa unos días antes del viaje, con una manta conocida dentro, para que
+        se acostumbre.
+
+    - slug: bebedero-roedores
+      name: Bebedero para roedores 500 ml
+      category: accesorios
+      pets: [otros]
+      price: "7.90"
+      vat_rate: 21
+      stock: 14
+      short_description: Bebedero de botella con boquilla antigoteo para jaulas.
+      description: |
+        Mantiene el agua limpia y sin restos de comida. Se sujeta a los barrotes con un soporte
+        ajustable.
+      usage: |
+        Cambia el agua a diario y limpia la botella una vez por semana.
+
+    - slug: pipetas-antiparasitarias-perro
+      name: Pipetas antiparasitarias para perro, 3 unidades
+      category: salud-bienestar
+      pets: [perro]
+      price: "21.90"
+      vat_rate: 21
+      stock: 10
+      image: media/petcare/productos/pipetas-antiparasitarias-perro.svg
+      image_alt: Tres pipetas ilustradas en verde menta
+      short_description: Protección frente a pulgas y garrapatas para perros de 10 a 25 kg.
+      description: |
+        Cada pipeta protege durante unas cuatro semanas. Consulta con nuestro equipo el calendario
+        de desparasitación más adecuado para tu perro.
+      ingredients: |
+        Sustancias activas antiparasitarias de uso veterinario. Consulta el prospecto.
+      usage: |
+        Separa el pelo entre los omóplatos y aplica todo el contenido sobre la piel. No bañes al
+        perro en las 48 horas siguientes.
+
+    - slug: collar-antiparasitario-gato
+      name: Collar antiparasitario para gato
+      category: salud-bienestar
+      pets: [gato]
+      price: "17.90"
+      vat_rate: 21
+      stock: 9
+      image: media/petcare/productos/collar-antiparasitario-gato.svg
+      image_alt: Collar ilustrado en verde azulado con hebilla amarilla
+      short_description: Collar con cierre de seguridad que protege frente a pulgas durante meses.
+      description: |
+        Su cierre se abre si el collar se engancha, para evitar accidentes. Pregúntanos si es la
+        mejor opción para tu gato.
+      usage: |
+        Ajústalo dejando el espacio de dos dedos entre el collar y el cuello, y corta lo que sobre.
+
+    - slug: suplemento-articular-perro
+      name: Suplemento articular para perro
+      category: salud-bienestar
+      pets: [perro]
+      price: "26.90"
+      vat_rate: 10
+      stock: 11
+      image: media/petcare/productos/suplemento-articular-perro.svg
+      image_alt: Bote ilustrado con una cruz verde en la etiqueta
+      short_description: Complemento con glucosamina para perros mayores o muy activos.
+      description: |
+        Ayuda a mantener la movilidad de las articulaciones. Es un complemento: si notas cojera o
+        rigidez, pide cita para revisarlo.
+      ingredients: |
+        Glucosamina, condroitina, colágeno hidrolizado y aceite de pescado.
+      usage: |
+        Un comprimido al día por cada 10 kg de peso, con la comida.
+
+    - slug: pasta-malta-gato
+      name: Pasta de malta para gato
+      category: salud-bienestar
+      pets: [gato]
+      price: "6.90"
+      vat_rate: 10
+      stock: 15
+      image: media/petcare/productos/pasta-malta-gato.svg
+      image_alt: Tubo de pasta ilustrado en color ámbar
+      short_description: Pasta que facilita la eliminación de las bolas de pelo.
+      description: |
+        Muy útil en época de muda y en gatos de pelo largo. La mayoría la toma directamente del dedo.
+      ingredients: |
+        Extracto de malta, aceites vegetales, fibra y levadura.
+      usage: |
+        Unos 2 cm de pasta al día durante la muda, y dos veces por semana el resto del año.
+
+    - slug: complemento-vitaminico-aves
+      name: Complemento vitamínico para aves
+      category: salud-bienestar
+      pets: [otros]
+      price: "8.50"
+      vat_rate: 10
+      stock: 13
+      image: media/petcare/productos/complemento-vitaminico-aves.svg
+      image_alt: Frasco cuentagotas ilustrado junto a una gota azul
+      short_description: Vitaminas en gotas para aves de jaula, para añadir al agua.
+      description: |
+        Refuerza la alimentación en la muda de la pluma y en épocas de más estrés, como los cambios
+        de estación.
+      ingredients: |
+        Vitaminas A, D3, E y del grupo B, y aminoácidos.
+      usage: |
+        Diez gotas por cada 100 ml de agua, cinco días seguidos. Cambia el agua a diario.
+
 sections:
   - { key: reservas, label: Pide cita, href: /pide-cita }
-  - { key: tienda, label: Nuestros productos, href: null }
+  - { key: tienda, label: Nuestros productos, href: /productos }
   - { key: carrito, label: Carrito, href: null }
   - { key: consejos, label: Consejos de salud, href: null }
   - { key: cuenta, label: Mi cuenta, href: /mi-cuenta }

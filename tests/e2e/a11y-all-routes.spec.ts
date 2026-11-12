@@ -15,6 +15,11 @@ const ROUTES = [
   '/politica-de-cookies',
   '/terminos',
   '/proximamente/reservas',
+  '/productos',
+  '/productos?mascota=gato&categoria=higiene',
+  '/productos?q=zzz',
+  '/productos/pienso-perro-adulto',
+  '/productos/arena-aglomerante-gato',
   '/no-existe',
   // Feature 002: cuenta y autenticación (sin sesión).
   '/crear-cuenta',

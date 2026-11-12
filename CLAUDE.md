@@ -28,9 +28,9 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 1. [`.specify/memory/constitution.md`](.specify/memory/constitution.md) (v1.1.0). **Prevalece
    sobre todo.** Ante un conflicto con una spec, un plan o una tarea, gana la constitución.
 2. La spec y el plan de la feature activa, que indica `.specify/feature.json`. Hoy es
-   [`specs/003-online-appointment-booking/`](specs/003-online-appointment-booking/): `spec.md`,
-   `plan.md`, `research.md` (decisiones B1–B17), `data-model.md` y `contracts/`. Siguen vigentes
-   las decisiones R1–R17 de la 001 y A1–A14 de la 002.
+   [`specs/004-product-catalog/`](specs/004-product-catalog/): `spec.md`, `plan.md`,
+   `research.md` (decisiones C1–C16), `data-model.md` y `contracts/`. Siguen vigentes las
+   decisiones R1–R17 de la 001, A1–A14 de la 002 y B1–B17 de la 003.
 3. [`design/README.md`](design/README.md), la guía visual.
 
 ## Estado actual
@@ -44,8 +44,14 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
   `specs/003-online-appointment-booking/tasks.md`; desviaciones anotadas en su
   `checklists/requirements.md`). Añade la migración `0002_appointments` con `btree_gist` (sin
   dependencias nuevas); la lógica con efectos vive en `src/lib/booking/`.
+- Feature **004 — catálogo de la tienda (sin compra)**: **implementada** (tareas en
+  `specs/004-product-catalog/tasks.md`; desviaciones anotadas en su `checklists/requirements.md`).
+  Añade la migración `0003_product_catalog`, sin dependencias nuevas. El middleware usa el runtime
+  Node.js y consulta la base de datos en `/productos/*` para servir el 404 sin JavaScript.
 - **Repositorio**: `RoberPs/petcare-clinica-veterinaria` (propio, sin historial de otros
-  proyectos). **Rama de git**: `003-online-appointment-booking`.
+  proyectos). **Rama de git**: `004-product-catalog`. El script de ramas de Spec Kit cuenta
+  también las del remoto `gestor-citas` (otro proyecto), así que hay que revisar el número que
+  propone.
 - PostgreSQL local: desarrollo en el puerto **5434** (el 5432 lo usa un PostgreSQL nativo) y
   pruebas en el **5433**.
 

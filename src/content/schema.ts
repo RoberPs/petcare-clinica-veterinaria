@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseEuros } from '@/domain/money';
 
 // Esquema del archivo de contenido por clínica (contracts/content-file.md). Mensajes en español.
 
@@ -120,6 +121,87 @@ export const bookingSchema = z.object({
     .superRefine((v, ctx) => uniqueBy(v, (sv) => sv.slug, ctx, 'slug')),
 });
 
+// Catálogo de la tienda (feature 004, contracts/content-file.md). Los precios van en euros como
+// cadena ("39.90") y la carga los convierte a céntimos.
+const euros = z
+  .string({ error: 'el precio debe ir entre comillas, en euros con punto decimal (por ejemplo "39.90")' })
+  .refine((v) => parseEuros(v) !== null, 'el precio debe ser mayor que 0, en euros con 2 decimales como máximo (por ejemplo "39.90")');
+const markdown = z.string().nullish();
+
+const shopTaxon = (maxName: number) =>
+  z.object({ slug: slug.refine((v) => v.length <= 60, 'el slug no puede superar 60 caracteres'), name: text(maxName) });
+
+const shopProduct = z
+  .object({
+    slug: slug.refine((v) => v.length <= 80, 'el slug no puede superar 80 caracteres'),
+    name: text(120),
+    category: slug,
+    pets: z
+      .array(slug, { error: 'falta la lista de mascotas (pets)' })
+      .min(1, 'cada producto necesita al menos una mascota')
+      .superRefine((v, ctx) => uniqueBy(v, (x) => x, ctx, 'mascota')),
+    price: euros,
+    compare_at_price: euros.nullish(),
+    vat_rate: z.union([z.literal(0), z.literal(4), z.literal(10), z.literal(21)], {
+      error: 'el IVA (vat_rate) debe ser 0, 4, 10 o 21',
+    }),
+    stock: z.number().int('el stock debe ser un número entero').min(0, 'el stock no puede ser negativo'),
+    is_new: z.boolean().default(false),
+    ...imageFields,
+    short_description: text(300),
+    description: text(20_000),
+    ingredients: markdown,
+    usage: markdown,
+  })
+  .refine(altRequired, altIssue);
+
+export const shopSchema = z
+  .object({
+    settings: z.object({
+      shipping_text: text(40),
+      page_size: intIn(4, 48, 12),
+      meta_description: text(300),
+      demo_notice: z
+        .object({ enabled: z.boolean(), text: text(200).nullish() })
+        .refine((v) => !v.enabled || !!v.text, { message: 'si el aviso está activado, text es obligatorio', path: ['text'] })
+        .default({ enabled: false }),
+    }),
+    categories: z
+      .array(shopTaxon(60), { error: 'falta la lista de categorías (categories)' })
+      .min(1, 'tiene que haber al menos una categoría')
+      .max(20, 'no puede haber más de 20 categorías')
+      .superRefine((v, ctx) => uniqueBy(v, (c) => c.slug, ctx, 'slug')),
+    pets: z
+      .array(shopTaxon(40), { error: 'falta la lista de mascotas (pets)' })
+      .min(1, 'tiene que haber al menos una mascota')
+      .max(10, 'no puede haber más de 10 mascotas')
+      .superRefine((v, ctx) => uniqueBy(v, (p) => p.slug, ctx, 'slug')),
+    products: z
+      .array(shopProduct, { error: 'falta la lista de productos (products)' })
+      .max(500, 'no puede haber más de 500 productos')
+      .superRefine((v, ctx) => uniqueBy(v, (p) => p.slug, ctx, 'slug')),
+  })
+  .superRefine((shop, ctx) => {
+    const categories = new Set(shop.categories.map((c) => c.slug));
+    const pets = new Set(shop.pets.map((p) => p.slug));
+    shop.products.forEach((p, i) => {
+      if (!categories.has(p.category)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['products', i, 'category'],
+          message: `${p.slug}: no existe la categoría "${p.category}" en categories`,
+        });
+      }
+      p.pets.forEach((pet, j) => {
+        if (!pets.has(pet)) {
+          ctx.addIssue({ code: 'custom', path: ['products', i, 'pets', j], message: `${p.slug}: no existe la mascota "${pet}" en pets` });
+        }
+      });
+    });
+  });
+
+export type ShopContent = z.infer<typeof shopSchema>;
+
 const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 const contentObject = z.object({
@@ -231,10 +313,19 @@ const contentObject = z.object({
       }
     }),
   booking: bookingSchema.nullish(),
+  shop: shopSchema.nullish(),
 });
 
 /** Comprobaciones que cruzan bloques: el de reservas con el equipo, los servicios, el horario y las secciones. */
 export const contentSchema = contentObject.superRefine((c, ctx) => {
+  const tienda = c.sections.find((sec) => sec.key === 'tienda');
+  if (!c.shop && tienda?.href) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['shop'],
+      message: 'falta el bloque shop: es obligatorio si sections.tienda.href no es nulo',
+    });
+  }
   const reservas = c.sections.find((sec) => sec.key === 'reservas');
   if (!c.booking) {
     if (reservas?.href) {
