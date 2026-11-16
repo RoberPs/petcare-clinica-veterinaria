@@ -26,6 +26,11 @@ const PRIVATE_ROUTES = [
   // Reserva de citas (feature 003, contracts/routes.md).
   '/pide-cita/confirmada',
   '/gestion-cita/:path*',
+  // Carrito y pago (feature 005, contracts/routes.md).
+  '/carrito',
+  '/finalizar-compra',
+  '/pedido/:path*',
+  '/pago-simulado/:path*',
 ];
 
 /** Rutas dinámicas e indexables que tampoco se guardan en caché (los pasos 1 y 2 de /pide-cita). */
@@ -61,6 +66,9 @@ const nextConfig: NextConfig = {
       // vuelva a pedir la página al servidor.
       ...[...PRIVATE_ROUTES, ...NO_STORE_ROUTES].map((source) => ({ source, headers: [{ key: 'Cache-Control', value: 'private, no-store' }] })),
       { source: '/gestion-cita/:path*', headers: MANAGE_HEADERS },
+      // Pedido de invitado y confirmación (D18): el token o la ref van en la URL.
+      { source: '/pedido/:path*', headers: MANAGE_HEADERS },
+      { source: '/pago-simulado/:path*', headers: MANAGE_HEADERS },
     ];
   },
 };

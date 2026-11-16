@@ -3,14 +3,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
+import { buyNow } from '@/app/carrito/actions';
+import { AddToCartForm } from '@/components/AddToCartForm';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { Markdown } from '@/components/Markdown';
+import { Notice } from '@/components/Notice';
 import { Price, ProductTags } from '@/components/Price';
 import { PLACEHOLDER_ALT, PRODUCT_PLACEHOLDER, ProductCard, productMeta } from '@/components/ProductCard';
 import { ShopNotice } from '@/components/ShopNotice';
 import { availability, pickTab, productTabs } from '@/domain/catalog';
 import { isSectionEnabled } from '@/domain/sections';
 import { getProductBySlug, getShopSettings, relatedProducts } from '@/db/queries/catalog';
+import { getCheckoutSettings } from '@/db/queries/checkout-config';
 import { getSiteData } from '@/db/queries/site';
 
 export const dynamic = 'force-dynamic';
@@ -41,11 +45,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// Ficha de producto (US2, contracts/routes.md): sin compra; las pestañas son enlaces (C7).
+// Ficha de producto (US2, contracts/routes.md): las pestañas son enlaces (C7). Con la compra activa
+// (feature 005), cantidad y "Añadir al carrito" (sustituye FR-019 de la 004).
 export default async function ProductPage({ params, searchParams }: Props) {
   const found = await loadProduct((await params).slug);
   if (!found) notFound();
   const sp = await searchParams;
+  // Compra (FR-001 de la 005): con la compra activa y stock, cantidad y "Añadir al carrito".
+  const checkout = isSectionEnabled('carrito', found.site.sections) ? await getCheckoutSettings() : null;
+  const maxQty = checkout ? Math.min(found.product.stock, checkout.maxQtyPerLine) : 0;
+  const aviso = Array.isArray(sp.aviso) ? sp.aviso[0] : sp.aviso;
+  // Tras acotar a las unidades disponibles, la ficha dice cuántas quedan (el aviso no lleva datos).
+  const stockNotice =
+    aviso === 'carrito-ajustado' && found.product.stock <= (checkout?.maxQtyPerLine ?? 0)
+      ? found.product.stock === 1
+        ? 'Solo queda 1 unidad. Hemos añadido la que hay disponible.'
+        : `Solo quedan ${found.product.stock} unidades. Hemos añadido las que hay disponibles.`
+      : null;
+  const productPath = `/productos/${found.product.slug}`;
   const { site, settings, product } = found;
 
   const tabs = productTabs(product);
@@ -87,6 +104,27 @@ export default async function ProductPage({ params, searchParams }: Props) {
             <p className="detail__pets">Para: {product.pets.join(', ')}</p>
             <span className={stock.inStock ? 'badge' : 'badge badge--muted'}>{stock.label}</span>
             <ShopNotice settings={settings} />
+            {stockNotice ? (
+              <div className="form-success notice-status" role="status">
+                <p>{stockNotice}</p>
+              </div>
+            ) : (
+              <Notice code={aviso} />
+            )}
+            {checkout && maxQty > 0 ? (
+              <AddToCartForm
+                productId={product.id}
+                productName={product.name}
+                returnTo={productPath}
+                variant="detail"
+                max={maxQty}
+              >
+                {/* "Comprar ahora" (US8): el mismo formulario y la misma cantidad, otra acción. */}
+                <button type="submit" className="btn btn--ghost" formAction={buyNow}>
+                  Comprar ahora
+                </button>
+              </AddToCartForm>
+            ) : null}
 
             {tabs.length > 1 ? (
               <nav className="tabs" id="pestanas" aria-label="Información del producto">
@@ -121,7 +159,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
             <ul className="product-grid">
               {related.map((p) => (
                 <li key={p.id}>
-                  <ProductCard product={p} />
+                  <ProductCard product={p} returnTo={checkout ? productPath : null} />
                 </li>
               ))}
             </ul>

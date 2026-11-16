@@ -20,7 +20,7 @@ test.describe('US4 · resumen', () => {
     const nav = page.getByRole('navigation', { name: 'Mi cuenta' });
     await expect(nav.getByRole('link', { name: 'Resumen' })).toHaveAttribute('aria-current', 'page');
     await expect(nav.getByRole('link', { name: 'Mis citas' })).toHaveAttribute('href', '/mi-cuenta/citas');
-    await expect(nav.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/proximamente/carrito');
+    await expect(nav.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/mi-cuenta/pedidos');
 
     const cards = page.locator('ul.pets > li.pet:not(.pet--add)');
     await expect(cards).toHaveCount(2);
@@ -28,8 +28,8 @@ test.describe('US4 · resumen', () => {
     await expect(cards.nth(1)).toContainText(/Pío.*Otra · \d+ (año|años)/s);
     await expect(page.getByRole('link', { name: 'Pedir cita para Bruno' })).toHaveAttribute('href', /^\/pide-cita\?mascota=[0-9a-f-]{36}$/);
     await expect(page.getByRole('link', { name: 'Añadir mascota' })).toHaveAttribute('href', '/mi-cuenta/mascotas/nueva');
-    // No hay bloque de pedidos (la tienda llegará en otra feature).
-    await expect(page.getByText('Últimos pedidos')).toHaveCount(0);
+    // Con la compra activa (feature 005), "Últimos pedidos" invita a la tienda si aún no hay pedidos.
+    await expect(page.getByRole('heading', { level: 2, name: 'Últimos pedidos' })).toBeVisible();
     await axeCheck(page);
 
     await nav.getByRole('link', { name: 'Mis citas' }).click();
@@ -42,8 +42,9 @@ test.describe('US4 · resumen', () => {
     await page.goto('/mi-cuenta');
     await dismissCookies(page);
     await expect(page.getByRole('heading', { level: 1, name: 'Hola, Mario' })).toBeVisible();
-    await expect(page.locator('.empty-state')).toContainText('Aún no has añadido ninguna mascota');
-    await expect(page.locator('.empty-state').getByRole('link', { name: 'Añadir mascota' })).toHaveAttribute('href', '/mi-cuenta/mascotas/nueva');
+    const empty = page.locator('.empty-state').filter({ hasText: 'Aún no has añadido ninguna mascota' });
+    await expect(empty).toBeVisible();
+    await expect(empty.getByRole('link', { name: 'Añadir mascota' })).toHaveAttribute('href', '/mi-cuenta/mascotas/nueva');
     await axeCheck(page);
   });
 });

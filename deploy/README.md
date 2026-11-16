@@ -79,6 +79,50 @@ Si se quita una especie del YAML, sus mascotas pasan a "Otra"; `content-load` av
    recordatorios de cita (24 h antes, `reminder_hours_before`) y `petcare-purge` anonimiza las citas de
    invitado de más de `retention_months` (12) y borra sus correos ya enviados a las 24 h.
 
+### Actualizar a la feature 005 (carrito y pago)
+
+1. Haz una copia de seguridad (`deploy/backup.sh`).
+2. Aplica la migración `0004_cart_checkout` con `cli/migrate.mjs`: carritos, pedidos, pagos, avisos
+   de la pasarela, códigos de descuento y métodos de envío. Sin dependencias ni extensiones nuevas.
+3. Variables nuevas en `deploy/.env`:
+   - `PAYMENT_PROVIDER=stripe` (o `fake` para una demo sin claves, que además exige
+     `PAYMENT_FAKE_ALLOWED=true`, porque en producción `fake` está prohibido por defecto).
+   - `STRIPE_SECRET_KEY`: la clave secreta **de pruebas** (`sk_test_…`). Nunca una `sk_live_…`.
+   - `STRIPE_WEBHOOK_SECRET`: el secreto de firma del webhook (`whsec_…`, paso 4).
+   - `SITE_URL`: la URL pública (`https://petcare.automatizacionro.work`). Con ella se construyen las
+     vueltas de la pasarela y los enlaces de los correos de pedido.
+4. Webhook de Stripe, en el panel de Stripe **en modo de pruebas** (Desarrolladores → Webhooks):
+   - URL: `https://petcare.automatizacionro.work/api/pagos/webhook`.
+   - Eventos: `checkout.session.completed`, `checkout.session.expired` y `charge.refunded`.
+   - Copia el secreto de firma en `STRIPE_WEBHOOK_SECRET` y reinicia `petcare-app`.
+   - Si un aviso se pierde, `petcare-orders-maintain` concilia las sesiones abiertas de más de 5 minutos
+     consultando a Stripe, así que el pedido no se queda colgado.
+5. Recarga el contenido con `cli/content-load.mjs`: carga el bloque `checkout:` (métodos de envío y de
+   pago, códigos de descuento y plazos) y pone `carrito.href` a `/carrito`, que activa la compra. Para
+   desactivarla, pon `carrito.href: null` y vuelve a cargar: el catálogo sigue visible sin comprar.
+6. `FORM_SECRET` firma también los enlaces privados de pedido de invitado (90 días desde el último
+   cambio) y la referencia de la vuelta de la pasarela: **si lo cambias, los enlaces de pedido de los
+   correos ya enviados dejan de valer** (los pedidos siguen; se consultan con `cli/orders.mjs`).
+7. Temporizador nuevo `petcare-orders-maintain` (sección 6).
+
+### Gestión de pedidos sin panel (`cli/orders.mjs`)
+
+Mientras no haya panel de administración, la clínica gestiona los pedidos desde el VPS:
+
+```bash
+cd /opt/petcare
+alias pedidos='docker compose -f deploy/docker-compose.prod.yml exec -T petcare-app node cli/orders.mjs'
+pedidos list                                # últimos pedidos (--status paid, --limit 50)
+pedidos show PC-000123                      # detalle con los datos del comprador e historial
+pedidos set-status PC-000123 shipped        # preparing, shipped, ready_for_pickup, delivered
+pedidos deliver PC-000123                   # entrega (y cobro, si se pagaba en la clínica)
+pedidos cancel PC-000123 --note "sin stock" # cancela; si estaba pagado, reembolsa
+```
+
+Códigos de salida: 0 bien, 1 uso incorrecto, 2 transición no permitida y 3 pedido inexistente. Los
+correos que genera un cambio de estado los envía `petcare-email-dispatch` en el minuto siguiente. La
+salida incluye datos del comprador: no la pegues en tickets ni en chats.
+
 ## 5. Caddy compartido
 
 1. Copia `deploy/caddy/petcare.caddy` junto al Caddyfile del chatbot e impórtalo (o pega el bloque).
@@ -91,7 +135,7 @@ Si se quita una especie del YAML, sus mascotas pasan a "Otra"; `content-load` av
 ```bash
 sudo cp deploy/systemd/petcare-*.service deploy/systemd/petcare-*.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now petcare-email-dispatch.timer petcare-purge.timer petcare-backup.timer
+sudo systemctl enable --now petcare-email-dispatch.timer petcare-orders-maintain.timer petcare-purge.timer petcare-backup.timer
 systemctl list-timers 'petcare-*'
 ```
 
@@ -103,6 +147,13 @@ systemctl list-timers 'petcare-*'
   las sesiones y los enlaces caducados, y los envíos procesados y correos de cuenta de más de 24 h.
   Desde la feature 003, también anonimiza las citas de invitado de más de 12 meses (`retention_months`)
   y borra los correos de cita ya enviados de más de 24 h.
+- `petcare-orders-maintain` (cada minuto, feature 005): concilia los pagos abiertos de más de 5
+  minutos, caduca los pedidos vencidos (tarjeta: reserva de 30 min + 2 de margen; pago en clínica: fin
+  del plazo de recogida), libera su stock y reintenta los reembolsos pendientes. Solo escribe contadores
+  en el log.
+- Desde la feature 005, `petcare-purge` borra también los carritos de invitado sin cambios en 30 días,
+  los avisos de la pasarela de más de 90 días y los correos de pedido cerrados de más de 24 h, y
+  anonimiza los pedidos de más de 6 años (conserva importes y líneas).
 - `petcare-backup` (diario): `pg_dump` comprimido en `/var/backups/petcare`, rotado a 14 días.
 
 ## 7. Comprobaciones

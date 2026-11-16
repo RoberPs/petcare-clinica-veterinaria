@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { CatalogFilters } from '@/components/CatalogFilters';
+import { Notice } from '@/components/Notice';
 import { Pagination } from '@/components/Pagination';
 import { ProductCard } from '@/components/ProductCard';
 import { ShopNotice } from '@/components/ShopNotice';
@@ -44,11 +45,19 @@ async function loadCatalog(searchParams: SearchParams) {
     searchParams,
   ]);
   if (!isSectionEnabled('tienda', site.sections) || !settings) notFound();
+  // Con la compra activa, "Añadir" vuelve al mismo listado (filtros, búsqueda y página) sin el aviso.
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (k === 'aviso' || v === undefined) continue;
+    for (const value of Array.isArray(v) ? v : [v]) query.append(k, value);
+  }
+  const returnTo = isSectionEnabled('carrito', site.sections) ? `/productos${query.size > 0 ? `?${query}` : ''}` : null;
+  const aviso = sp.aviso;
   const requested = parseCatalogQuery(sp, {
     pets: filters.pets.map((p) => p.slug),
     categories: filters.categories.map((c) => c.slug),
   });
-  return { settings, filters, ...(await listing(JSON.stringify(requested), settings.pageSize)) };
+  return { settings, filters, returnTo, aviso, ...(await listing(JSON.stringify(requested), settings.pageSize)) };
 }
 
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
@@ -66,7 +75,7 @@ const countLabel = (n: number) => (n === 1 ? '1 producto' : `${n} productos`);
 
 // Listado del catálogo (US1, contracts/routes.md). Sin JavaScript: todo son enlaces y un formulario GET.
 export default async function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
-  const { settings, filters, state, total, items, pages, catalogEmpty } = await loadCatalog(searchParams);
+  const { settings, filters, state, total, items, pages, catalogEmpty, returnTo, aviso } = await loadCatalog(searchParams);
   // El término se pinta como texto (React lo escapa) y no se registra en ningún log.
   const forTerm = state.q ? ` para «${state.q}»` : '';
   const heading =
@@ -81,6 +90,9 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
           <ShopNotice settings={settings} />
         </div>
       </section>
+      <div className="container">
+        <Notice code={aviso} />
+      </div>
 
       <div className="container">
         <div className="shop-layout">
@@ -96,7 +108,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
               <ul className="product-grid">
                 {items.map((p, i) => (
                   <li key={p.id}>
-                    <ProductCard product={p} priority={i < 4} />
+                    <ProductCard product={p} priority={i < 4} returnTo={returnTo} />
                   </li>
                 ))}
               </ul>

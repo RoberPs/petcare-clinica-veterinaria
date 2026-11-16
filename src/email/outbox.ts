@@ -7,7 +7,8 @@ import { dispatchById } from './dispatch';
 import type { AccountEmailContext } from './templates/account-layout';
 import type { OutgoingEmail } from './types';
 
-// Bandeja de salida para los correos ya renderizados (A8): los de cuenta (002) y los de cita (003).
+// Bandeja de salida para los correos ya renderizados (A8): los de cuenta (002), los de cita (003) y
+// los de pedido (005).
 // Se renderizan al encolarlos y van a la misma tabla que los del contacto.
 
 export type AccountEmailKind = 'verify_email' | 'account_exists' | 'password_reset' | 'password_changed' | 'account_deleted';
@@ -17,7 +18,8 @@ export type AppointmentEmailKind =
   | 'appointment_cancelled'
   | 'appointment_reminder'
   | 'clinic_appointment';
-export type RenderedEmailKind = AccountEmailKind | AppointmentEmailKind;
+export type OrderEmailKind = 'order_confirmed' | 'order_received' | 'order_cancelled' | 'clinic_order';
+export type RenderedEmailKind = AccountEmailKind | AppointmentEmailKind | OrderEmailKind;
 
 /**
  * Tipos con límite de 3 por dirección y hora (FR-033 de la 002). Solo los de cuenta: los de cita
@@ -39,6 +41,8 @@ export interface EnqueueInput {
   email: OutgoingEmail;
   customerId?: string | null;
   appointmentId?: string | null;
+  /** Correos de pedido (feature 005). */
+  orderId?: string | null;
 }
 
 export async function enqueueEmail(tx: DbOrTx, input: EnqueueInput): Promise<EnqueueResult> {
@@ -66,6 +70,7 @@ export async function enqueueEmail(tx: DbOrTx, input: EnqueueInput): Promise<Enq
       kind: input.kind,
       customerId: input.customerId ?? null,
       appointmentId: input.appointmentId ?? null,
+      orderId: input.orderId ?? null,
       recipientHash: hash,
       status: limited ? 'skipped_rate_limit' : 'pending',
       payload: limited ? null : { to: input.email.to, subject: input.email.subject, html: input.email.html, text: input.email.text },
@@ -89,6 +94,18 @@ export function sendEmailsNow(ids: readonly (string | null | undefined)[]): void
 }
 
 export const sendAccountEmailsNow = sendEmailsNow;
+
+/**
+ * Intento inmediato desde código que también corre fuera de una petición (CLI, tareas programadas,
+ * pruebas): dentro de una petición usa after(); fuera, no hace nada y los recoge email:dispatch.
+ */
+export function sendEmailsSoon(ids: readonly (string | null | undefined)[]): void {
+  try {
+    sendEmailsNow(ids);
+  } catch {
+    // Fuera del ámbito de una petición: after() no está disponible.
+  }
+}
 
 /** Datos de la clínica y de la web que necesitan las plantillas de cuenta. */
 export async function getAccountEmailContext(db: DbOrTx = getDb()): Promise<AccountEmailContext> {

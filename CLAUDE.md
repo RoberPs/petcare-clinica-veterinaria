@@ -28,9 +28,9 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 1. [`.specify/memory/constitution.md`](.specify/memory/constitution.md) (v1.1.0). **Prevalece
    sobre todo.** Ante un conflicto con una spec, un plan o una tarea, gana la constitución.
 2. La spec y el plan de la feature activa, que indica `.specify/feature.json`. Hoy es
-   [`specs/004-product-catalog/`](specs/004-product-catalog/): `spec.md`, `plan.md`,
-   `research.md` (decisiones C1–C16), `data-model.md` y `contracts/`. Siguen vigentes las
-   decisiones R1–R17 de la 001, A1–A14 de la 002 y B1–B17 de la 003.
+   [`specs/005-cart-checkout/`](specs/005-cart-checkout/): `spec.md`, `plan.md`,
+   `research.md` (decisiones D1–D20), `data-model.md` y `contracts/`. Siguen vigentes las
+   decisiones R1–R17 de la 001, A1–A14 de la 002, B1–B17 de la 003 y C1–C16 de la 004.
 3. [`design/README.md`](design/README.md), la guía visual.
 
 ## Estado actual
@@ -48,8 +48,13 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
   `specs/004-product-catalog/tasks.md`; desviaciones anotadas en su `checklists/requirements.md`).
   Añade la migración `0003_product_catalog`, sin dependencias nuevas. El middleware usa el runtime
   Node.js y consulta la base de datos en `/productos/*` para servir el 404 sin JavaScript.
+- Feature **005 — carrito y pago**: **implementada** (tareas en `specs/005-cart-checkout/tasks.md`;
+  desviaciones anotadas en su `checklists/requirements.md`). Stripe Checkout en modo de pruebas por
+  HTTP, sin SDK, con `PAYMENT_PROVIDER=fake` en local y en los tests. Añade la migración
+  `0004_cart_checkout`, sin dependencias nuevas. Los pedidos se gestionan con `npm run orders`
+  (`cli/orders.mjs` en producción) y el temporizador `petcare-orders-maintain`.
 - **Repositorio**: `RoberPs/petcare-clinica-veterinaria` (propio, sin historial de otros
-  proyectos). **Rama de git**: `004-product-catalog`. El script de ramas de Spec Kit cuenta
+  proyectos). **Rama de git**: `005-cart-checkout`. El script de ramas de Spec Kit cuenta
   también las del remoto `gestor-citas` (otro proyecto), así que hay que revisar el número que
   propone.
 - PostgreSQL local: desarrollo en el puerto **5434** (el 5432 lo usa un PostgreSQL nativo) y

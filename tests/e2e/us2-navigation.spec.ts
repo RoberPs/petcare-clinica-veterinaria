@@ -3,7 +3,7 @@ import { loadPetcare, loadPetcareVariant } from './db';
 import { axeCheck, dismissCookies, expect, isNoJs, test } from './fixtures';
 
 const MAIN = ['Tratamientos', 'La clínica', 'Nuestros productos', 'Consejos de salud', 'Preguntas frecuentes'];
-const ROUTES = ['/', '/tratamientos', '/la-clinica', '/contacto', '/preguntas-frecuentes', '/privacidad', '/proximamente/carrito'];
+const ROUTES = ['/', '/tratamientos', '/la-clinica', '/contacto', '/preguntas-frecuentes', '/privacidad', '/carrito'];
 
 test.describe('US2 · cabecera y pie comunes', () => {
   test('orden de la cabecera (FR-003) en escritorio', async ({ page }, info) => {
@@ -17,10 +17,11 @@ test.describe('US2 · cabecera y pie comunes', () => {
     await expect(cta.nth(0)).toHaveText('Mi cuenta');
     await expect(cta.nth(1)).toHaveText('Pide cita');
     await expect(cta.nth(2)).toHaveText('Contacto');
-    await expect(cta.nth(3)).toHaveAttribute('aria-label', 'Carrito');
+    // Desde la feature 005 el carrito está activo y lleva el número de unidades.
+    await expect(cta.nth(3)).toHaveAttribute('aria-label', /^Carrito, \d+ productos?$/);
     // Desde la feature 002, "Mi cuenta" lleva al área personal (cuenta.href = /mi-cuenta).
     await expect(cta.nth(0)).toHaveAttribute('href', '/mi-cuenta');
-    await expect(cta.nth(3)).toHaveAttribute('href', '/proximamente/carrito');
+    await expect(cta.nth(3)).toHaveAttribute('href', '/carrito');
     await axeCheck(page);
   });
 

@@ -171,6 +171,8 @@ describe('bloque shop: en el archivo de contenido', () => {
   it('sin tienda no exige el bloque shop:', () => {
     const content = withTienda(petcare(), null);
     delete content.shop;
+    // Sin tienda tampoco hay carrito (feature 005: el carrito exige la tienda).
+    content.sections.find((s: { key: string }) => s.key === 'carrito').href = null;
     expect(parseContent(content, env).ok).toBe(true);
   });
 

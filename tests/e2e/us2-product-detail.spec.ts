@@ -18,10 +18,10 @@ test.describe('US2 · ficha de producto', () => {
     await expect(info.locator('.price')).toContainText('42,50 €');
     await expect(info).toContainText('Para: Perro');
     await expect(info.locator('.badge')).toHaveText('En stock · Envío en 24-48 h');
-    await expect(info.locator('.shop-notice')).toHaveText('Tienda de demostración: estos productos no están a la venta.');
-    // Sin compra (FR-019).
-    await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);
-    await expect(page.getByRole('main').getByRole('spinbutton')).toHaveCount(0);
+    await expect(info.locator('.shop-notice')).toHaveText('Tienda de demostración: los pagos son de prueba y no se envía nada.');
+    // Feature 005 (FR-001, sustituye FR-019): cantidad y "Añadir al carrito".
+    await expect(page.getByRole('main').getByRole('button', { name: 'Añadir al carrito', exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('spinbutton', { name: 'Cantidad' })).toHaveAttribute('max', '10');
     await expect(page.getByRole('main').getByRole('textbox')).toHaveCount(0);
 
     await expect(page).toHaveTitle(/^Pienso de pollo para perro adulto, 12 kg · Nuestros productos/);

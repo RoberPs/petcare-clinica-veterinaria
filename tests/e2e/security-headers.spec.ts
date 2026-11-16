@@ -24,6 +24,8 @@ test.describe('cabeceras de seguridad', () => {
       expect(csp).toContain("'strict-dynamic'");
       expect(csp).toContain('frame-src https://www.openstreetmap.org');
       expect(csp).toContain("img-src 'self' data:");
+      // Con la pasarela simulada (PAYMENT_PROVIDER=fake) form-action se queda en 'self' (D14).
+      expect(csp).toContain("form-action 'self';");
       expect(headers['x-content-type-options']).toBe('nosniff');
       expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
       expect(headers['permissions-policy']).toContain('camera=()');

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildAccountExport, exportFileName } from '@/domain/account-export';
 
-// Forma del JSON de "Descargar mis datos" (contracts/export-format.md, format_version 1).
+// Forma del JSON de "Descargar mis datos" (contracts/export-format.md, format_version 2).
 
 // Sin anotar el tipo: así se pueden pasar columnas de más (id, hash…) y comprobar que no se exportan.
 const input = {
@@ -36,10 +36,10 @@ const input = {
 const now = new Date('2026-11-11T09:15:00Z');
 
 describe('exportación de datos (A11)', () => {
-  it('sigue el contrato format_version 1', () => {
+  it('sigue el contrato format_version 2', () => {
     const out = buildAccountExport(input, now);
     expect(out).toEqual({
-      format_version: 1,
+      format_version: 2,
       exported_at: '2026-11-11T10:15:00+01:00',
       controller: { name: 'Responsable de Pruebas', contact_email: 'derechos@example.test' },
       account: {
@@ -62,6 +62,7 @@ describe('exportación de datos (A11)', () => {
         { name: 'Pío', species: 'Otra', species_key: null, birth_date: '2026-06-11', age_at_export: '5 meses', created_at: '2026-11-01T10:00:00.000Z', updated_at: '2026-11-01T10:00:00.000Z' },
       ],
       citas: [],
+      orders: [],
     });
   });
 
@@ -111,6 +112,43 @@ describe('exportación de datos (A11)', () => {
       reservada_el: '2026-11-01T09:00:00+01:00',
     });
     expect(JSON.stringify(out.citas)).not.toContain('"id"');
+  });
+
+  it('incluye los pedidos (feature 005, v2) del más reciente al más antiguo, con importes en euros', () => {
+    const base = {
+      refundStatus: 'none' as const,
+      paymentMethod: 'card' as const,
+      shippingName: 'Envío a domicilio',
+      firstName: 'Lucía',
+      lastName: 'Pérez',
+      addressLine: 'Calle 1',
+      postalCode: '28001',
+      city: 'Madrid',
+      discountCode: null,
+      discountCents: 0,
+      shippingCostCents: 0,
+      vatCents: 344,
+    };
+    const out = buildAccountExport(
+      {
+        ...input,
+        orders: [
+          { ...base, number: 'PC-000001', createdAt: new Date('2026-11-01T09:15:00Z'), status: 'delivered', subtotalCents: 1980, totalCents: 1980, items: [{ productName: 'Pienso', quantity: 2, unitPriceCents: 990, vatRate: 21 }] },
+          { ...base, number: 'PC-000002', createdAt: new Date('2026-11-05T09:15:00Z'), status: 'cancelled', refundStatus: 'refunded', discountCode: 'BIENVENIDA10', discountCents: 198, subtotalCents: 1980, totalCents: 1782, items: [] },
+        ],
+      },
+      now,
+    );
+    expect(out.orders.map((o) => o.number)).toEqual(['PC-000002', 'PC-000001']);
+    expect(out.orders[0]).toMatchObject({ refunded: true, discount: { code: 'BIENVENIDA10', amount: '1,98 €' }, total: '17,82 €' });
+    expect(out.orders[1]).toMatchObject({
+      created_at: '2026-11-01T10:15:00+01:00',
+      status: 'Entregado',
+      payment_method: 'Tarjeta',
+      shipping: { method: 'Envío a domicilio', postal_code: '28001' },
+      items: [{ name: 'Pienso', quantity: 2, unit_price: '9,90 €', total: '19,80 €', vat_rate: 21 }],
+      discount: null,
+    });
   });
 
   it('no incluye ids internos, el hash de la contraseña ni nada de seguridad', () => {

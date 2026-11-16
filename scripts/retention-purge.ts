@@ -15,8 +15,9 @@ try {
   const r = await purgeExpired(getDb());
   console.log(
     `Purga: ${r.messages} mensaje(s), ${r.hits} registro(s) del límite, ${r.unverifiedAccounts} cuenta(s) sin verificar, ` +
-      `${r.sessions} sesión(es), ${r.tokens} enlace(s), ${r.submissions} envío(s) procesado(s), ${r.accountEmails} correo(s) cerrado(s) ` +
-      `y ${r.guestAppointments} cita(s) de invitado anonimizada(s).`,
+      `${r.sessions} sesión(es), ${r.tokens} enlace(s), ${r.submissions} envío(s) procesado(s), ${r.accountEmails} correo(s) cerrado(s), ` +
+      `${r.guestAppointments} cita(s) de invitado anonimizada(s), ${r.guestCarts} carrito(s) de invitado, ` +
+      `${r.paymentEvents} aviso(s) de la pasarela y ${r.anonymizedOrders} pedido(s) anonimizado(s).`,
   );
 } catch (error) {
   console.error('No se ha podido completar la purga:', error instanceof Error ? error.message : error);

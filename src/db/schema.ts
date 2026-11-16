@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
   check,
   date,
@@ -8,6 +9,7 @@ import {
   jsonb,
   numeric,
   pgEnum,
+  pgSequence,
   pgTable,
   primaryKey,
   smallint,
@@ -15,6 +17,7 @@ import {
   time,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -203,7 +206,13 @@ export const contactReasons = pgTable('contact_reasons', {
   ...timestamps,
 });
 
-export const legalKind = pgEnum('legal_kind', ['aviso-legal', 'privacidad', 'cookies', 'terminos']);
+export const legalKind = pgEnum('legal_kind', [
+  'aviso-legal',
+  'privacidad',
+  'cookies',
+  'terminos',
+  'condiciones-venta',
+]);
 
 export const legalPages = pgTable('legal_pages', {
   id: id(),
@@ -266,6 +275,10 @@ export const outboxKind = pgEnum('outbox_kind', [
   'appointment_cancelled',
   'appointment_reminder',
   'clinic_appointment',
+  'order_confirmed',
+  'order_received',
+  'order_cancelled',
+  'clinic_order',
 ]);
 export const outboxStatus = pgEnum('outbox_status', ['pending', 'sent', 'failed', 'skipped_rate_limit']);
 
@@ -287,6 +300,8 @@ export const emailOutbox = pgTable(
     customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
     // Correos de cita (feature 003): sirve para trazar y para purgar.
     appointmentId: uuid('appointment_id').references(() => appointments.id, { onDelete: 'set null' }),
+    // Correos de pedido (feature 005): sirve para trazar y para purgar.
+    orderId: uuid('order_id').references((): AnyPgColumn => orders.id, { onDelete: 'set null' }),
     payload: jsonb('payload').$type<OutboxPayload>(),
     kind: outboxKind('kind').notNull(),
     recipientHash: text('recipient_hash').notNull(),
@@ -309,6 +324,7 @@ export const emailOutbox = pgTable(
     index('email_outbox_ack_idx').on(t.recipientHash, t.createdAt),
     index('email_outbox_customer_idx').on(t.customerId),
     index('email_outbox_appointment_idx').on(t.appointmentId),
+    index('email_outbox_order_idx').on(t.orderId),
   ],
 );
 
@@ -689,6 +705,18 @@ export const shopSettings = pgTable(
     demoNoticeEnabled: boolean('demo_notice_enabled').notNull().default(false),
     demoNoticeText: text('demo_notice_text'),
     metaDescription: text('meta_description').notNull(),
+    // Feature 005: bloque checkout: del YAML.
+    cardEnabled: boolean('card_enabled').notNull().default(true),
+    inClinicEnabled: boolean('in_clinic_enabled').notNull().default(false),
+    reservationMinutes: smallint('reservation_minutes').notNull().default(30),
+    pickupDays: smallint('pickup_days').notNull().default(7),
+    cartRetentionDays: smallint('cart_retention_days').notNull().default(30),
+    maxQtyPerLine: smallint('max_qty_per_line').notNull().default(10),
+    maxPendingPerEmail: smallint('max_pending_per_email').notNull().default(3),
+    maxPendingPerCustomer: smallint('max_pending_per_customer').notNull().default(3),
+    orderPrefix: text('order_prefix').notNull().default('PED-'),
+    guestLinkDays: smallint('guest_link_days').notNull().default(90),
+    checkoutNoticeText: text('checkout_notice_text'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -699,5 +727,319 @@ export const shopSettings = pgTable(
       'shop_settings_demo_notice',
       sql`not ${t.demoNoticeEnabled} or char_length(coalesce(${t.demoNoticeText}, '')) > 0`,
     ),
+    check('shop_settings_reservation', sql`${t.reservationMinutes} between 30 and 120`),
+    check('shop_settings_pickup_days', sql`${t.pickupDays} between 1 and 30`),
+    check('shop_settings_cart_retention', sql`${t.cartRetentionDays} between 1 and 90`),
+    check('shop_settings_max_qty', sql`${t.maxQtyPerLine} between 1 and 99`),
+    check('shop_settings_pending_email', sql`${t.maxPendingPerEmail} between 1 and 10`),
+    check('shop_settings_pending_customer', sql`${t.maxPendingPerCustomer} between 1 and 10`),
+    check('shop_settings_order_prefix', sql`${t.orderPrefix} ~ '^[A-Z0-9-]{1,6}$'`),
+    check('shop_settings_guest_link', sql`${t.guestLinkDays} between 7 and 365`),
+  ],
+);
+
+// ---------- Carrito y pago (feature 005, data-model.md) ----------
+
+export const cartKind = pgEnum('cart_kind', ['main', 'direct']);
+export const shippingKind = pgEnum('shipping_kind', ['home_delivery', 'clinic_pickup']);
+export const paymentMethod = pgEnum('payment_method', ['card', 'in_clinic']);
+export const orderStatus = pgEnum('order_status', [
+  'pending_payment',
+  'paid',
+  'preparing',
+  'shipped',
+  'ready_for_pickup',
+  'delivered',
+  'cancelled',
+]);
+export const reservationStatus = pgEnum('reservation_status', ['held', 'committed', 'released']);
+export const orderActor = pgEnum('order_actor', ['customer', 'system', 'clinic', 'gateway']);
+export const cancelReason = pgEnum('cancel_reason', [
+  'customer',
+  'expired',
+  'replaced',
+  'stock_unavailable',
+  'clinic',
+  'account_deleted',
+]);
+export const refundStatus = pgEnum('refund_status', ['none', 'pending', 'refunded', 'failed']);
+export const paymentStatus = pgEnum('payment_status', ['open', 'succeeded', 'expired', 'refunded']);
+export const discountKind = pgEnum('discount_kind', ['percent', 'fixed']);
+
+/** Número de pedido (D6): order_prefix + lpad(nextval, 6). Los huecos se aceptan. */
+export const orderNumberSeq = pgSequence('order_number_seq', { startWith: 1, increment: 1 });
+
+export const shippingMethods = pgTable(
+  'shipping_methods',
+  {
+    id: id(),
+    code: text('code').notNull().unique(),
+    kind: shippingKind('kind').notNull(),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    costCents: integer('cost_cents').notNull().default(0),
+    vatRate: smallint('vat_rate').notNull().default(21),
+    postalPrefixes: text('postal_prefixes').array(),
+    enabled: boolean('enabled').notNull().default(true),
+    position: position(),
+    ...timestamps,
+  },
+  (t) => [
+    check('shipping_methods_code', sql`${t.code} ~ '^[a-z0-9-]{1,40}$'`),
+    check('shipping_methods_name_len', sql`char_length(${t.name}) between 1 and 60`),
+    check('shipping_methods_description_len', sql`char_length(${t.description}) between 1 and 160`),
+    check('shipping_methods_cost', sql`${t.costCents} >= 0`),
+    check('shipping_methods_vat_rate', sql`${t.vatRate} in (0, 4, 10, 21)`),
+    check('shipping_methods_prefixes', sql`${t.postalPrefixes} is null or ${t.kind} = 'home_delivery'`),
+    uniqueIndex('shipping_methods_one_pickup')
+      .on(t.kind)
+      .where(sql`${t.kind} = 'clinic_pickup' and ${t.enabled}`),
+    index('shipping_methods_order_idx').on(t.enabled, t.position),
+  ],
+);
+
+export const discountCodes = pgTable(
+  'discount_codes',
+  {
+    id: id(),
+    code: text('code').notNull().unique(),
+    kind: discountKind('kind').notNull(),
+    value: integer('value').notNull(),
+    minSubtotalCents: integer('min_subtotal_cents'),
+    startsAt: timestamp('starts_at', { withTimezone: true }),
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    maxUses: integer('max_uses'),
+    usesCount: integer('uses_count').notNull().default(0),
+    enabled: boolean('enabled').notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [
+    check('discount_codes_code', sql`${t.code} ~ '^[A-Z0-9]{3,20}$'`),
+    check(
+      'discount_codes_value',
+      sql`(${t.kind} = 'percent' and ${t.value} between 1 and 100) or (${t.kind} = 'fixed' and ${t.value} > 0)`,
+    ),
+    check('discount_codes_min_subtotal', sql`${t.minSubtotalCents} is null or ${t.minSubtotalCents} >= 0`),
+    check('discount_codes_range', sql`${t.startsAt} is null or ${t.endsAt} is null or ${t.endsAt} > ${t.startsAt}`),
+    check('discount_codes_max_uses', sql`${t.maxUses} is null or ${t.maxUses} > 0`),
+    check(
+      'discount_codes_uses',
+      sql`${t.usesCount} >= 0 and (${t.maxUses} is null or ${t.usesCount} <= ${t.maxUses})`,
+    ),
+  ],
+);
+
+export const carts = pgTable(
+  'carts',
+  {
+    id: id(),
+    kind: cartKind('kind').notNull().default('main'),
+    customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash'),
+    discountCodeId: uuid('discount_code_id').references(() => discountCodes.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (t) => [
+    check('carts_owner', sql`num_nonnulls(${t.customerId}, ${t.tokenHash}) = 1`),
+    check('carts_direct_no_discount', sql`${t.kind} = 'main' or ${t.discountCodeId} is null`),
+    unique('carts_customer_kind').on(t.customerId, t.kind),
+    unique('carts_token_kind').on(t.tokenHash, t.kind),
+    index('carts_guest_updated_idx').on(t.updatedAt).where(sql`${t.tokenHash} is not null`),
+  ],
+);
+
+export const cartItems = pgTable(
+  'cart_items',
+  {
+    cartId: uuid('cart_id')
+      .notNull()
+      .references(() => carts.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    quantity: smallint('quantity').notNull(),
+    // Precio que vio el comprador al añadir (o al revisar el carrito): permite el aviso "antes X,
+    // ahora Y" de FR-006. Nunca se usa para cobrar: el importe sale siempre del precio actual.
+    unitPriceCents: integer('unit_price_cents').notNull(),
+    addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.cartId, t.productId] }),
+    check('cart_items_quantity', sql`${t.quantity} between 1 and 99`),
+    check('cart_items_price', sql`${t.unitPriceCents} > 0`),
+  ],
+);
+
+export const orders = pgTable(
+  'orders',
+  {
+    id: id(),
+    number: text('number').notNull().unique(),
+    submissionId: uuid('submission_id').notNull().unique(),
+    customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+    cartId: uuid('cart_id').references(() => carts.id, { onDelete: 'set null' }),
+    checkoutFingerprint: text('checkout_fingerprint').notNull(),
+    contactEmail: text('contact_email'),
+    contactEmailNormalized: text('contact_email_normalized'),
+    firstName: text('first_name'),
+    lastName: text('last_name'),
+    addressLine: text('address_line'),
+    postalCode: text('postal_code'),
+    city: text('city'),
+    shippingMethodCode: text('shipping_method_code').notNull(),
+    shippingName: text('shipping_name').notNull(),
+    shippingKind: shippingKind('shipping_kind').notNull(),
+    shippingCostCents: integer('shipping_cost_cents').notNull(),
+    shippingVatRate: smallint('shipping_vat_rate').notNull(),
+    paymentMethod: paymentMethod('payment_method').notNull(),
+    discountCode: text('discount_code'),
+    discountCodeId: uuid('discount_code_id').references(() => discountCodes.id, { onDelete: 'set null' }),
+    subtotalCents: integer('subtotal_cents').notNull(),
+    discountCents: integer('discount_cents').notNull().default(0),
+    totalCents: integer('total_cents').notNull(),
+    vatCents: integer('vat_cents').notNull(),
+    status: orderStatus('status').notNull().default('pending_payment'),
+    reservationStatus: reservationStatus('reservation_status').notNull().default('held'),
+    reservationExpiresAt: timestamp('reservation_expires_at', { withTimezone: true }),
+    pickupDeadline: timestamp('pickup_deadline', { withTimezone: true }),
+    accessVersion: integer('access_version').notNull().default(1),
+    lastStatusAt: timestamp('last_status_at', { withTimezone: true }).notNull().defaultNow(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    cancelledBy: orderActor('cancelled_by'),
+    cancelReason: cancelReason('cancel_reason'),
+    refundStatus: refundStatus('refund_status').notNull().default('none'),
+    // Reintentos del reembolso (D9): hasta 8 con espera creciente.
+    refundAttempts: smallint('refund_attempts').notNull().default(0),
+    refundNextAttemptAt: timestamp('refund_next_attempt_at', { withTimezone: true }),
+    refundedAt: timestamp('refunded_at', { withTimezone: true }),
+    anonymizedAt: timestamp('anonymized_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    check('orders_in_clinic_pickup', sql`${t.paymentMethod} <> 'in_clinic' or ${t.shippingKind} = 'clinic_pickup'`),
+    check(
+      'orders_amounts',
+      sql`${t.subtotalCents} >= 0 and ${t.discountCents} >= 0 and ${t.totalCents} >= 0 and ${t.vatCents} >= 0 and ${t.shippingCostCents} >= 0`,
+    ),
+    check('orders_total', sql`${t.totalCents} = ${t.subtotalCents} - ${t.discountCents} + ${t.shippingCostCents}`),
+    check('orders_vat_rate', sql`${t.shippingVatRate} in (0, 4, 10, 21)`),
+    check(
+      'orders_names_len',
+      sql`(${t.firstName} is null or char_length(${t.firstName}) between 1 and 60) and (${t.lastName} is null or char_length(${t.lastName}) between 1 and 60)`,
+    ),
+    check(
+      'orders_address',
+      sql`${t.anonymizedAt} is not null or ${t.shippingKind} = 'clinic_pickup' or (${t.addressLine} is not null and ${t.postalCode} is not null and ${t.city} is not null)`,
+    ),
+    check(
+      'orders_contact',
+      sql`${t.anonymizedAt} is not null or (${t.contactEmail} is not null and ${t.contactEmailNormalized} is not null and ${t.firstName} is not null and ${t.lastName} is not null)`,
+    ),
+    check(
+      'orders_cancelled',
+      sql`(${t.status} = 'cancelled') = (${t.cancelledAt} is not null and ${t.cancelReason} is not null and ${t.cancelledBy} is not null)`,
+    ),
+    check('orders_refund_attempts', sql`${t.refundAttempts} between 0 and 8`),
+    uniqueIndex('orders_one_pending_card_per_cart')
+      .on(t.cartId)
+      .where(sql`${t.status} = 'pending_payment' and ${t.paymentMethod} = 'card'`),
+    index('orders_customer_idx').on(t.customerId, t.createdAt.desc()),
+    index('orders_card_expiry_idx').on(t.status, t.reservationExpiresAt),
+    index('orders_pickup_expiry_idx').on(t.status, t.pickupDeadline),
+    index('orders_pending_email_idx').on(t.contactEmailNormalized).where(sql`${t.status} = 'pending_payment'`),
+    index('orders_refund_pending_idx').on(t.refundNextAttemptAt).where(sql`${t.refundStatus} = 'pending'`),
+  ],
+);
+
+export const orderItems = pgTable(
+  'order_items',
+  {
+    id: id(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+    productName: text('product_name').notNull(),
+    productSlug: text('product_slug').notNull(),
+    unitPriceCents: integer('unit_price_cents').notNull(),
+    vatRate: smallint('vat_rate').notNull(),
+    quantity: smallint('quantity').notNull(),
+    discountShareCents: integer('discount_share_cents').notNull().default(0),
+    lineTotalCents: integer('line_total_cents').notNull(),
+    vatCents: integer('vat_cents').notNull(),
+    position: smallint('position').notNull().default(0),
+  },
+  (t) => [
+    check('order_items_price', sql`${t.unitPriceCents} > 0`),
+    check('order_items_quantity', sql`${t.quantity} between 1 and 99`),
+    check('order_items_vat_rate', sql`${t.vatRate} in (0, 4, 10, 21)`),
+    check(
+      'order_items_amounts',
+      sql`${t.discountShareCents} >= 0 and ${t.lineTotalCents} >= 0 and ${t.vatCents} >= 0`,
+    ),
+    check('order_items_total', sql`${t.lineTotalCents} = ${t.unitPriceCents} * ${t.quantity} - ${t.discountShareCents}`),
+    index('order_items_order_idx').on(t.orderId, t.position),
+  ],
+);
+
+export const orderStatusHistory = pgTable(
+  'order_status_history',
+  {
+    id: id(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'cascade' }),
+    fromStatus: orderStatus('from_status'),
+    toStatus: orderStatus('to_status').notNull(),
+    actor: orderActor('actor').notNull(),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('order_status_history_note_len', sql`${t.note} is null or char_length(${t.note}) <= 200`),
+    index('order_status_history_order_idx').on(t.orderId, t.createdAt),
+  ],
+);
+
+export const payments = pgTable(
+  'payments',
+  {
+    id: id(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    providerSessionId: text('provider_session_id').notNull().unique(),
+    providerPaymentId: text('provider_payment_id'),
+    checkoutUrl: text('checkout_url').notNull(),
+    amountCents: integer('amount_cents').notNull(),
+    status: paymentStatus('status').notNull().default('open'),
+    refundId: text('refund_id'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    check('payments_provider', sql`${t.provider} in ('stripe', 'fake')`),
+    check('payments_amount', sql`${t.amountCents} >= 0`),
+    uniqueIndex('payments_one_succeeded_per_order').on(t.orderId).where(sql`${t.status} = 'succeeded'`),
+    index('payments_order_idx').on(t.orderId),
+    index('payments_open_idx').on(t.createdAt).where(sql`${t.status} = 'open'`),
+  ],
+);
+
+export const paymentEvents = pgTable(
+  'payment_events',
+  {
+    providerEventId: text('provider_event_id').primaryKey(),
+    provider: text('provider').notNull(),
+    type: text('type').notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+    result: text('result'),
+  },
+  (t) => [
+    check('payment_events_result', sql`${t.result} is null or ${t.result} in ('ok', 'ignored', 'error')`),
+    index('payment_events_received_idx').on(t.receivedAt),
   ],
 );

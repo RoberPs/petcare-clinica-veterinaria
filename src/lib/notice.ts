@@ -23,6 +23,18 @@ export const NOTICES = {
   'limite-citas': 'Ya tienes el máximo de citas pendientes. Para pedir otra, llama a la clínica.',
   'error-cita':
     'No hemos podido completar la operación. Inténtalo de nuevo en unos minutos o llama a la clínica.',
+  // Carrito y pago (feature 005, D14).
+  'carrito-anadido': 'Añadido al carrito.',
+  'carrito-actualizado': 'Hemos actualizado tu carrito.',
+  'carrito-ajustado': 'Hemos ajustado las cantidades a las unidades disponibles. Revisa tu carrito.',
+  'producto-agotado': 'Este producto está agotado o ya no está disponible.',
+  'descuento-aplicado': 'Hemos aplicado el código de descuento.',
+  'descuento-retirado': 'Hemos quitado el código de descuento.',
+  'descuento-caducado': 'El código de descuento ya no se puede aplicar a este carrito y lo hemos quitado.',
+  'pedido-cancelado': 'Hemos cancelado el pedido y enviado la confirmación por correo.',
+  'pedido-no-cancelable': 'Este pedido ya no se puede cancelar desde la web. Contacta con la clínica.',
+  'pago-vencido': 'El plazo de pago ha vencido. Vuelve a hacer el pedido desde el carrito.',
+  'carrito-error': 'No hemos podido actualizar el carrito. Inténtalo de nuevo en unos minutos.',
 } as const;
 
 export type NoticeCode = keyof typeof NOTICES;

@@ -3,7 +3,9 @@ import { parseEuros } from '@/domain/money';
 
 // Esquema del archivo de contenido por clínica (contracts/content-file.md). Mensajes en español.
 
-const LEGAL_KINDS = ['aviso-legal', 'privacidad', 'cookies', 'terminos'] as const;
+const LEGAL_KINDS = ['aviso-legal', 'privacidad', 'cookies', 'terminos', 'condiciones-venta'] as const;
+/** Páginas legales obligatorias siempre; condiciones-venta solo con el carrito activo (feature 005). */
+const REQUIRED_LEGAL_KINDS = ['aviso-legal', 'privacidad', 'cookies', 'terminos'] as const;
 const SECTION_KEYS = ['reservas', 'tienda', 'carrito', 'consejos', 'cuenta'] as const;
 
 const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'el slug debe estar en kebab-case (a-z, 0-9 y guiones)');
@@ -202,6 +204,106 @@ export const shopSchema = z
 
 export type ShopContent = z.infer<typeof shopSchema>;
 
+// Carrito y pago (feature 005, contracts/content-file.md). Los importes van en euros con coma
+// ("5,00"); también se admite el punto. Se guardan en céntimos.
+const EUROS_TEXT = /^\d{1,5}([.,]\d{1,2})?$/;
+const eurosToCents = (v: string) => {
+  const [whole, decimals = ''] = v.split(/[.,]/);
+  return Number(whole) * 100 + Number(decimals.padEnd(2, '0'));
+};
+const eurosAmount = (positive: boolean) =>
+  z
+    .string({ error: 'el importe debe ir entre comillas, en euros con coma decimal (por ejemplo "5,00")' })
+    .regex(EUROS_TEXT, 'el importe debe estar en euros con 2 decimales como máximo (por ejemplo "5,00")')
+    .transform(eurosToCents)
+    .refine((c) => !positive || c > 0, 'el importe debe ser mayor que 0');
+const POSTAL_PREFIX_RE = /^(0[1-9]|[1-4]\d|5[0-2])$/;
+
+const shippingMethodSchema = z.object({
+  code: slug,
+  kind: z.enum(['home_delivery', 'clinic_pickup'], { error: 'kind debe ser home_delivery o clinic_pickup' }),
+  name: text(60),
+  description: text(160),
+  cost: eurosAmount(false),
+  vat_rate: z.union([z.literal(0), z.literal(4), z.literal(10), z.literal(21)], { error: 'vat_rate debe ser 0, 4, 10 o 21' }).default(21),
+  postal_prefixes: z
+    .array(z.string().regex(POSTAL_PREFIX_RE, 'el prefijo postal debe ir entre "01" y "52"'))
+    .min(1, 'si hay lista de prefijos, no puede estar vacía')
+    .nullish(),
+});
+
+const discountCommon = {
+  code: z.string().regex(/^[A-Z0-9]{3,20}$/, 'el código debe tener de 3 a 20 letras mayúsculas o números'),
+  min_subtotal: eurosAmount(false).nullish(),
+  starts_at: isoDate.nullish(),
+  ends_at: isoDate.nullish(),
+  max_uses: z.number().int('debe ser un número entero').positive('debe ser mayor que 0').nullish(),
+};
+const discountCodeSchema = z.discriminatedUnion(
+  'kind',
+  [
+    z.object({
+      ...discountCommon,
+      kind: z.literal('percent'),
+      value: z.number().int('debe ser un número entero').min(1, 'el porcentaje debe estar entre 1 y 100').max(100, 'el porcentaje debe estar entre 1 y 100'),
+    }),
+    z.object({ ...discountCommon, kind: z.literal('fixed'), value: eurosAmount(true) }),
+  ],
+  { error: 'kind debe ser percent o fixed' },
+);
+
+export const checkoutSchema = z
+  .object({
+    order_prefix: z.string().regex(/^[A-Z0-9-]{1,6}$/, 'order_prefix debe tener de 1 a 6 caracteres A-Z, 0-9 o guion'),
+    reservation_minutes: intIn(30, 120, 30),
+    pickup_days: intIn(1, 30, 7),
+    cart_retention_days: intIn(1, 90, 30),
+    max_qty_per_line: intIn(1, 99, 10),
+    max_pending_per_email: intIn(1, 10, 3),
+    max_pending_per_customer: intIn(1, 10, 3),
+    guest_link_days: intIn(7, 365, 90),
+    notice: text(300).nullish(),
+    payment_methods: z.object({ card: z.boolean().default(false), in_clinic: z.boolean().default(false) }),
+    shipping_methods: z
+      .array(shippingMethodSchema, { error: 'falta la lista de métodos de envío (shipping_methods)' })
+      .min(1, 'tiene que haber al menos un método de envío')
+      .max(10, 'no puede haber más de 10 métodos de envío')
+      .superRefine((v, ctx) => uniqueBy(v, (m) => m.code, ctx, 'código')),
+    discount_codes: z
+      .array(discountCodeSchema)
+      .max(100, 'no puede haber más de 100 códigos')
+      .default([])
+      .superRefine((v, ctx) => uniqueBy(v, (d) => d.code, ctx, 'código')),
+  })
+  .superRefine((c, ctx) => {
+    if (!c.payment_methods.card && !c.payment_methods.in_clinic) {
+      ctx.addIssue({ code: 'custom', path: ['payment_methods'], message: 'tiene que haber al menos un método de pago activo' });
+    }
+    const pickups = c.shipping_methods.map((m, i) => ({ m, i })).filter(({ m }) => m.kind === 'clinic_pickup');
+    if (c.payment_methods.in_clinic && pickups.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['payment_methods', 'in_clinic'],
+        message: 'el pago en clínica necesita un método de envío clinic_pickup',
+      });
+    }
+    pickups.slice(1).forEach(({ i }) =>
+      ctx.addIssue({ code: 'custom', path: ['shipping_methods', i, 'kind'], message: 'solo puede haber un método clinic_pickup' }),
+    );
+    c.shipping_methods.forEach((m, i) => {
+      if (m.kind === 'clinic_pickup' && m.postal_prefixes) {
+        ctx.addIssue({ code: 'custom', path: ['shipping_methods', i, 'postal_prefixes'], message: 'la recogida no usa prefijos postales' });
+      }
+    });
+    c.discount_codes.forEach((d, i) => {
+      if (d.starts_at && d.ends_at && d.ends_at <= d.starts_at) {
+        ctx.addIssue({ code: 'custom', path: ['discount_codes', i, 'ends_at'], message: 'ends_at debe ser posterior a starts_at' });
+      }
+    });
+  });
+
+export type CheckoutContent = z.infer<typeof checkoutSchema>;
+
 const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 const contentObject = z.object({
@@ -291,7 +393,7 @@ const contentObject = z.object({
     )
     .superRefine((pages, ctx) => {
       uniqueBy(pages, (p) => p.kind, ctx, 'kind');
-      for (const kind of LEGAL_KINDS) {
+      for (const kind of REQUIRED_LEGAL_KINDS) {
         if (!pages.some((p) => p.kind === kind)) ctx.addIssue({ code: 'custom', message: `falta la página legal "${kind}"` });
       }
     }),
@@ -314,11 +416,24 @@ const contentObject = z.object({
     }),
   booking: bookingSchema.nullish(),
   shop: shopSchema.nullish(),
+  checkout: checkoutSchema.nullish(),
 });
 
 /** Comprobaciones que cruzan bloques: el de reservas con el equipo, los servicios, el horario y las secciones. */
 export const contentSchema = contentObject.superRefine((c, ctx) => {
   const tienda = c.sections.find((sec) => sec.key === 'tienda');
+  const carrito = c.sections.find((sec) => sec.key === 'carrito');
+  if (carrito?.href) {
+    if (!c.checkout) {
+      ctx.addIssue({ code: 'custom', path: ['checkout'], message: 'falta el bloque checkout: es obligatorio si sections.carrito.href no es nulo' });
+    }
+    if (!c.shop || !tienda?.href) {
+      ctx.addIssue({ code: 'custom', path: ['shop'], message: 'el carrito necesita la tienda: bloque shop: y sections.tienda.href' });
+    }
+    if (!c.legal_pages.some((p) => p.kind === 'condiciones-venta')) {
+      ctx.addIssue({ code: 'custom', path: ['legal_pages'], message: 'falta la página legal "condiciones-venta" (el carrito está activo)' });
+    }
+  }
   if (!c.shop && tienda?.href) {
     ctx.addIssue({
       code: 'custom',

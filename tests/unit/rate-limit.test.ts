@@ -84,6 +84,20 @@ describe('políticas con nombre (A6)', () => {
     expect(isPolicyLimited('login_origin', 20)).toBe(true);
   });
 
+  it('checkout_origin: 5 pedidos cada 10 minutos por origen (feature 005)', () => {
+    expect(RATE_POLICIES.checkout_origin).toMatchObject({ max: 5, windowMinutes: 10, key: 'origin' });
+    expect(isPolicyLimited('checkout_origin', 4)).toBe(false);
+    expect(isPolicyLimited('checkout_origin', 5)).toBe(true);
+    expect(toPolicyBucket('checkout_origin', '203.0.113.7', SECRET)).toMatch(/^checkout_origin:[0-9a-f]{64}$/);
+  });
+
+  it('discount_origin: 10 intentos cada 10 minutos por origen (D12)', () => {
+    expect(RATE_POLICIES.discount_origin).toMatchObject({ max: 10, windowMinutes: 10, key: 'origin' });
+    expect(isPolicyLimited('discount_origin', 9)).toBe(false);
+    expect(isPolicyLimited('discount_origin', 10)).toBe(true);
+    expect(toPolicyBucket('discount_origin', '2001:db8::1', SECRET)).toBe(toPolicyBucket('discount_origin', '2001:db8::2', SECRET));
+  });
+
   it('booking_origin: 5 reservas cada 10 minutos por origen (B9), separado del contacto', () => {
     expect(RATE_POLICIES.booking_origin).toMatchObject({ max: 5, windowMinutes: 10, key: 'origin' });
     expect(isPolicyLimited('booking_origin', 4)).toBe(false);

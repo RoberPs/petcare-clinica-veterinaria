@@ -24,4 +24,10 @@ export const testEnv = {
   SITE_URL: `http://localhost:${E2E_PORT}`,
   // Solo en pruebas: permite simular la hora del servidor con la cabecera x-test-now.
   TEST_CLOCK_ENABLED: '1',
+  // Feature 005: pasarela simulada, sin red.
+  PAYMENT_PROVIDER: 'fake',
+  STRIPE_SECRET_KEY: '',
+  STRIPE_WEBHOOK_SECRET: '',
+  // e2e corre con next start (NODE_ENV=production): la pasarela simulada se permite a propósito.
+  PAYMENT_FAKE_ALLOWED: 'true',
 } satisfies Record<string, string>;

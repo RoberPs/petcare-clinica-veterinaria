@@ -119,7 +119,9 @@ describe('carga del bloque shop:', () => {
     await seedCatalog();
     await seedCatalog((_shop, content) => {
       delete content.shop;
-      content.sections = content.sections.map((s: { key: string }) => (s.key === 'tienda' ? { ...s, href: null } : s));
+      content.sections = content.sections.map((s: { key: string }) =>
+        s.key === 'tienda' || s.key === 'carrito' ? { ...s, href: null } : s,
+      );
     });
     expect(await q('SELECT count(*)::int AS n FROM products WHERE published')).toEqual([{ n: 0 }]);
     expect(await q('SELECT count(*)::int AS n FROM product_categories WHERE published')).toEqual([{ n: 0 }]);

@@ -3,7 +3,6 @@ import { axeCheck, expect, test } from './fixtures';
 
 const SECTIONS: [string, string][] = [
   ['reservas', 'Pide cita'],
-  ['carrito', 'Carrito'],
   ['consejos', 'Consejos de salud'],
   ['cuenta', 'Mi cuenta'],
 ];

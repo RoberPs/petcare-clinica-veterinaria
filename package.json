@@ -24,7 +24,9 @@
     "email:dispatch": "tsx scripts/email-dispatch.ts",
     "email:fake": "tsx scripts/fake-email-provider.ts",
     "email:fake:list": "tsx scripts/fake-email-provider.ts --list",
-    "retention:purge": "tsx scripts/retention-purge.ts"
+    "retention:purge": "tsx scripts/retention-purge.ts",
+    "orders": "tsx scripts/orders.ts",
+    "orders:maintain": "tsx scripts/orders-maintain.ts"
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
