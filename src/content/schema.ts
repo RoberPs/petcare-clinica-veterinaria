@@ -3,7 +3,7 @@ import { parseEuros } from '@/domain/money';
 
 // Esquema del archivo de contenido por clínica (contracts/content-file.md). Mensajes en español.
 
-const LEGAL_KINDS = ['aviso-legal', 'privacidad', 'cookies', 'terminos', 'condiciones-venta'] as const;
+const LEGAL_KINDS = ['aviso-legal', 'privacidad', 'cookies', 'terminos', 'condiciones-venta', 'boletin'] as const;
 /** Páginas legales obligatorias siempre; condiciones-venta solo con el carrito activo (feature 005). */
 const REQUIRED_LEGAL_KINDS = ['aviso-legal', 'privacidad', 'cookies', 'terminos'] as const;
 const SECTION_KEYS = ['reservas', 'tienda', 'carrito', 'consejos', 'cuenta'] as const;
@@ -304,6 +304,53 @@ export const checkoutSchema = z
 
 export type CheckoutContent = z.infer<typeof checkoutSchema>;
 
+// ---------- Consejos de salud y boletín (feature 006, contracts/content-file.md) ----------
+
+export const POST_CATEGORY_KEY_RE = /^[a-z][a-z0-9-]{0,31}$/;
+const postCategory = z.object({
+  key: z.string().regex(POST_CATEGORY_KEY_RE, 'la clave debe empezar por una letra y usar a-z, 0-9 y guiones (máx. 32)'),
+  label: text(40),
+});
+
+/** Recorta el preámbulo a 160 caracteres para la meta descripción por defecto. */
+export function defaultMetaDescription(lead: string): string {
+  const clean = lead.replace(/\s+/g, ' ').trim();
+  if (clean.length <= 160) return clean;
+  const cut = clean.slice(0, 159);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > 100 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
+
+const H1_RE = /^ {0,3}#(?!#)(\s|$)/m;
+
+const postItem = z
+  .object({
+    slug: slug.refine((v) => v.length <= 80, 'el slug no puede superar 80 caracteres'),
+    kind: z.enum(['article', 'news'], { error: 'kind debe ser article o news' }),
+    category: z.string().nullish(),
+    title: text(120),
+    lead: text(400),
+    published_on: isoDate,
+    published: z.boolean().default(true),
+    ...imageFields,
+    meta_description: text(160).nullish(),
+    body_md: z
+      .string()
+      .max(40_000, 'no puede superar 40000 caracteres')
+      .refine((v) => !H1_RE.test(v), 'el cuerpo no puede tener encabezados # de nivel 1 (el título ya es el h1); usa ## y ###'),
+  })
+  .refine(altRequired, altIssue)
+  .refine((p) => p.kind === 'news' || !!p.category, { message: 'la categoría es obligatoria en los artículos', path: ['category'] })
+  .transform((p) => ({ ...p, meta_description: p.meta_description ?? defaultMetaDescription(p.lead) }));
+
+export const newsletterSchema = z.object({
+  enabled: z.boolean(),
+  title: text(80),
+  text: text(240),
+});
+
+export type PostContent = z.infer<typeof postItem>;
+
 const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 const contentObject = z.object({
@@ -417,10 +464,20 @@ const contentObject = z.object({
   booking: bookingSchema.nullish(),
   shop: shopSchema.nullish(),
   checkout: checkoutSchema.nullish(),
+  post_categories: z
+    .array(postCategory)
+    .default([])
+    .superRefine((v, ctx) => uniqueBy(v, (c) => c.key, ctx, 'key')),
+  posts: z
+    .array(postItem)
+    .default([])
+    .superRefine((v, ctx) => uniqueBy(v, (p) => p.slug, ctx, 'slug')),
+  newsletter: newsletterSchema.nullish(),
 });
 
 /** Comprobaciones que cruzan bloques: el de reservas con el equipo, los servicios, el horario y las secciones. */
 export const contentSchema = contentObject.superRefine((c, ctx) => {
+  checkPostsAndNewsletter(c, ctx);
   const tienda = c.sections.find((sec) => sec.key === 'tienda');
   const carrito = c.sections.find((sec) => sec.key === 'carrito');
   if (carrito?.href) {
@@ -475,6 +532,35 @@ export const contentSchema = contentObject.superRefine((c, ctx) => {
 });
 
 export type ContentFile = z.infer<typeof contentSchema>;
+
+/** Reglas cruzadas de la feature 006: categorías existentes, sección de consejos y política del boletín. */
+function checkPostsAndNewsletter(c: z.infer<typeof contentObject>, ctx: z.RefinementCtx): void {
+  const consejos = c.sections.find((sec) => sec.key === 'consejos');
+  if (consejos?.href && c.post_categories.length === 0) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['post_categories'],
+      message: 'falta el bloque post_categories: es obligatorio si sections.consejos.href no es nulo',
+    });
+  }
+  const categories = new Set(c.post_categories.map((cat) => cat.key));
+  c.posts.forEach((p, i) => {
+    if (p.category && !categories.has(p.category)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['posts', i, 'category'],
+        message: `${p.slug}: no existe la categoría "${p.category}" en post_categories`,
+      });
+    }
+  });
+  if (c.newsletter?.enabled && !c.legal_pages.some((p) => p.kind === 'boletin')) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['legal_pages'],
+      message: 'falta la página legal "boletin" (el boletín está activo)',
+    });
+  }
+}
 
 export interface ContentIssue {
   path: string;

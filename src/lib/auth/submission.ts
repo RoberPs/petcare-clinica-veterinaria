@@ -8,7 +8,7 @@ import { processedSubmissions } from '@/db/schema';
 
 export { createSubmissionToken, verifySubmissionToken } from '@/lib/form-token';
 
-export type SubmissionScope = 'register' | 'pet_create';
+export type SubmissionScope = 'register' | 'pet_create' | 'newsletter';
 
 export type ClaimResult = { status: 'fresh' } | { status: 'duplicate'; resultRef: string | null };
 

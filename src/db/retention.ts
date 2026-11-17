@@ -9,6 +9,8 @@ import {
   customers,
   customerSessions,
   emailOutbox,
+  newsletterSubscriptions,
+  newsletterUnsubscribeRecords,
   orders,
   paymentEvents,
   processedSubmissions,
@@ -29,6 +31,9 @@ import {
 // Feature 005 (D16): carritos de invitado sin cambios en cart_retention_days (con sus líneas, en
 // cascada), avisos de la pasarela de más de 90 días y pedidos de más de 6 años anonimizados (se
 // conservan importes y líneas). Los correos de pedido cerrados caen con la regla de las 24 h.
+//
+// Feature 006 (E15): suscripciones al boletín sin confirmar a los 30 días (sin constancia, porque
+// nunca llegaron a estar en la lista) y constancias de baja anónimas a los 3 años.
 
 export interface PurgeResult {
   messages: number;
@@ -42,6 +47,8 @@ export interface PurgeResult {
   guestCarts: number;
   paymentEvents: number;
   anonymizedOrders: number;
+  pendingSubscriptions: number;
+  unsubscribeRecords: number;
 }
 
 export async function purgeExpired(db: Db): Promise<PurgeResult> {
@@ -137,6 +144,20 @@ export async function purgeExpired(db: Db): Promise<PurgeResult> {
       .where(and(isNull(orders.anonymizedAt), lt(orders.createdAt, sql`now() - interval '6 years'`)))
       .returning({ id: orders.id });
 
+    const pendingSubscriptions = await tx
+      .delete(newsletterSubscriptions)
+      .where(
+        and(
+          sql`${newsletterSubscriptions.status} = 'pending'`,
+          lt(newsletterSubscriptions.createdAt, sql`now() - interval '30 days'`),
+        ),
+      )
+      .returning({ id: newsletterSubscriptions.id });
+    const unsubscribeRecords = await tx
+      .delete(newsletterUnsubscribeRecords)
+      .where(lt(newsletterUnsubscribeRecords.unsubscribedAt, sql`now() - interval '3 years'`))
+      .returning({ id: newsletterUnsubscribeRecords.id });
+
     return {
       messages: messages.length,
       hits: hits.length,
@@ -149,6 +170,8 @@ export async function purgeExpired(db: Db): Promise<PurgeResult> {
       guestCarts: guestCarts.length,
       paymentEvents: events.length,
       anonymizedOrders: anonymizedOrders.length,
+      pendingSubscriptions: pendingSubscriptions.length,
+      unsubscribeRecords: unsubscribeRecords.length,
     };
   });
 }

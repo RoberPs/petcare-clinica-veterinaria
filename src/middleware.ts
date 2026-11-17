@@ -3,6 +3,8 @@ import { isSectionKey } from '@/domain/sections';
 import { buildCsp } from '@/lib/csp';
 import { catalogRouteExists } from '@/db/queries/catalog-visibility';
 import { isShopEnabled } from '@/db/queries/checkout-config';
+import { isNewsletterEnabled } from '@/db/queries/newsletter';
+import { postsRouteExists } from '@/db/queries/posts-visibility';
 
 /**
  * Catálogo (feature 004): /productos con la tienda apagada y una ficha inexistente o no visible
@@ -13,6 +15,30 @@ async function catalogRouteOk(pathname: string): Promise<boolean> {
   if (!match) return true;
   try {
     return await catalogRouteExists(match[1] ? decodeURIComponent(match[1]) : null);
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Consejos (feature 006, E3): con la sección desactivada, /consejos y sus publicaciones van al 404
+ * normal, igual que una publicación inexistente, despublicada o con fecha futura.
+ */
+async function postsRouteOk(pathname: string): Promise<boolean> {
+  const match = pathname.match(/^\/consejos(?:\/([^/]+))?\/?$/);
+  if (!match) return true;
+  try {
+    return await postsRouteExists(match[1] ? decodeURIComponent(match[1]) : null);
+  } catch {
+    return true;
+  }
+}
+
+/** Boletín (feature 006, E13): desactivado, sus páginas y su política van al 404 normal. */
+async function newsletterRouteOk(pathname: string): Promise<boolean> {
+  if (!/^\/(boletin(\/|$)|politica-del-boletin\/?$)/.test(pathname)) return true;
+  try {
+    return await isNewsletterEnabled();
   } catch {
     return true;
   }
@@ -50,6 +76,8 @@ export async function middleware(request: NextRequest) {
   const missing =
     (coming && !isSectionKey(decodeURIComponent(coming[1]!))) ||
     !(await catalogRouteOk(pathname)) ||
+    !(await postsRouteOk(pathname)) ||
+    !(await newsletterRouteOk(pathname)) ||
     !(await shopRouteOk(pathname));
   const response = missing
     ? NextResponse.rewrite(new URL('/__no-encontrada', request.url), { request: { headers: requestHeaders } })

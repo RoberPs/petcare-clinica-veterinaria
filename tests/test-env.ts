@@ -30,4 +30,6 @@ export const testEnv = {
   STRIPE_WEBHOOK_SECRET: '',
   // e2e corre con next start (NODE_ENV=production): la pasarela simulada se permite a propósito.
   PAYMENT_FAKE_ALLOWED: 'true',
+  // Feature 006: huella anónima de las bajas del boletín (valor de prueba, 32 bytes en base64).
+  NEWSLETTER_HASH_KEY: 'cHJ1ZWJhcy1ib2xldGluLWNsYXZlLWRlLTMyLWJ5dGU=',
 } satisfies Record<string, string>;

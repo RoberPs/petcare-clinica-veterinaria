@@ -8,6 +8,7 @@ import { enqueueAccountEmail, getAccountEmailContext } from '@/email/outbox';
 import { verifyEmail } from '@/email/templates/verify-email';
 import { consumeToken, issueToken, peekToken } from '@/lib/auth/tokens';
 import { logger } from '@/lib/logger';
+import { onAccountVerified } from '@/lib/newsletter/sync';
 import { checkPolicy, errorCode, formField, formRecord, policyBucket, type FlowContext, type FormState } from './common';
 
 // Verificación del correo (US1, A4) y reenvío del enlace.
@@ -31,6 +32,8 @@ export async function processVerification(form: FormData, ctx: { now: Date }): P
         .where(eq(customers.id, used.customerId))
         .returning({ id: customers.id, email: customers.email });
       if (!customer) return { status: 'expired' };
+      // Boletín (feature 006, E11): con la preferencia marcada, alta confirmada sin otro correo.
+      await onAccountVerified(tx, customer.id, ctx.now);
       logger.info({ customer_id: customer.id }, 'email_verified');
       return { status: 'ok', email: customer.email };
     });

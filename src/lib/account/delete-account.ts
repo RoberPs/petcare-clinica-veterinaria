@@ -8,6 +8,7 @@ import { accountDeleted } from '@/email/templates/account-deleted';
 import { verifyPassword } from '@/lib/auth/password';
 import { anonymizeCustomerAppointments, cancelForSystem } from '@/lib/booking/cancel';
 import { logger } from '@/lib/logger';
+import { unsubscribeFromAccount } from '@/lib/newsletter/sync';
 import { transitionOrder } from '@/lib/orders/transition';
 import { checkPolicy, errorCode, formRecord, policyBucket, type FlowContext, type FormState } from './common';
 
@@ -71,6 +72,8 @@ export async function processDeleteAccount(
         .update(orders)
         .set({ customerId: null, accessVersion: sql`${orders.accessVersion} + 1` })
         .where(eq(orders.customerId, row.id));
+      // Boletín (feature 006, E11): fuera de la lista con constancia antes de borrar la cuenta.
+      await unsubscribeFromAccount(tx, row.id, 'account_deleted', ctx.now);
       await tx.delete(customers).where(eq(customers.id, row.id));
       return [mail.id, ...appointmentEmails];
     });

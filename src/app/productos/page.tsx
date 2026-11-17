@@ -9,6 +9,7 @@ import { Pagination } from '@/components/Pagination';
 import { ProductCard } from '@/components/ProductCard';
 import { ShopNotice } from '@/components/ShopNotice';
 import {
+  buildCatalogHref,
   clampPage,
   hasFilters,
   parseCatalogQuery,
@@ -137,7 +138,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
               </div>
             )}
 
-            <Pagination state={state} pages={pages} />
+            <Pagination current={state.page} pages={pages} hrefFor={(page) => buildCatalogHref(state, { page })} />
           </section>
         </div>
       </div>

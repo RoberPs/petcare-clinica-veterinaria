@@ -18,7 +18,7 @@ test.describe('US1 · portada', () => {
     ['Conoce la clínica', /\/la-clinica$/],
     ['Nuestros productos', /\/productos$/],
     ['Tratamientos y servicios', /\/tratamientos$/],
-    ['Consejos de salud', /\/proximamente\/consejos$/],
+    ['Consejos de salud', /\/consejos$/], // feature 006: ya no es "próximamente"
   ];
   for (const [name, url] of destinations) {
     test(`"${name}" llega a su destino en un clic`, async ({ page }) => {
@@ -29,15 +29,29 @@ test.describe('US1 · portada', () => {
     });
   }
 
-  test('cifras del YAML, sin boletín y sin avisos de salud sin fuente; axe', async ({ page }) => {
+  test('cifras del YAML, boletín activo y sin avisos de salud sin fuente; axe', async ({ page }) => {
     await page.goto('/');
     const stats = page.getByRole('region', { name: 'PetCare en cifras' });
     await expect(stats.getByRole('heading', { name: '+3.200 visitas al año' })).toBeVisible();
     await expect(stats.getByRole('heading', { name: '4 personas en el equipo' })).toBeVisible();
-    await expect(page.locator('main input[type="email"]')).toHaveCount(0);
-    await expect(page.getByText(/boletín/i)).toHaveCount(0);
+    // Feature 006: el contenido de demo activa el boletín, así que su bloque cierra la portada.
+    await expect(page.locator('main section.newsletter#boletin input[type="email"]')).toHaveCount(1);
     await expect(page.getByRole('region', { name: 'Avisos de salud' })).toHaveCount(0);
     await axeCheck(page);
+  });
+
+  test('sin el bloque newsletter en el YAML, la portada no tiene boletín', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'recarga contenido: basta con un proyecto');
+    try {
+      await loadPetcareVariant((c) => {
+        delete c.newsletter;
+      });
+      await page.goto('/');
+      await expect(page.locator('main input[type="email"]')).toHaveCount(0);
+      await expect(page.getByRole('main').getByText(/boletín/i)).toHaveCount(0);
+    } finally {
+      await loadPetcare();
+    }
   });
 
   test('un aviso de salud con fuente aparece junto a la cita de su fuente', async ({ page }, info) => {

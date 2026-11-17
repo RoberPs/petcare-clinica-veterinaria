@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildAccountExport, exportFileName } from '@/domain/account-export';
 
-// Forma del JSON de "Descargar mis datos" (contracts/export-format.md, format_version 2).
+// Forma del JSON de "Descargar mis datos" (contracts/export-format.md, format_version 3).
 
 // Sin anotar el tipo: así se pueden pasar columnas de más (id, hash…) y comprobar que no se exportan.
 const input = {
@@ -36,10 +36,10 @@ const input = {
 const now = new Date('2026-11-11T09:15:00Z');
 
 describe('exportación de datos (A11)', () => {
-  it('sigue el contrato format_version 2', () => {
+  it('sigue el contrato format_version 3', () => {
     const out = buildAccountExport(input, now);
     expect(out).toEqual({
-      format_version: 2,
+      format_version: 3,
       exported_at: '2026-11-11T10:15:00+01:00',
       controller: { name: 'Responsable de Pruebas', contact_email: 'derechos@example.test' },
       account: {
@@ -52,7 +52,7 @@ describe('exportación de datos (A11)', () => {
         created_at: '2026-11-01T08:00:00.000Z',
         updated_at: '2026-11-02T09:00:00.000Z',
       },
-      communications: { marketing_opt_in: true, changed_at: '2026-11-02T09:00:00.000Z' },
+      communications: { marketing_opt_in: true, changed_at: '2026-11-02T09:00:00.000Z', newsletter: null },
       consents: [
         { kind: 'privacy_terms', privacy_version: '2026-11-11', terms_version: '2026-11-10', at: '2026-11-01T08:00:00.000Z' },
         { kind: 'marketing_opt_in', privacy_version: null, terms_version: null, at: '2026-11-02T09:00:00.000Z' },

@@ -105,6 +105,26 @@ Si se quita una especie del YAML, sus mascotas pasan a "Otra"; `content-load` av
    correos ya enviados dejan de valer** (los pedidos siguen; se consultan con `cli/orders.mjs`).
 7. Temporizador nuevo `petcare-orders-maintain` (sección 6).
 
+### Actualizar a la feature 006 (consejos de salud y boletín)
+
+1. Haz una copia de seguridad (`deploy/backup.sh`).
+2. Aplica la migración `0005_health_tips_newsletter` con `cli/migrate.mjs`: categorías y
+   publicaciones, suscripciones al boletín, constancias de baja y ajustes del boletín. Da de alta en
+   el boletín, como confirmados, a los clientes que ya tenían marcada la preferencia "consejos y
+   novedades" y el correo verificado (versión de la política `previa`). Es idempotente.
+3. Secreto nuevo en `deploy/.env`: `NEWSLETTER_HASH_KEY` (32 bytes aleatorios en base64:
+   `openssl rand -base64 32`). Firma la huella anónima del correo en las constancias de baja. **No
+   lo cambies**: las constancias ya guardadas dejarían de poder compararse. Solo es obligatorio con
+   el boletín activo; si falta, `cli/content-load.mjs` falla al cargar `newsletter.enabled: true`.
+4. Recarga el contenido con `cli/content-load.mjs`: carga las categorías, los artículos y noticias,
+   el bloque `newsletter:` y la página legal `boletin`, y pone `consejos.href` a `/consejos`. Las
+   publicaciones con fecha futura aparecen solas ese día a las 00:00 (`Europe/Madrid`).
+5. `FORM_SECRET` firma también los enlaces de baja del boletín (clave derivada): **si lo cambias, los
+   enlaces de baja de los correos ya enviados dejan de valer** (la baja de un clic y "Datos
+   personales" siguen funcionando).
+6. No hay temporizadores nuevos: `petcare-purge` borra también las suscripciones sin confirmar de más
+   de 30 días y las constancias de baja de más de 3 años (sección 6).
+
 ### Gestión de pedidos sin panel (`cli/orders.mjs`)
 
 Mientras no haya panel de administración, la clínica gestiona los pedidos desde el VPS:
@@ -154,6 +174,8 @@ systemctl list-timers 'petcare-*'
 - Desde la feature 005, `petcare-purge` borra también los carritos de invitado sin cambios en 30 días,
   los avisos de la pasarela de más de 90 días y los correos de pedido cerrados de más de 24 h, y
   anonimiza los pedidos de más de 6 años (conserva importes y líneas).
+- Desde la feature 006, `petcare-purge` borra también las suscripciones al boletín sin confirmar de
+  más de 30 días y las constancias de baja anónimas de más de 3 años.
 - `petcare-backup` (diario): `pg_dump` comprimido en `/var/backups/petcare`, rotado a 14 días.
 
 ## 7. Comprobaciones

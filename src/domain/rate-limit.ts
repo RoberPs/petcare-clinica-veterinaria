@@ -72,6 +72,8 @@ export const RATE_POLICIES = {
   checkout_origin: { max: 5, windowMinutes: 10, key: 'origin' },
   /** Intentos de código de descuento (feature 005, D12), por origen: evita adivinar códigos. */
   discount_origin: { max: 10, windowMinutes: 10, key: 'origin' },
+  /** Altas y reenvíos del boletín (feature 006, E9), por origen. */
+  newsletter_origin: { max: 5, windowMinutes: 10, key: 'origin' },
 } as const satisfies Record<string, RatePolicy>;
 
 export type RatePolicyName = keyof typeof RATE_POLICIES;

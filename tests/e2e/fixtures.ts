@@ -26,7 +26,14 @@ export async function dismissCookies(page: Page): Promise<void> {
 
 export interface FakeEmailRecord {
   id: string;
-  body: { to?: { email: string }[]; subject?: string; textContent?: string; htmlContent?: string; replyTo?: { email: string } };
+  body: {
+    to?: { email: string }[];
+    subject?: string;
+    textContent?: string;
+    htmlContent?: string;
+    replyTo?: { email: string };
+    headers?: Record<string, string>;
+  };
 }
 
 export const fakeEmails = {
@@ -57,7 +64,14 @@ export async function loginAs(page: Page, customer: Pick<TestCustomer, 'id'>, re
   ]);
 }
 
-export type AccountEmailKind = 'verify_email' | 'account_exists' | 'password_reset' | 'password_changed' | 'account_deleted';
+export type AccountEmailKind =
+  | 'verify_email'
+  | 'account_exists'
+  | 'password_reset'
+  | 'password_changed'
+  | 'account_deleted'
+  /** Boletín (feature 006). */
+  | 'newsletter_confirm';
 
 // Cada correo de cuenta se reconoce por el principio de su asunto (contracts/emails.md).
 const SUBJECTS: Record<AccountEmailKind, RegExp> = {
@@ -66,6 +80,7 @@ const SUBJECTS: Record<AccountEmailKind, RegExp> = {
   password_reset: /^Restablece tu contraseña/,
   password_changed: /^Tu contraseña de .* ha cambiado/,
   account_deleted: /^Hemos eliminado tu cuenta/,
+  newsletter_confirm: /^Confirma tu suscripción al boletín/,
 };
 
 /**
@@ -93,6 +108,16 @@ export function extractLink(email: FakeEmailRecord): string {
   const match = text.match(/https?:\/\/[^/\s]+(\/[^\s]*token=[A-Za-z0-9_-]+)/);
   if (!match) throw new Error('El correo no tiene ningún enlace con token');
   return match[1]!;
+}
+
+/** Enlace del correo a una ruta (p. ej. "/boletin/baja"), como ruta relativa con su ?t=. */
+export function linkTo(email: FakeEmailRecord, path: string): string {
+  for (const word of (email.body.textContent ?? '').split(/\s+/)) {
+    if (!/^https?:\/\//.test(word)) continue;
+    const url = new URL(word);
+    if (url.pathname === path && url.searchParams.has('t')) return `${url.pathname}${url.search}`;
+  }
+  throw new Error(`El correo no tiene ningún enlace a ${path}`);
 }
 
 // ---------- Citas (feature 003) ----------
