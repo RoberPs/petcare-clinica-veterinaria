@@ -6,6 +6,7 @@ import { isSectionEnabled, sectionHref } from '@/domain/sections';
 import { isShopEnabled } from '@/db/queries/checkout-config';
 import { getSiteData } from '@/db/queries/site';
 import { privateMetadata } from '@/lib/auth/private-metadata';
+import { isAdminCustomer } from '@/lib/auth/require-admin';
 import { requireCustomer } from '@/lib/auth/require-customer';
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,11 @@ export default async function AccountLayout({ children }: { children: ReactNode 
     <>
       <AccountHero firstName={customer.firstName} />
       <div className="container account-grid">
-        <AccountNav appointmentsHref={appointmentsHref} ordersHref={shopOn ? '/mi-cuenta/pedidos' : sectionHref('carrito', sections)} />
+        <AccountNav
+          appointmentsHref={appointmentsHref}
+          ordersHref={shopOn ? '/mi-cuenta/pedidos' : sectionHref('carrito', sections)}
+          showAdmin={isAdminCustomer(customer)}
+        />
         <div className="account-main">{children}</div>
       </div>
     </>

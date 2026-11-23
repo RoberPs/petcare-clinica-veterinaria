@@ -2,6 +2,7 @@ import { and, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from './client';
 import {
   accountTokens,
+  appointmentEvents,
   appointments,
   bookingSettings,
   carts,
@@ -117,6 +118,16 @@ export async function purgeExpired(db: Db): Promise<PurgeResult> {
         ),
       )
       .returning({ id: appointments.id });
+    // La nota de la clínica (F12) se borra con el resto de datos personales de la cita.
+    await tx
+      .update(appointmentEvents)
+      .set({ note: null })
+      .where(
+        and(
+          sql`${appointmentEvents.note} is not null`,
+          sql`${appointmentEvents.appointmentId} in (select ${appointments.id} from ${appointments} where ${appointments.anonymizedAt} is not null)`,
+        ),
+      );
 
     const [shop] = await tx.select({ days: shopSettings.cartRetentionDays }).from(shopSettings).limit(1);
     const cartDays = shop?.days ?? 30;

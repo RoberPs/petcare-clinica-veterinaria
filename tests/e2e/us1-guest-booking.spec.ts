@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { testEnv } from '../test-env';
-import { createAppointmentInDb, madrid, resetBookingState } from './db';
+import { createAppointmentInDb, loadPetcare, madrid, query, resetBookingState } from './db';
 import { axeCheck, dismissCookies, expect, fakeEmails, isNoJs, test } from './fixtures';
 
 // US1: reserva de invitado en tres pasos (contracts/routes.md y forms.md). Hora fija: lunes
@@ -159,5 +159,20 @@ test.describe('US1: reservar como invitado', () => {
     await page.goto('/pide-cita/confirmada?ref=abc.def');
     await expect(page.getByRole('status')).toContainText('Tu cita está confirmada');
     await expect(page.getByRole('status')).not.toContainText('Te esperamos');
+  });
+});
+
+test.describe('US1: sin veterinarios con horario (feature 007, FR-017)', () => {
+  test.afterEach(async () => {
+    await loadPetcare();
+  });
+
+  test('sin ningún servicio activo con veterinario y horario: aviso con enlace a contacto', async ({ page }) => {
+    await query('DELETE FROM staff_hours');
+    await page.goto('/pide-cita');
+    await dismissCookies(page);
+    await expect(page.getByText('Ahora no hay citas online disponibles')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Contacta con la clínica' })).toHaveAttribute('href', '/contacto');
+    await axeCheck(page);
   });
 });

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { createCustomer, createPet, insertOrder, loadPetcare, query, resetAccountState, resetShopState } from './db';
+import { createAppointmentInDb, createBlock, createCustomer, createPet, insertOrder, loadPetcare, query, resetAccountState, resetShopState } from './db';
 import { axeCheck, dismissCookies, expect, fakeEmails, loginAs, test } from './fixtures';
 
 // SC-006: axe en todas las rutas de contracts/routes.md, reflow sin scroll horizontal y movimiento reducido.
@@ -202,5 +202,52 @@ test.describe('accesibilidad de la tienda (feature 005)', () => {
     await checkRoute(page, '/mi-cuenta/pedidos/PC-000901');
     await page.goto('/mi-cuenta/pedidos/PC-000901?cancelar=1');
     await checkRoute(page, 'confirmación de cancelar pedido');
+  });
+});
+
+// Feature 007 (T065): todas las rutas del panel con sesión de admin y datos de ejemplo, en los tres
+// perfiles (mobile-360, desktop y no-js), con axe y sin scroll horizontal.
+test.describe('accesibilidad del panel de administración (feature 007)', () => {
+  test.beforeAll(async () => {
+    await loadPetcare();
+  });
+  test.afterAll(async () => {
+    await loadPetcare();
+  });
+
+  test('axe en todas las rutas de /admin', async ({ page }) => {
+    await resetAccountState();
+    await query('TRUNCATE appointments, schedule_blocks CASCADE');
+    const admin = await createCustomer({ admin: true });
+    const [svc] = await query<{ id: string }>("SELECT id FROM booking_services WHERE slug = 'consulta-general'");
+    const [vet] = await query<{ id: string }>("SELECT id FROM team_members WHERE slug = 'nerea-olmedo'");
+    const appt = await createAppointmentInDb({ service: 'consulta-general', staff: 'nerea-olmedo', startsAt: new Date(Date.now() + 3 * 86_400_000) });
+    const blockId = await createBlock({ staff: 'nerea-olmedo', kind: 'once', startsAt: new Date(Date.now() + 5 * 86_400_000), endsAt: new Date(Date.now() + 5 * 86_400_000 + 3_600_000), reason: 'Formación' });
+    await loginAs(page, admin);
+    const routes = [
+      '/admin/agenda',
+      '/admin/agenda?vista=semana',
+      `/admin/citas/${appt.id}`,
+      `/admin/citas/${appt.id}/cancelar`,
+      `/admin/citas/${appt.id}/mover`,
+      '/admin/servicios',
+      '/admin/servicios/nuevo',
+      `/admin/servicios/${svc!.id}`,
+      '/admin/veterinarios',
+      '/admin/veterinarios/nuevo',
+      `/admin/veterinarios/${vet!.id}`,
+      `/admin/veterinarios/${vet!.id}/horario`,
+      '/admin/bloqueos',
+      '/admin/bloqueos?pasados=1',
+      '/admin/bloqueos/nuevo',
+      `/admin/bloqueos/${blockId}`,
+    ];
+    await page.goto(routes[0]!);
+    await dismissCookies(page);
+    for (const route of routes) {
+      const res = await page.goto(route);
+      expect(res?.status(), route).toBe(200);
+      await checkRoute(page, route);
+    }
   });
 });

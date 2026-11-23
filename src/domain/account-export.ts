@@ -48,6 +48,8 @@ export interface AccountExportInput {
     reason: string | null;
     contactPhone: string | null;
     createdAt: Date;
+    /** Feature 007 (export v4): última nota de la clínica al cancelar. */
+    clinicNote?: string | null;
   }[];
   /** Pedidos con customer_id de la cuenta (feature 005, export v2). Nunca los de invitado. */
   orders?: ExportOrder[];
@@ -103,7 +105,7 @@ export function buildAccountExport(data: AccountExportInput, now: Date) {
   const c = data.customer;
   const today = todayInClinicZone(now);
   return {
-    format_version: 3 as const,
+    format_version: 4 as const,
     exported_at: zonedIso(now),
     controller: { name: data.controller.name, contact_email: data.controller.contactEmail },
     account: {
@@ -160,6 +162,7 @@ export function buildAccountExport(data: AccountExportInput, now: Date) {
         motivo: a.reason,
         telefono_contacto: a.contactPhone,
         reservada_el: zonedIso(a.createdAt),
+        clinic_note: a.clinicNote ?? null,
       })),
     orders: [...(data.orders ?? [])]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())

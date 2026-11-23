@@ -27,8 +27,12 @@ export async function migrateTestDb(): Promise<void> {
   await migrate(testDb(), { migrationsFolder: 'drizzle' });
 }
 
+/**
+ * Las pruebas cargan con --force-booking (F4): cada carga deja servicios, equipo, horarios por
+ * veterinario y bloqueos como en el YAML, aunque otra prueba los haya cambiado desde el panel.
+ */
 export async function loadContent(file: string): Promise<void> {
-  await loadContentFile(testDb(), file, { env: { ...process.env, ...testEnv } });
+  await loadContentFile(testDb(), file, { env: { ...process.env, ...testEnv }, forceBooking: true });
 }
 
 export const PETCARE_YAML = 'content/petcare.yaml';
@@ -68,6 +72,12 @@ export const resetAccountState = () => fx.resetAccountState(testPool());
 
 export { BOOKING_MONDAY_9AM, madrid } from '../booking-fixtures';
 export const createAppointmentInDb = (options: bfx.CreateAppointmentOptions) => bfx.createAppointment(testPool(), options);
+
+// ---------- Panel de la agenda (feature 007) ----------
+
+export const createStaffHours = (staffSlug: string, slots: { weekday: number; opens: string; closes: string }[]) =>
+  bfx.createStaffHours(testPool(), staffSlug, slots);
+export const createBlock = (options: bfx.CreateBlockOptions) => bfx.createBlock(testPool(), options);
 
 /** Vacía las citas, los intentos y la bandeja de salida (el contenido se conserva). */
 export async function resetBookingState(): Promise<void> {

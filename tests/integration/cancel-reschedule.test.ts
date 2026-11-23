@@ -15,7 +15,7 @@ async function freeTimes(date: string, staff: string | null = null): Promise<str
   const service = config.services.find((s) => s.slug === 'consulta-general')!;
   const staffId = staff ? config.staff.find((m) => m.slug === staff)!.id : null;
   const busy = await busyIntervalsForDay(getDb(), date);
-  return availableSlots({ ...config, date, service, staffId, busy, now: NOW }).map((s) => s.time);
+  return availableSlots({ ...config, date, service, staffId, blocks: [], busy, now: NOW }).map((s) => s.time);
 }
 
 describe('cancelar y cambiar una cita propia', () => {
@@ -125,5 +125,40 @@ describe('cancelar y cambiar una cita propia', () => {
       status: 'invalid',
       fieldErrors: { hora: expect.any(String) },
     });
+  });
+});
+
+// ---------- Feature 007: historial de la cita (F12) ----------
+
+describe('historial al cancelar y cambiar desde la cuenta (feature 007)', () => {
+  let customerId: string;
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+  beforeEach(async () => {
+    await truncateAll();
+    await seedBookingConfig();
+    customerId = (await createCustomer()).id;
+  });
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  it('cancelar escribe "cancelled" con actor customer', async () => {
+    const a = await createAppointment({ customerId, service: 'consulta-general', staff: 'nerea-olmedo', startsAt: madrid(TUESDAY, '10:00') });
+    expect((await cancelOwn(customerId, a.id, { now: NOW })).status).toBe('ok');
+    expect(await q('SELECT kind, actor, note FROM appointment_events WHERE appointment_id = $1', [a.id])).toEqual([
+      { kind: 'cancelled', actor: 'customer', note: null },
+    ]);
+  });
+
+  it('cambiar escribe "rescheduled" con el origen y el destino', async () => {
+    const a = await createAppointment({ customerId, service: 'consulta-general', staff: 'nerea-olmedo', startsAt: madrid(TUESDAY, '10:00') });
+    const r = await rescheduleOwn(customerId, a.id, { fecha: TUESDAY, hora: '12:00', profesional: 'nerea-olmedo' }, { now: NOW });
+    expect(r.status).toBe('ok');
+    const [e] = await q('SELECT * FROM appointment_events WHERE appointment_id = $1', [a.id]);
+    expect(e).toMatchObject({ kind: 'rescheduled', actor: 'customer', from_staff_id: a.teamMemberId, to_staff_id: a.teamMemberId });
+    expect(e!.from_starts_at.toISOString()).toBe(madrid(TUESDAY, '10:00').toISOString());
+    expect(e!.to_starts_at.toISOString()).toBe(madrid(TUESDAY, '12:00').toISOString());
   });
 });

@@ -8,11 +8,13 @@ interface Props {
   /** Destinos de "Mis citas" y "Mis pedidos" (sectionHref: "Próximamente" hasta que existan). */
   appointmentsHref: string;
   ordersHref: string;
+  /** Feature 007: enlace al panel, solo para cuentas con rol de administrador. */
+  showAdmin?: boolean;
 }
 
 // Menú lateral del área personal (design/cuenta.html). Marca la sección actual con aria-current;
 // sin JavaScript, el servidor lo pinta con la ruta de la petición.
-export function AccountNav({ appointmentsHref, ordersHref }: Props) {
+export function AccountNav({ appointmentsHref, ordersHref, showAdmin = false }: Props) {
   const pathname = usePathname();
   const items = [
     { href: '/mi-cuenta', label: 'Resumen', exact: true },
@@ -20,6 +22,7 @@ export function AccountNav({ appointmentsHref, ordersHref }: Props) {
     { href: appointmentsHref, label: 'Mis citas' },
     { href: ordersHref, label: 'Mis pedidos' },
     { href: '/mi-cuenta/datos', label: 'Datos personales' },
+    ...(showAdmin ? [{ href: '/admin/agenda', label: 'Panel de administración' }] : []),
   ];
   const isCurrent = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);

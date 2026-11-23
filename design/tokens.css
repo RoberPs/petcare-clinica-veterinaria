@@ -89,6 +89,8 @@
   --container-xs: 420px; --container-sm: 480px; --container-search: 520px; --container-card: 560px;
   --container-prose: 765px; --container-faq: 860px; --sidebar: 240px; --cart-summary: 360px;
   --select-min: 160px; --menu-min: 220px;
+  /* Panel de la agenda (feature 007): ancho mínimo de una columna de veterinario y de un día. */
+  --agenda-col-min: 200px; --agenda-day-min: 120px; --time-input-w: 110px;
 
   --lift-1: -1px; --lift-3: -3px; --lift-4: -4px;
   --underline-offset: 6px; --underline-offset-sm: 3px;

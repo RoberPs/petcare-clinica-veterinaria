@@ -56,7 +56,7 @@ describe('exportación v3: boletín (US5)', () => {
   it('sin suscripción viva, newsletter es null y se conservan los campos de la v2', async () => {
     const c = await createCustomer();
     const data = await exportFor(c.id);
-    expect(data.format_version).toBe(3);
+    expect(data.format_version).toBe(4);
     expect(data.communications).toEqual({ marketing_opt_in: false, changed_at: null, newsletter: null });
   });
 

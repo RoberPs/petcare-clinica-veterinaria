@@ -59,7 +59,7 @@ describe('carga del bloque booking:', () => {
     expect(await q("SELECT href FROM sections WHERE key = 'reservas'")).toEqual([{ href: '/pide-cita' }]);
   });
 
-  it('cargar dos veces no duplica nada y reemplaza el reparto', async () => {
+  it('con --force-booking, cargar dos veces no duplica nada y reemplaza el reparto', async () => {
     const db = await setupTestDb();
     await loadContentFile(db, 'content/petcare.yaml');
     await loadContentFile(
@@ -67,13 +67,14 @@ describe('carga del bloque booking:', () => {
       variant((c) => {
         c.booking.services.find((s: any) => s.slug === 'consulta-general').staff = ['carlota-vives'];
       }),
+      { forceBooking: true },
     );
     expect(await q('SELECT count(*)::int AS n FROM booking_services')).toEqual([{ n: 6 }]);
     expect(await q(`SELECT t.slug FROM booking_service_staff s JOIN booking_services b ON b.id = s.booking_service_id
       JOIN team_members t ON t.id = s.team_member_id WHERE b.slug = 'consulta-general'`)).toEqual([{ slug: 'carlota-vives' }]);
   });
 
-  it('un servicio que desaparece se despublica y sus citas siguen', async () => {
+  it('con --force-booking, un servicio que desaparece se despublica y sus citas siguen', async () => {
     const db = await setupTestDb();
     await loadContentFile(db, 'content/petcare.yaml');
     const appt = await createAppointment({ service: 'dermatologia', startsAt: new Date('2026-11-20T09:00:00Z') });
@@ -82,6 +83,7 @@ describe('carga del bloque booking:', () => {
       variant((c) => {
         c.booking.services = c.booking.services.filter((s: any) => s.slug !== 'dermatologia');
       }),
+      { forceBooking: true },
     );
     expect(await q("SELECT published FROM booking_services WHERE slug = 'dermatologia'")).toEqual([{ published: false }]);
     expect(await q('SELECT status FROM appointments WHERE id = $1', [appt.id])).toEqual([{ status: 'confirmed' }]);

@@ -5,6 +5,9 @@ import { catalogRouteExists } from '@/db/queries/catalog-visibility';
 import { isShopEnabled } from '@/db/queries/checkout-config';
 import { isNewsletterEnabled } from '@/db/queries/newsletter';
 import { postsRouteExists } from '@/db/queries/posts-visibility';
+import { adminRouteExists } from '@/db/queries/admin-visibility';
+import { adminSessionStatus } from '@/lib/auth/admin-route';
+import { SESSION_COOKIE } from '@/lib/auth/session';
 
 /**
  * Catálogo (feature 004): /productos con la tienda apagada y una ficha inexistente o no visible
@@ -58,6 +61,26 @@ async function shopRouteOk(pathname: string): Promise<boolean> {
   }
 }
 
+const ADMIN_RE = /^\/admin(\/|$)/;
+
+/**
+ * Panel (feature 007, F2/F3): una sesión vigente sin rol va al 404 normal. Sin sesión pasa: el
+ * layout redirige a iniciar sesión. Si la consulta falla, decide requireAdmin() en el layout.
+ */
+async function adminRouteOk(request: NextRequest): Promise<boolean> {
+  if (!ADMIN_RE.test(request.nextUrl.pathname)) return true;
+  try {
+    const testNow = process.env.TEST_CLOCK_ENABLED === '1' ? request.headers.get('x-test-now') : null;
+    const now = testNow && !Number.isNaN(new Date(testNow).getTime()) ? new Date(testNow) : new Date();
+    const status = await adminSessionStatus(request.cookies.get(SESSION_COOKIE)?.value, now);
+    if (status === 'not_admin') return false;
+    // Un id inexistente da el 404 normal (solo con sesión de admin: el anónimo va a iniciar sesión).
+    return status === 'admin' ? await adminRouteExists(request.nextUrl.pathname) : true;
+  } catch {
+    return true;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const csp = buildCsp(nonce);
@@ -78,11 +101,17 @@ export async function middleware(request: NextRequest) {
     !(await catalogRouteOk(pathname)) ||
     !(await postsRouteOk(pathname)) ||
     !(await newsletterRouteOk(pathname)) ||
-    !(await shopRouteOk(pathname));
+    !(await shopRouteOk(pathname)) ||
+    !(await adminRouteOk(request));
   const response = missing
     ? NextResponse.rewrite(new URL('/__no-encontrada', request.url), { request: { headers: requestHeaders } })
     : NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set('Content-Security-Policy', csp);
+  // Panel: sin indexar y sin caché (F3), también en el 404.
+  if (ADMIN_RE.test(pathname)) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    response.headers.set('Cache-Control', 'no-store');
+  }
   return response;
 }
 

@@ -3,11 +3,12 @@ import { isWithinChangeWindow } from '@/domain/appointment-view';
 import { getDb, type DbOrTx } from '@/db/client';
 import { findAppointmentForUpdate, upcomingIds } from '@/db/queries/appointments';
 import { loadBookingConfig } from '@/db/queries/booking-config';
-import { appointments } from '@/db/schema';
+import { appointmentEvents, appointments } from '@/db/schema';
 import { getEmailContext, type EmailContext } from '@/email/outbox';
 import { errorCode } from '@/lib/account/common';
 import { logger } from '@/lib/logger';
 import { enqueueCancelEmails } from './emails';
+import { recordAppointmentEvent, type AppointmentEventActor } from './events';
 
 // Cancelar una cita (B10, B13, FR-025): la pasa a "cancelled", incrementa manage_version (el enlace
 // de gestión anterior deja de valer) y encola los correos en la misma transacción. La franja queda
@@ -34,6 +35,23 @@ export interface CancelOptions {
   notifyOwner?: boolean;
   /** Enlace de gestión (B7): solo vale si la cita sigue en esta versión; si no, not_found. */
   expectedVersion?: number;
+  /**
+   * Actor del historial (F12). Por defecto sale del camino: `clinic` → `clinic_link`, `system` →
+   * `system` y `customer` → `customer` (con cliente) o `guest_link`.
+   */
+  eventActor?: AppointmentEventActor;
+  /** Administrador que cancela (con `eventActor: 'admin'`). */
+  adminId?: string;
+  /** Nota de la clínica al cliente (FR-020), de 0 a 300 caracteres. */
+  note?: string;
+  /** Correo con la variante de la clínica (contracts/emails.md). */
+  byClinic?: boolean;
+}
+
+function defaultEventActor(actor: Actor, customerId: string | undefined): AppointmentEventActor {
+  if (actor === 'clinic') return 'clinic_link';
+  if (actor === 'system') return 'system';
+  return customerId !== undefined ? 'customer' : 'guest_link';
 }
 
 export async function cancelAppointment(
@@ -64,8 +82,18 @@ export async function cancelAppointment(
     .where(and(eq(appointments.id, id), eq(appointments.status, 'confirmed')))
     .returning();
   if (!updated) return { status: 'already_cancelled' };
+  await recordAppointmentEvent(tx, {
+    appointmentId: id,
+    kind: 'cancelled',
+    actor: options.eventActor ?? defaultEventActor(actor, options.customerId),
+    at: now,
+    adminId: options.adminId,
+    note: options.note,
+  });
   const emailIds = await enqueueCancelEmails(tx, updated, actor, options.emailCtx, {
     notifyOwner: options.notifyOwner,
+    byClinic: options.byClinic,
+    clinicNote: options.note,
   });
   return { status: 'ok', appointmentId: id, emailIds };
 }
@@ -151,5 +179,12 @@ export async function anonymizeCustomerAppointments(
     })
     .where(and(eq(appointments.customerId, customerId), sql`${appointments.anonymizedAt} is null`))
     .returning({ id: appointments.id });
+  // La nota de la clínica (F12) se borra con el resto de datos personales de la cita.
+  await tx
+    .update(appointmentEvents)
+    .set({ note: null })
+    .where(
+      sql`${appointmentEvents.appointmentId} in (select ${appointments.id} from ${appointments} where ${appointments.customerId} = ${customerId})`,
+    );
   return rows.length;
 }

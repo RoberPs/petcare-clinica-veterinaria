@@ -24,6 +24,8 @@ export interface CreateCustomerOptions {
   phone?: string | null;
   marketingOptIn?: boolean;
   createdAt?: Date;
+  /** Feature 007: cuenta con rol de administrador. */
+  admin?: boolean;
 }
 
 let counter = 0;
@@ -38,8 +40,8 @@ export async function createCustomer(pool: Pool, options: CreateCustomerOptions 
   const createdAt = options.createdAt ?? new Date();
   const { rows } = await pool.query(
     `INSERT INTO customers (email, email_normalized, first_name, last_name, phone, password_hash, email_verified_at,
-       marketing_opt_in, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9) RETURNING id`,
+       marketing_opt_in, created_at, updated_at, is_admin)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10) RETURNING id`,
     [
       email,
       email.trim().toLowerCase(),
@@ -50,6 +52,7 @@ export async function createCustomer(pool: Pool, options: CreateCustomerOptions 
       verified ? createdAt : null,
       options.marketingOptIn ?? false,
       createdAt,
+      options.admin ?? false,
     ],
   );
   await pool.query(

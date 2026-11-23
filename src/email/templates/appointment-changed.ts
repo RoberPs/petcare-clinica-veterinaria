@@ -16,9 +16,38 @@ import {
 export function appointmentChanged(
   ctx: EmailContext,
   d: AppointmentEmailData,
-  options: { previousStartsAt: Date; variant: Variant; cutoffHours: number },
+  options: {
+    previousStartsAt: Date;
+    variant: Variant;
+    cutoffHours: number;
+    /** Feature 007: movida desde el panel, con el veterinario anterior. */
+    byClinic?: boolean;
+    previousStaffName?: string;
+  },
 ): OutgoingEmail {
   const before = describeWhen(options.previousStartsAt);
+  if (options.byClinic) {
+    return buildAccountEmail(
+      ctx,
+      recipient(d),
+      `Tu cita en ${ctx.clinicName} ha cambiado`,
+      [
+        { p: 'La clínica ha cambiado tu cita.' },
+        { p: 'Antes:' },
+        {
+          rows: [
+            ['Fecha', before.longDate],
+            ['Hora', before.time],
+            ['Profesional', options.previousStaffName ?? d.staffName],
+          ],
+        },
+        { p: 'Ahora:' },
+        { rows: detailRows(ctx, d) },
+        ...changeInstructions(ctx, options.variant, options.cutoffHours),
+      ],
+      { footer: clinicFooter(ctx) },
+    );
+  }
   return buildAccountEmail(
     ctx,
     recipient(d),

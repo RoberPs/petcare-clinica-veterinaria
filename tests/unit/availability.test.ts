@@ -29,21 +29,24 @@ const WEEKDAYS: WeeklySlot[] = [1, 2, 3, 4, 5].flatMap((weekday) => [
 ]);
 
 const STAFF: BookableStaff[] = [
-  { id: 'a', slug: 'ana', name: 'Ana', position: 0 },
-  { id: 'b', slug: 'bea', name: 'Bea', position: 1 },
+  { id: 'a', slug: 'ana', name: 'Ana', position: 0, hours: WEEKDAYS },
+  { id: 'b', slug: 'bea', name: 'Bea', position: 1, hours: WEEKDAYS },
 ];
 
 const CONSULTA: BookableService = { id: 's1', slug: 'consulta', name: 'Consulta', durationMinutes: 30, staffIds: ['a', 'b'] };
 const CIRUGIA: BookableService = { id: 's2', slug: 'cirugia', name: 'Cirugía', durationMinutes: 60, staffIds: ['b'] };
 
 function input(overrides: Partial<AvailabilityInput> = {}): AvailabilityInput {
+  // Si se cambia el horario de la clínica, los profesionales tienen ese mismo horario (feature 007).
+  const staff = overrides.weeklyHours ? STAFF.map((m) => ({ ...m, hours: overrides.weeklyHours! })) : STAFF;
   return {
     date: '2026-11-17',
     service: CONSULTA,
     staffId: null,
-    staff: STAFF,
+    staff,
     weeklyHours: WEEKDAYS,
     closures: [],
+    blocks: [],
     busy: [],
     rules: RULES,
     now: NOW,
@@ -176,5 +179,66 @@ describe('nextAvailableDate', () => {
     // Un solo profesional, ocupado todo el martes.
     const busy = [{ teamMemberId: 'b', startsAt: new Date('2026-11-17T08:00:00Z'), endsAt: new Date('2026-11-17T19:00:00Z') }];
     expect(nextAvailableDate({ ...input({ service: CIRUGIA, busy }), from: '2026-11-17' })).toBe('2026-11-18');
+  });
+});
+
+describe('horario por veterinario y bloqueos (feature 007, F7)', () => {
+  const TUESDAY_10_13: WeeklySlot[] = [{ weekday: 2, opensAt: '10:00', closesAt: '13:00' }];
+
+  it('intersección clínica ∩ veterinario: solo las franjas de su horario', () => {
+    const staff: BookableStaff[] = [{ id: 'b', slug: 'bea', name: 'Bea', position: 1, hours: TUESDAY_10_13 }];
+    const service: BookableService = { ...CIRUGIA, durationMinutes: 45 };
+    const t = times(input({ staff, service, rules: { ...RULES, slotStepMinutes: 15 } }));
+    expect(t[0]).toBe('10:00');
+    expect(t[t.length - 1]).toBe('12:15');
+    expect(t).not.toContain('09:30');
+  });
+
+  it('el horario del veterinario fuera del de la clínica no se ofrece', () => {
+    const staff: BookableStaff[] = [
+      { id: 'b', slug: 'bea', name: 'Bea', position: 1, hours: [{ weekday: 2, opensAt: '13:00', closesAt: '17:00' }] },
+    ];
+    // 13:00–17:00 ∩ clínica = 13:00–14:00 y 16:30–17:00; la cirugía de 60 min solo cabe a las 13:00.
+    expect(times(input({ staff, service: CIRUGIA }))).toEqual(['13:00']);
+    expect(times(input({ staff, service: { ...CIRUGIA, durationMinutes: 30 } }))).toEqual(['13:00', '13:30', '16:30']);
+  });
+
+  it('un veterinario sin tramos no ofrece franjas ni se asigna con "Sin preferencia"', () => {
+    const staff: BookableStaff[] = [
+      { id: 'a', slug: 'ana', name: 'Ana', position: 0, hours: [] },
+      { id: 'b', slug: 'bea', name: 'Bea', position: 1, hours: WEEKDAYS },
+    ];
+    const slots = availableSlots(input({ staff }));
+    expect(slots.length).toBeGreaterThan(0);
+    expect(slots.every((s) => s.freeStaffIds.length === 1 && s.freeStaffIds[0] === 'b')).toBe(true);
+    expect(availableSlots(input({ staff, staffId: 'a' }))).toEqual([]);
+  });
+
+  it('un bloqueo del veterinario solo le quita sus franjas', () => {
+    // Martes 17 de 10:00 a 12:00 en Madrid.
+    const blocks = [{ blockId: 'x', teamMemberId: 'a', startsAt: new Date('2026-11-17T09:00:00Z'), endsAt: new Date('2026-11-17T11:00:00Z') }];
+    const slots = availableSlots(input({ blocks }));
+    const at10 = slots.find((s) => s.time === '10:00')!;
+    expect(at10.freeStaffIds).toEqual(['b']);
+    expect(availableSlots(input({ blocks, staffId: 'a' })).map((s) => s.time)).not.toContain('11:30');
+    expect(availableSlots(input({ blocks, staffId: 'a' })).map((s) => s.time)).toContain('12:00');
+  });
+
+  it('un bloqueo de la clínica quita las franjas a todos', () => {
+    const blocks = [{ blockId: 'x', teamMemberId: null, startsAt: new Date('2026-11-17T09:00:00Z'), endsAt: new Date('2026-11-17T11:00:00Z') }];
+    const t = times(input({ blocks }));
+    expect(t).not.toContain('10:00');
+    expect(t).not.toContain('11:30');
+    expect(t).toContain('12:00');
+  });
+
+  it('la duración que no cabe antes de un bloqueo no se ofrece', () => {
+    // Descanso de 11:00 a 11:30: una cirugía de 60 minutos a las 10:30 ya no cabe.
+    const blocks = [{ blockId: 'x', teamMemberId: 'b', startsAt: new Date('2026-11-17T10:00:00Z'), endsAt: new Date('2026-11-17T10:30:00Z') }];
+    const t = times(input({ service: CIRUGIA, blocks }));
+    expect(t).toContain('10:00');
+    expect(t).not.toContain('10:30');
+    expect(t).not.toContain('11:00');
+    expect(t).toContain('11:30');
   });
 });

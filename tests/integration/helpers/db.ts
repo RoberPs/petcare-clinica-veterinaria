@@ -26,6 +26,7 @@ export async function truncateAll(): Promise<void> {
   await getPool().query(`
     TRUNCATE payment_events, payments, order_status_history, order_items, orders, cart_items, carts,
       discount_codes, shipping_methods, product_pet_links, products, product_pets, product_categories, shop_settings,
+      admin_audit_log, appointment_events, schedule_blocks, staff_hours,
       appointments, booking_service_staff, booking_services, booking_settings,
       email_outbox, contact_messages, rate_limit_hits, faqs, faq_topics, services, team_members,
       activity_stats, health_notices, contact_reasons, legal_pages, sections, closures, opening_hours, clinic,
@@ -81,7 +82,8 @@ export async function seedBookingConfig(mutate?: (content: Record<string, any>) 
   mutate?.(content);
   const file = join(mkdtempSync(join(tmpdir(), 'petcare-booking-')), 'booking.yaml');
   writeFileSync(file, stringify(content));
-  await loadContentFile(getDb(), file);
+  // --force-booking (F4): cada carga deja la agenda como en el YAML.
+  await loadContentFile(getDb(), file, { forceBooking: true });
   const ids = async (sql: string) => new Map((await q<{ slug: string; id: string }>(sql)).map((r) => [r.slug, r.id]));
   const staff = await ids('SELECT slug, id FROM team_members');
   const services = await ids('SELECT slug, id FROM booking_services');
@@ -93,6 +95,16 @@ export async function seedBookingConfig(mutate?: (content: Record<string, any>) 
 
 export async function createAppointment(options: bfx.CreateAppointmentOptions): Promise<bfx.TestAppointment> {
   return bfx.createAppointment(getPool(), options);
+}
+
+// ---------- Panel de la agenda (feature 007) ----------
+
+export async function createStaffHours(staffSlug: string, slots: { weekday: number; opens: string; closes: string }[]) {
+  return bfx.createStaffHours(getPool(), staffSlug, slots);
+}
+
+export async function createBlock(options: bfx.CreateBlockOptions): Promise<string> {
+  return bfx.createBlock(getPool(), options);
 }
 
 /** FormData a partir de un objeto (los valores undefined se omiten). */

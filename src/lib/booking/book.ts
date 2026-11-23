@@ -29,7 +29,9 @@ import {
   findBySubmission,
   insertAppointment,
 } from '@/db/queries/appointments';
-import { loadBookingConfig, type BookingConfig } from '@/db/queries/booking-config';
+import { loadBookingConfig, refreshStaffHours, type BookingConfig } from '@/db/queries/booking-config';
+import { recordAppointmentEvent } from './events';
+import { dayBlockIntervals } from './slots';
 import { findCustomerByEmail, lockCustomer } from '@/db/queries/customers';
 import { countPets, getPet, insertPet } from '@/db/queries/pets';
 import { recordHit } from '@/db/queries/rate-limit';
@@ -120,7 +122,7 @@ export function resolveSlotChoice(
   if (!isHhmm(time)) errors.hora = BOOKING_MESSAGES.hora;
   if (Object.keys(errors).length > 0 || !date) return { ok: false, fieldErrors: errors };
   // La hora tiene que estar en la cuadrícula del día (sin contar las citas: eso se mira dentro de la transacción).
-  const grid = availableSlots({ ...config, date, service, staffId: staff?.id ?? null, busy: [], now });
+  const grid = availableSlots({ ...config, date, service, staffId: staff?.id ?? null, blocks: [], busy: [], now });
   if (!grid.some((s) => s.time === time)) return { ok: false, fieldErrors: { hora: BOOKING_MESSAGES.hora } };
   return { ok: true, choice: { service, staff, date, time } };
 }
@@ -222,10 +224,15 @@ export async function bookAppointment(form: FormData, ctx: BookContext): Promise
         contact = { name: d.nombre, email: d.correo, phone: d.telefono };
       }
 
-      // Disponibilidad recalculada bajo el bloqueo (B2).
-      const busy = await busyIntervalsForDay(tx, date);
+      // Disponibilidad recalculada bajo el bloqueo (B2), con los tramos y bloqueos releídos (F7).
+      const [busy, fresh, blocks] = await Promise.all([
+        busyIntervalsForDay(tx, date),
+        refreshStaffHours(config, tx),
+        dayBlockIntervals(date, tx),
+      ]);
       const free = availableSlots({
-        ...config,
+        ...fresh,
+        blocks,
         date,
         service,
         staffId: staff?.id ?? null,
@@ -284,6 +291,12 @@ export async function bookAppointment(form: FormData, ctx: BookContext): Promise
         updatedAt: ctx.now,
       });
       if (!created) return { status: 'ok', appointmentId: row.id, emailIds: [], created: false };
+      await recordAppointmentEvent(tx, {
+        appointmentId: row.id,
+        kind: 'created',
+        actor: customer ? 'customer' : 'guest_link',
+        at: ctx.now,
+      });
       await recordHit(bucket, ctx.now, tx);
       // Q2: el invitado cuyo correo tiene cuenta recibe una línea más en el correo (no en pantalla).
       const hasAccount =

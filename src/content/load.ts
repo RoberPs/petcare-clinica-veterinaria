@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { and, count, eq, isNotNull, notInArray, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, isNotNull, notInArray, sql } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import { Temporal } from '@js-temporal/polyfill';
 import { parse as parseYaml } from 'yaml';
@@ -321,7 +321,19 @@ async function loadNewsletter(tx: Db, newsletter: ContentFile['newsletter']): Pr
     .onConflictDoUpdate({ target: s.newsletterSettings.id, set: { ...v, updatedAt: now } });
 }
 
-export async function loadContent(db: Db, content: ContentFile): Promise<LoadSummary> {
+export interface LoadOptions {
+  /**
+   * --force-booking (F4): sobrescribe servicios reservables, nombre y `bookable` del equipo, y
+   * borra y vuelve a sembrar los horarios por veterinario y los bloqueos. Sin él, el YAML siembra.
+   */
+  forceBooking?: boolean;
+}
+
+/** Modo por defecto de `content:load` (F4): el YAML siembra y no sobrescribe la agenda del panel. */
+export const DEFAULT_FORCE_BOOKING = false;
+
+export async function loadContent(db: Db, content: ContentFile, options: LoadOptions = {}): Promise<LoadSummary> {
+  const forceBooking = options.forceBooking ?? DEFAULT_FORCE_BOOKING;
   const c = content.clinic;
   let petsMovedToOther = 0;
   let productsHidden = 0;
@@ -392,19 +404,41 @@ export async function loadContent(db: Db, content: ContentFile): Promise<LoadSum
     }
     await unpublishMissing(tx, s.services, content.services.map((x) => x.slug));
 
+    // Equipo (F4): la ficha pública sale siempre del YAML. El nombre y `bookable` los gestiona el
+    // panel: sin --force-booking solo se escriben al crear el miembro.
+    const bookingStaffSlugs = new Set((content.booking?.services ?? []).flatMap((bs) => bs.staff));
+    const existingTeam = new Set(
+      (await tx.select({ slug: s.teamMembers.slug }).from(s.teamMembers)).map((m) => m.slug),
+    );
+    const createdBookable: string[] = [];
     for (const [i, m] of content.team.entries()) {
-      const v = {
-        slug: m.slug,
-        name: m.name,
+      const publicFields = {
         specialty: m.specialty,
         photoPath: toPublic(m.photo),
         photoAlt: m.photo_alt ?? null,
         position: i,
         published: true,
       };
-      await tx.insert(s.teamMembers).values(v).onConflictDoUpdate({ target: s.teamMembers.slug, set: { ...v, updatedAt: now } });
+      const agendaFields = { name: m.name, bookable: bookingStaffSlugs.has(m.slug), bookingPosition: i };
+      const v = { slug: m.slug, ...publicFields, ...agendaFields };
+      if (!existingTeam.has(m.slug) && agendaFields.bookable) createdBookable.push(m.slug);
+      await tx
+        .insert(s.teamMembers)
+        .values(v)
+        .onConflictDoUpdate({
+          target: s.teamMembers.slug,
+          set: forceBooking ? { ...v, updatedAt: now } : { ...publicFields, updatedAt: now },
+        });
     }
     await unpublishMissing(tx, s.teamMembers, content.team.map((x) => x.slug));
+    if (forceBooking) {
+      // Quien no está en el reparto del YAML deja de ser reservable (no se borra: FK restrict).
+      const keep = [...bookingStaffSlugs];
+      await tx
+        .update(s.teamMembers)
+        .set({ bookable: false, updatedAt: now })
+        .where(keep.length ? notInArray(s.teamMembers.slug, keep) : sql`true`);
+    }
 
     const faqSlugs: string[] = [];
     for (const [i, t] of content.faq_topics.entries()) {
@@ -486,19 +520,53 @@ export async function loadContent(db: Db, content: ContentFile): Promise<LoadSum
           position: i,
           published: true,
         };
-        const [row] = await tx
-          .insert(s.bookingServices)
-          .values(v)
-          .onConflictDoUpdate({ target: s.bookingServices.slug, set: { ...v, updatedAt: now } })
-          .returning({ id: s.bookingServices.id });
-        await tx.delete(s.bookingServiceStaff).where(eq(s.bookingServiceStaff.bookingServiceId, row!.id));
-        await tx
-          .insert(s.bookingServiceStaff)
-          .values(bs.staff.map((m) => ({ bookingServiceId: row!.id, teamMemberId: teamIds.get(m)! })));
+        const links = (id: string) => bs.staff.map((m) => ({ bookingServiceId: id, teamMemberId: teamIds.get(m)! }));
+        if (forceBooking) {
+          const [row] = await tx
+            .insert(s.bookingServices)
+            .values(v)
+            .onConflictDoUpdate({ target: s.bookingServices.slug, set: { ...v, updatedAt: now } })
+            .returning({ id: s.bookingServices.id });
+          await tx.delete(s.bookingServiceStaff).where(eq(s.bookingServiceStaff.bookingServiceId, row!.id));
+          await tx.insert(s.bookingServiceStaff).values(links(row!.id));
+        } else {
+          // Semilla (F4): solo los slugs nuevos. Si el nombre ya lo usa un servicio del panel, se omite.
+          const [row] = await tx
+            .insert(s.bookingServices)
+            .values(v)
+            .onConflictDoNothing()
+            .returning({ id: s.bookingServices.id });
+          if (row) await tx.insert(s.bookingServiceStaff).values(links(row.id));
+        }
       }
-      await unpublishMissing(tx, s.bookingServices, content.booking.services.map((x) => x.slug));
-    } else {
+      if (forceBooking) await unpublishMissing(tx, s.bookingServices, content.booking.services.map((x) => x.slug));
+    } else if (forceBooking) {
       await unpublishMissing(tx, s.bookingServices, []);
+    }
+
+    // Horario por veterinario (F6): con --force-booking se borran tramos y bloqueos y se vuelven a
+    // sembrar con el horario de la clínica; sin él, solo los reservables recién creados.
+    const seedSlugs = forceBooking ? null : createdBookable;
+    if (forceBooking) {
+      await tx.delete(s.staffHours);
+      await tx.delete(s.scheduleBlocks);
+    }
+    if (content.opening_hours.length > 0 && (seedSlugs === null || seedSlugs.length > 0)) {
+      const members = await tx
+        .select({ id: s.teamMembers.id })
+        .from(s.teamMembers)
+        .where(
+          seedSlugs === null
+            ? eq(s.teamMembers.bookable, true)
+            : and(eq(s.teamMembers.bookable, true), inArray(s.teamMembers.slug, seedSlugs)),
+        );
+      const withHours = new Set((await tx.select({ id: s.staffHours.teamMemberId }).from(s.staffHours)).map((r) => r.id));
+      const rows = members
+        .filter((m) => !withHours.has(m.id))
+        .flatMap((m) =>
+          content.opening_hours.map((h) => ({ teamMemberId: m.id, weekday: h.weekday, opensAt: h.opens, closesAt: h.closes })),
+        );
+      if (rows.length > 0) await tx.insert(s.staffHours).values(rows);
     }
 
     // Especies (A10): upsert por clave y borrado de las ausentes. Sus mascotas pasan a "Otra"
@@ -545,7 +613,7 @@ export async function loadContent(db: Db, content: ContentFile): Promise<LoadSum
 export async function loadContentFile(
   db: Db,
   file: string,
-  options: { env?: Record<string, string | undefined>; publicDir?: string } = {},
+  options: { env?: Record<string, string | undefined>; publicDir?: string } & LoadOptions = {},
 ): Promise<LoadSummary> {
   const content = readContentFile(file, options.env ?? process.env);
   const missing = checkImages(content, options.publicDir);
@@ -556,5 +624,5 @@ export async function loadContentFile(
       { path: 'newsletter.enabled', message: 'el boletín está activo, pero falta la variable de entorno NEWSLETTER_HASH_KEY' },
     ]);
   }
-  return loadContent(db, content);
+  return loadContent(db, content, { forceBooking: options.forceBooking });
 }

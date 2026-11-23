@@ -102,7 +102,7 @@ describe('mis pedidos', () => {
       new Date(),
     );
     const data = (await res.json()) as { format_version: number; orders: { number: string; items: { quantity: number }[] }[] };
-    expect(data.format_version).toBe(3);
+    expect(data.format_version).toBe(4);
     expect(data.orders.map((o) => o.number)).toEqual(['PC-000001']);
     expect(data.orders[0]!.items[0]!.quantity).toBe(2);
   });

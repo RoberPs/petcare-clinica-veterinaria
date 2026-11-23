@@ -1,4 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
+import { blocksForStaff, localEnd, localStart, type BlockInterval } from './blocks';
 import type { ClosureRange, WeeklySlot } from './open-status';
 import { CLINIC_TZ, formatLongDate, weekdayName } from './time';
 
@@ -16,6 +17,12 @@ export interface BookingRules {
   retentionMonths: number;
 }
 
+/**
+ * Reglas del panel al mover una cita (F11, FR-021): sin antelación mínima, horizonte de 365 días,
+ * sin plazo de cambio y solo franjas futuras.
+ */
+export const ADMIN_RULES = { minLeadMinutes: 0, horizonDays: 365, futureOnly: true } as const;
+
 export interface BookableService {
   id: string;
   slug: string;
@@ -29,7 +36,16 @@ export interface BookableStaff {
   id: string;
   slug: string;
   name: string;
+  /** Orden de la reserva (`booking_position`). */
   position: number;
+  /** Horario semanal del veterinario (F6). Sin tramos no ofrece nada (FR-017). */
+  hours: readonly WeeklySlot[];
+}
+
+/** Intervalo absoluto. */
+export interface TimeWindow {
+  start: Date;
+  end: Date;
 }
 
 export interface BusyInterval {
@@ -55,8 +71,11 @@ export interface AvailabilityInput {
   staffId: string | null;
   /** Profesionales reservables (publicados). */
   staff: readonly BookableStaff[];
+  /** Horario general de la clínica. */
   weeklyHours: readonly WeeklySlot[];
   closures: readonly ClosureRange[];
+  /** Bloqueos ya expandidos (de cualquier día; solo cuentan los que tocan el día consultado). */
+  blocks: readonly BlockInterval[];
   busy: readonly BusyInterval[];
   rules: BookingRules;
   now: Date;
@@ -142,19 +161,79 @@ function localInstant(date: Temporal.PlainDate, minutes: number): Temporal.Insta
   }
 }
 
-function closingInstant(date: Temporal.PlainDate, minutes: number): Temporal.Instant {
-  return date
-    .toPlainDateTime({ hour: Math.floor(minutes / 60), minute: minutes % 60 })
-    .toZonedDateTime(CLINIC_TZ, { disambiguation: 'earlier' })
-    .toInstant();
-}
-
 /** Profesionales elegibles para el servicio y la preferencia, por `position`. */
 function eligibleStaff(input: Pick<AvailabilityInput, 'service' | 'staffId' | 'staff'>): string[] {
   return [...input.staff]
     .filter((m) => input.service.staffIds.includes(m.id) && (input.staffId === null || m.id === input.staffId))
     .sort((a, b) => a.position - b.position)
     .map((m) => m.id);
+}
+
+/** Tramos locales (minutos del día) de la intersección clínica ∩ veterinario de un día de la semana. */
+function intersectHours(
+  weekday: number,
+  clinicHours: readonly WeeklySlot[],
+  staffHours: readonly WeeklySlot[],
+): { opens: number; closes: number }[] {
+  const clinic = clinicHours.filter((h) => h.weekday === weekday);
+  const staff = staffHours.filter((h) => h.weekday === weekday);
+  const out: { opens: number; closes: number }[] = [];
+  for (const c of clinic) {
+    for (const s of staff) {
+      const opens = Math.max(toMinutes(c.opensAt), toMinutes(s.opensAt));
+      const closes = Math.min(toMinutes(c.closesAt), toMinutes(s.closesAt));
+      if (opens < closes) out.push({ opens, closes });
+    }
+  }
+  return out.sort((a, b) => a.opens - b.opens);
+}
+
+/** Resta de intervalos absolutos (ms): `windows` − `cuts`. */
+function subtract(windows: { start: number; end: number }[], cuts: { start: number; end: number }[]) {
+  let current = windows;
+  for (const cut of cuts) {
+    const next: { start: number; end: number }[] = [];
+    for (const w of current) {
+      if (cut.end <= w.start || cut.start >= w.end) {
+        next.push(w);
+        continue;
+      }
+      if (cut.start > w.start) next.push({ start: w.start, end: cut.start });
+      if (cut.end < w.end) next.push({ start: cut.end, end: w.end });
+    }
+    current = next;
+  }
+  return current;
+}
+
+export interface StaffWindowsInput {
+  clinicHours: readonly WeeklySlot[];
+  /** Horario del veterinario. */
+  staffHours: readonly WeeklySlot[];
+  closures: readonly ClosureRange[];
+  /** Bloqueos que le afectan (los suyos y los de la clínica), ya expandidos. */
+  blocks: readonly Pick<BlockInterval, 'startsAt' | 'endsAt'>[];
+  /** "AAAA-MM-DD" */
+  day: string;
+}
+
+/**
+ * Ventanas en las que un veterinario atiende un día (F7):
+ * (horario de la clínica ∩ horario del veterinario) − cierres − bloqueos.
+ */
+export function staffWindows(input: StaffWindowsInput): TimeWindow[] {
+  const day = parseIsoDate(input.day);
+  if (!day) return [];
+  const iso = day.toString();
+  if (input.closures.some((c) => c.startsOn <= iso && iso <= c.endsOn)) return [];
+  const base = intersectHours(day.dayOfWeek, input.clinicHours, input.staffHours).map((r) => ({
+    start: localStart(day, r.opens),
+    end: localEnd(day, r.closes),
+  }));
+  const cuts = input.blocks.map((b) => ({ start: b.startsAt.getTime(), end: b.endsAt.getTime() }));
+  return subtract(base, cuts)
+    .filter((w) => w.start < w.end)
+    .map((w) => ({ start: new Date(w.start), end: new Date(w.end) }));
 }
 
 export function availableSlots(input: AvailabilityInput): Slot[] {
@@ -164,36 +243,61 @@ export function availableSlots(input: AvailabilityInput): Slot[] {
   const iso = day.toString();
   if (iso < today || iso > lastDay) return [];
   if (input.closures.some((c) => c.startsOn <= iso && iso <= c.endsOn)) return [];
+  return slotsInDay(day, input, input.now.getTime() + input.rules.minLeadMinutes * 60_000);
+}
 
+/**
+ * Franjas de un día sin comprobar el horizonte ni la antelación de la reserva pública: las usa el
+ * panel para mover una cita (AdminRules: solo franjas futuras). Misma función de ventanas.
+ */
+export function slotsInDay(
+  day: Temporal.PlainDate,
+  input: Omit<AvailabilityInput, 'date' | 'rules' | 'now'> & { rules: Pick<BookingRules, 'slotStepMinutes'> },
+  earliestMs: number,
+): Slot[] {
   const staffIds = eligibleStaff(input);
   if (staffIds.length === 0) return [];
-
+  const iso = day.toString();
   const step = input.rules.slotStepMinutes;
   const duration = input.service.durationMinutes;
-  const earliest = input.now.getTime() + input.rules.minLeadMinutes * 60_000;
   const busyByStaff = new Map<string, BusyInterval[]>();
   for (const b of input.busy) busyByStaff.set(b.teamMemberId, [...(busyByStaff.get(b.teamMemberId) ?? []), b]);
 
-  const slots: Slot[] = [];
-  const ranges = input.weeklyHours
-    .filter((h) => h.weekday === day.dayOfWeek)
-    .sort((a, b) => a.opensAt.localeCompare(b.opensAt));
-  for (const range of ranges) {
-    const opens = toMinutes(range.opensAt);
-    const closes = toMinutes(range.closesAt);
-    const closeAt = closingInstant(day, closes).epochMilliseconds;
-    for (let m = opens; m + duration <= closes; m += step) {
-      const start = localInstant(day, m);
-      if (!start) continue;
-      const startMs = start.epochMilliseconds;
-      const endMs = startMs + duration * 60_000;
-      if (endMs > closeAt || startMs < earliest) continue;
-      const free = staffIds.filter(
-        (id) => !(busyByStaff.get(id) ?? []).some((b) => b.startsAt.getTime() < endMs && startMs < b.endsAt.getTime()),
-      );
-      if (free.length === 0) continue;
-      slots.push({ time: `${pad(Math.floor(m / 60))}:${pad(m % 60)}`, startsAt: new Date(startMs), endsAt: new Date(endMs), freeStaffIds: free });
+  // Rejilla: desde el inicio de cada tramo clínica ∩ veterinario (antes de restar los bloqueos), cada `step`.
+  const byId = new Map(input.staff.map((m) => [m.id, m]));
+  const windows = new Map<string, TimeWindow[]>();
+  const candidates = new Set<number>();
+  for (const id of staffIds) {
+    const member = byId.get(id)!;
+    windows.set(
+      id,
+      staffWindows({
+        clinicHours: input.weeklyHours,
+        staffHours: member.hours,
+        closures: input.closures,
+        blocks: blocksForStaff(input.blocks, id),
+        day: iso,
+      }),
+    );
+    for (const r of intersectHours(day.dayOfWeek, input.weeklyHours, member.hours)) {
+      for (let m = r.opens; m + duration <= r.closes; m += step) candidates.add(m);
     }
+  }
+
+  const slots: Slot[] = [];
+  for (const m of [...candidates].sort((a, b) => a - b)) {
+    const start = localInstant(day, m);
+    if (!start) continue;
+    const startMs = start.epochMilliseconds;
+    const endMs = startMs + duration * 60_000;
+    if (startMs < earliestMs) continue;
+    const free = staffIds.filter(
+      (id) =>
+        (windows.get(id) ?? []).some((w) => w.start.getTime() <= startMs && endMs <= w.end.getTime()) &&
+        !(busyByStaff.get(id) ?? []).some((b) => b.startsAt.getTime() < endMs && startMs < b.endsAt.getTime()),
+    );
+    if (free.length === 0) continue;
+    slots.push({ time: `${pad(Math.floor(m / 60))}:${pad(m % 60)}`, startsAt: new Date(startMs), endsAt: new Date(endMs), freeStaffIds: free });
   }
   return slots;
 }

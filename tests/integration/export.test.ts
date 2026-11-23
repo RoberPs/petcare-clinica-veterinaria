@@ -57,12 +57,13 @@ describe('descargar mis datos (US7)', () => {
     expect(res.headers.get('content-disposition')).toMatch(/^attachment; filename="mis-datos-\d{4}-\d{2}-\d{2}\.json"$/);
     expect(res.headers.get('cache-control')).toContain('no-store');
     const text = await res.text();
-    expect(text).toContain('\n  "format_version": 3');
+    expect(text).toContain('\n  "format_version": 4');
     const data = JSON.parse(text);
 
     // Cada columna de usuario de customers aparece con su valor.
     const [row] = await q('SELECT * FROM customers WHERE id = $1', [c.id]);
-    const internal = new Set(['id', 'email_normalized', 'password_hash']);
+    // is_admin (feature 007) es el rol del panel, no un dato aportado por el cliente.
+    const internal = new Set(['id', 'email_normalized', 'password_hash', 'is_admin']);
     const flat = JSON.stringify(data);
     for (const [column, value] of Object.entries(row!)) {
       if (internal.has(column) || value === null) continue;

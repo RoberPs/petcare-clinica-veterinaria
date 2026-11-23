@@ -13,6 +13,8 @@ await build({
     // Feature 005: gestión de pedidos sin panel (D15) y tarea de mantenimiento (D16).
     orders: 'scripts/orders.ts',
     'orders-maintain': 'scripts/orders-maintain.ts',
+    // Feature 007: rol de administrador del panel (F14).
+    admin: 'scripts/admin.ts',
   },
   outdir: 'cli',
   outExtension: { '.js': '.mjs' },

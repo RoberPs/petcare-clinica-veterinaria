@@ -11,6 +11,7 @@ import { listPets } from '@/db/queries/pets';
 import { getNow } from '@/lib/clock';
 import { getSiteData } from '@/db/queries/site';
 import { withAges } from '@/lib/account/pet-view';
+import { isAdminCustomer } from '@/lib/auth/require-admin';
 import { requireCustomer } from '@/lib/auth/require-customer';
 
 export const metadata: Metadata = { title: 'Mi cuenta' };
@@ -28,6 +29,13 @@ export default async function AccountSummaryPage() {
 
   return (
     <>
+      {isAdminCustomer(customer) ? (
+        <p>
+          <Link prefetch={false} className="btn" href="/admin/agenda">
+            Panel de administración
+          </Link>
+        </p>
+      ) : null}
       {bookingOn ? <NextAppointment appointment={next} bookHref={sectionHref('reservas', sections)} /> : null}
       <h2>Mis mascotas</h2>
       {pets.length === 0 ? (

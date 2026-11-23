@@ -99,15 +99,31 @@ export async function enqueueChangeEmails(
   previousStartsAt: Date,
   ctx: EmailContext,
   cutoffHours: number,
+  options: { byClinic?: boolean; previousStaffId?: string } = {},
 ): Promise<string[]> {
   const d = await emailData(tx, row);
   if (!d) return [];
+  let previousStaffName: string | undefined;
+  if (options.byClinic && options.previousStaffId) {
+    const [prev] = await tx
+      .select({ name: teamMembers.name })
+      .from(teamMembers)
+      .where(eq(teamMembers.id, options.previousStaffId))
+      .limit(1);
+    previousStaffName = prev?.name;
+  }
   return [
     await enqueue(
       tx,
       row,
       'appointment_changed',
-      appointmentChanged(ctx, d, { previousStartsAt, variant: row.bookedAs, cutoffHours }),
+      appointmentChanged(ctx, d, {
+        previousStartsAt,
+        variant: row.bookedAs,
+        cutoffHours,
+        byClinic: options.byClinic,
+        previousStaffName,
+      }),
     ),
     await enqueue(
       tx,
@@ -127,13 +143,20 @@ export async function enqueueCancelEmails(
   row: AppointmentRow,
   actor: 'customer' | 'clinic' | 'system',
   ctx: EmailContext,
-  options: { notifyOwner?: boolean } = {},
+  options: { notifyOwner?: boolean; byClinic?: boolean; clinicNote?: string | null } = {},
 ): Promise<string[]> {
   const d = await emailData(tx, row);
   if (!d) return [];
   const ids: string[] = [];
   if (actor !== 'system' && options.notifyOwner !== false)
-    ids.push(await enqueue(tx, row, 'appointment_cancelled', appointmentCancelled(ctx, d, { by: actor })));
+    ids.push(
+      await enqueue(
+        tx,
+        row,
+        'appointment_cancelled',
+        appointmentCancelled(ctx, d, { by: actor, byClinic: options.byClinic, clinicNote: options.clinicNote }),
+      ),
+    );
   ids.push(
     await enqueue(
       tx,
