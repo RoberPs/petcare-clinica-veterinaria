@@ -167,9 +167,16 @@ npm run test:lighthouse
 - Una feature está **terminada** cuando:
   - funciona de punta a punta con datos persistentes;
   - no tiene datos de una clínica concreta en el código;
-  - pasan sus tests;
+  - pasan sus tests y los de los flujos críticos afectados (ver más abajo);
   - no hay estilos escritos a mano;
   - se ha verificado la accesibilidad (teclado y axe);
   - no hay secretos en el diff;
   - y, si afecta a la portada o al catálogo, Lighthouse da 90 o más.
+- **Tests reducidos al mínimo en cada spec**: en local, durante una feature, solo se ejecutan las
+  pruebas imprescindibles (unitarias, de integración y e2e) de lo nuevo de esa spec, filtrando por
+  archivo o por nombre, **más los tests de los flujos críticos que toque** (principio III: registro
+  e inicio de sesión, reserva de cita, checkout y pago, estados de pedido) **y Lighthouse si toca
+  la portada o el catálogo**. **La batería completa en local** (`npm test`, `test:integration`,
+  `test:e2e` y `test:lighthouse` enteros) **se pasa solo al final del proyecto**; la CI la sigue
+  pasando en cada cambio. Motivo: cada batería completa tarda demasiado.
 - Los commits y los pushes se hacen **solo cuando el usuario lo pide**.
