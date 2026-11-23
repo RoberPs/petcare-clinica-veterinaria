@@ -16,8 +16,8 @@ const CFG = {
     { id: 's2', slug: 'cirugia', name: 'Cirugía', durationMinutes: 60, staffIds: ['b'] },
   ],
   staff: [
-    { id: 'a', slug: 'ana', name: 'Ana', position: 0 },
-    { id: 'b', slug: 'bea', name: 'Bea', position: 1 },
+    { id: 'a', slug: 'ana', name: 'Ana', position: 0, hours: [] },
+    { id: 'b', slug: 'bea', name: 'Bea', position: 1, hours: [] },
   ],
   today: '2026-11-16',
   lastDay: '2027-01-15',

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { getDb, getPool } from '@/db/client';
 import { purgeExpired } from '@/db/retention';
+import { anonymizeCustomerAppointments } from '@/lib/booking/cancel';
 import { createAppointment, createCustomer, q, seedBookingConfig, setupTestDb, teardownTestDb, truncateAll } from './helpers/db';
 
 // Conservación de las citas (FR-030, B12).
@@ -60,5 +61,43 @@ describe('retención de las citas', () => {
     await insert('pending', daysAgo(2));
     await purgeExpired(getDb());
     expect((await q('SELECT status FROM email_outbox ORDER BY status')).map((r) => r.status)).toEqual(['pending', 'sent']);
+  });
+});
+
+// ---------- Feature 007: la nota de la clínica se borra al anonimizar (F12, F17) ----------
+
+describe('retención de la nota de la clínica (feature 007)', () => {
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+  beforeEach(async () => {
+    await truncateAll();
+    await seedBookingConfig();
+  });
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  it('retention:purge pone note = NULL en los eventos de las citas anonimizadas', async () => {
+    const old = await createAppointment({ startsAt: daysAgo(400), status: 'cancelled', cancelledBy: 'clinic' });
+    const recent = await createAppointment({ startsAt: daysAgo(10), status: 'cancelled', cancelledBy: 'clinic' });
+    for (const id of [old.id, recent.id]) {
+      await getPool().query(
+        "INSERT INTO appointment_events (appointment_id, kind, actor, note) VALUES ($1, 'cancelled', 'clinic_link', 'Nota')",
+        [id],
+      );
+    }
+    await purgeExpired(getDb());
+    const notes = new Map((await q('SELECT appointment_id, note FROM appointment_events')).map((r) => [r.appointment_id, r.note]));
+    expect(notes.get(old.id)).toBeNull();
+    expect(notes.get(recent.id)).toBe('Nota');
+  });
+
+  it('anonimizar las citas de un cliente también borra la nota', async () => {
+    const c = await createCustomer();
+    const a = await createAppointment({ customerId: c.id, startsAt: daysAgo(10) });
+    await getPool().query("INSERT INTO appointment_events (appointment_id, kind, actor, note) VALUES ($1, 'cancelled', 'clinic_link', 'Nota')", [a.id]);
+    await getDb().transaction((tx) => anonymizeCustomerAppointments(tx, c.id, new Date()));
+    expect(await q('SELECT note FROM appointment_events WHERE appointment_id = $1', [a.id])).toEqual([{ note: null }]);
   });
 });

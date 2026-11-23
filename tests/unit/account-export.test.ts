@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildAccountExport, exportFileName } from '@/domain/account-export';
 
-// Forma del JSON de "Descargar mis datos" (contracts/export-format.md, format_version 3).
+// Forma del JSON de "Descargar mis datos" (contracts/export-format.md, format_version 4).
 
 // Sin anotar el tipo: así se pueden pasar columnas de más (id, hash…) y comprobar que no se exportan.
 const input = {
@@ -36,10 +36,10 @@ const input = {
 const now = new Date('2026-11-11T09:15:00Z');
 
 describe('exportación de datos (A11)', () => {
-  it('sigue el contrato format_version 3', () => {
+  it('sigue el contrato format_version 4', () => {
     const out = buildAccountExport(input, now);
     expect(out).toEqual({
-      format_version: 3,
+      format_version: 4,
       exported_at: '2026-11-11T10:15:00+01:00',
       controller: { name: 'Responsable de Pruebas', contact_email: 'derechos@example.test' },
       account: {
@@ -88,7 +88,7 @@ describe('exportación de datos (A11)', () => {
         appointments: [
           appt('2026-11-02T09:00:00Z'),
           appt('2026-11-20T09:00:00Z', { reason: 'Vacuna' }),
-          appt('2026-11-15T09:00:00Z', { status: 'cancelled' as const, cancelledBy: 'clinic' as const }),
+          appt('2026-11-15T09:00:00Z', { status: 'cancelled' as const, cancelledBy: 'clinic' as const, clinicNote: 'La doctora está de baja.' }),
         ],
       },
       now,
@@ -110,7 +110,10 @@ describe('exportación de datos (A11)', () => {
       motivo: 'Vacuna',
       telefono_contacto: '600 123 456',
       reservada_el: '2026-11-01T09:00:00+01:00',
+      clinic_note: null,
     });
+    // Feature 007 (export v4): la nota de la clínica al cancelar.
+    expect(out.citas[1]!.clinic_note).toBe('La doctora está de baja.');
     expect(JSON.stringify(out.citas)).not.toContain('"id"');
   });
 

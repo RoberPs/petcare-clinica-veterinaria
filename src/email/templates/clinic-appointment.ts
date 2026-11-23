@@ -16,7 +16,8 @@ const ACTION_LABEL: Record<ClinicAction, string> = {
 };
 const ACTOR_LABEL = {
   customer: 'el cliente desde su cuenta',
-  clinic: 'la clínica con el enlace de gestión',
+  // Vale para el enlace de gestión y para el panel (feature 007).
+  clinic: 'la clínica',
   system: 'el sistema, al eliminar el cliente su cuenta',
 } as const;
 

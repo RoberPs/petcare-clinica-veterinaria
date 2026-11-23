@@ -31,6 +31,9 @@ const PRIVATE_ROUTES = [
   '/finalizar-compra',
   '/pedido/:path*',
   '/pago-simulado/:path*',
+  // Panel de administración (feature 007, F3).
+  '/admin',
+  '/admin/:path*',
 ];
 
 /** Rutas dinámicas e indexables que tampoco se guardan en caché (los pasos 1 y 2 de /pide-cita). */
@@ -71,6 +74,9 @@ const nextConfig: NextConfig = {
       // Pedido de invitado y confirmación (D18): el token o la ref van en la URL.
       { source: '/pedido/:path*', headers: MANAGE_HEADERS },
       { source: '/pago-simulado/:path*', headers: MANAGE_HEADERS },
+      // Panel (feature 007, F3): nunca se indexa.
+      { source: '/admin', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+      { source: '/admin/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
     ];
   },
 };

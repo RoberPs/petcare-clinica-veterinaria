@@ -1,7 +1,7 @@
-import { and, asc, count, desc, eq, gt, gte, lt, ne } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, lt, ne, sql } from 'drizzle-orm';
 import { dayBounds, type BusyInterval } from '@/domain/availability';
 import { getDb, type DbOrTx } from '../client';
-import { appointments, bookingServices, teamMembers } from '../schema';
+import { appointmentEvents, appointments, bookingServices, teamMembers } from '../schema';
 
 // Consultas de citas (data-model.md). Las que leen citas de un cliente filtran SIEMPRE por su
 // customerId (A9): una cita ajena se trata igual que una que no existe.
@@ -146,6 +146,8 @@ export interface CustomerAppointment {
   reason: string | null;
   contactPhone: string | null;
   createdAt: Date;
+  /** Feature 007 (F17): última nota de la clínica al cancelar, o null. */
+  clinicNote: string | null;
 }
 
 const customerColumns = {
@@ -163,6 +165,10 @@ const customerColumns = {
   reason: appointments.reason,
   contactPhone: appointments.contactPhone,
   createdAt: appointments.createdAt,
+  clinicNote: sql<string | null>`(select ${appointmentEvents.note} from ${appointmentEvents}
+    where ${appointmentEvents.appointmentId} = ${appointments.id} and ${appointmentEvents.kind} = 'cancelled'
+      and ${appointmentEvents.note} is not null
+    order by ${appointmentEvents.at} desc limit 1)`,
 };
 
 /** Todas las citas del cliente, de la más reciente a la más antigua. */

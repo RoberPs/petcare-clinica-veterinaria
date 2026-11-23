@@ -113,6 +113,57 @@ export function bookingContentVariant(content: Record<string, any>): void {
   };
 }
 
+// ---------- Panel de la agenda (feature 007) ----------
+
+/** Sustituye el horario semanal de un veterinario (por slug). `[]` = sin tramos. */
+export async function createStaffHours(
+  pool: Pool,
+  staffSlug: string,
+  slots: { weekday: number; opens: string; closes: string }[],
+): Promise<void> {
+  const { rows } = await pool.query<{ id: string }>('SELECT id FROM team_members WHERE slug = $1', [staffSlug]);
+  const id = rows[0]?.id;
+  if (!id) throw new Error(`No existe el profesional ${staffSlug}`);
+  await pool.query('DELETE FROM staff_hours WHERE team_member_id = $1', [id]);
+  for (const s of slots) {
+    await pool.query('INSERT INTO staff_hours (team_member_id, weekday, opens_at, closes_at) VALUES ($1, $2, $3, $4)', [
+      id,
+      s.weekday,
+      s.opens,
+      s.closes,
+    ]);
+  }
+}
+
+export type CreateBlockOptions = { staff?: string | null; reason?: string } & (
+  | { kind: 'once'; startsAt: Date; endsAt: Date }
+  | { kind: 'weekly'; fromDate: string; untilDate: string; weekdays: number[]; startTime: string; endTime: string }
+);
+
+/** Crea un bloqueo (de un veterinario por slug, o de toda la clínica sin `staff`). */
+export async function createBlock(pool: Pool, o: CreateBlockOptions): Promise<string> {
+  let staffId: string | null = null;
+  if (o.staff) {
+    const { rows } = await pool.query<{ id: string }>('SELECT id FROM team_members WHERE slug = $1', [o.staff]);
+    staffId = rows[0]?.id ?? null;
+    if (!staffId) throw new Error(`No existe el profesional ${o.staff}`);
+  }
+  const id = randomUUID();
+  if (o.kind === 'once') {
+    await pool.query(
+      `INSERT INTO schedule_blocks (id, team_member_id, kind, starts_at, ends_at, reason) VALUES ($1, $2, 'once', $3, $4, $5)`,
+      [id, staffId, o.startsAt, o.endsAt, o.reason ?? 'Bloqueo de prueba'],
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO schedule_blocks (id, team_member_id, kind, from_date, until_date, weekdays, start_time, end_time, reason)
+       VALUES ($1, $2, 'weekly', $3, $4, $5, $6, $7, $8)`,
+      [id, staffId, o.fromDate, o.untilDate, o.weekdays, o.startTime, o.endTime, o.reason ?? 'Bloqueo de prueba'],
+    );
+  }
+  return id;
+}
+
 /** Lunes laborable de referencia para las pruebas de reserva (16/11/2026, 09:00 en Madrid). */
 export const BOOKING_MONDAY_9AM = new Date('2026-11-16T08:00:00Z');
 

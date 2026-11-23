@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { test as base, expect, type Page } from '@playwright/test';
 import { FAKE_EMAIL_PORT } from '../test-env';
-import { createSessionFor, type TestCustomer } from './db';
+import { createCustomer, createSessionFor, type TestCustomer } from './db';
 
 // Fixtures comunes de Playwright: accesibilidad, aviso de cookies y buzón falso.
 
@@ -62,6 +62,16 @@ export async function loginAs(page: Page, customer: Pick<TestCustomer, 'id'>, re
   await page.context().addCookies([
     { name: 'pc_session', value: token, domain: 'localhost', path: '/', httpOnly: true, sameSite: 'Lax', secure: false },
   ]);
+}
+
+/**
+ * Crea una cuenta verificada (con rol de administrador si `admin`) e inicia sesión con ella
+ * (feature 007). Devuelve la cuenta.
+ */
+export async function loginAsNew(page: Page, options: { admin?: boolean; now?: Date } = {}): Promise<TestCustomer> {
+  const customer = await createCustomer({ admin: options.admin ?? false });
+  await loginAs(page, customer, false, options.now);
+  return customer;
 }
 
 export type AccountEmailKind =

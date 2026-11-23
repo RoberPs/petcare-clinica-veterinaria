@@ -133,6 +133,9 @@ export const teamMembers = pgTable(
     photoAlt: text('photo_alt'),
     position: position(),
     published: published(),
+    // Feature 007 (F5): reservable y orden en el selector de la reserva y en la agenda.
+    bookable: boolean('bookable').notNull().default(false),
+    bookingPosition: integer('booking_position').notNull().default(0),
     ...timestamps,
   },
   (t) => [
@@ -360,6 +363,8 @@ export const customers = pgTable(
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     marketingOptIn: boolean('marketing_opt_in').notNull().default(false),
     marketingOptInChangedAt: timestamp('marketing_opt_in_changed_at', { withTimezone: true }),
+    // Feature 007 (F1): solo lo escribe `npm run admin`.
+    isAdmin: boolean('is_admin').notNull().default(false),
     ...timestamps,
   },
   (t) => [
@@ -519,6 +524,8 @@ export const bookingServices = pgTable(
     check('booking_services_name_len', sql`char_length(${t.name}) between 1 and 80`),
     check('booking_services_duration', sql`${t.durationMinutes} between 5 and 480 and ${t.durationMinutes} % 5 = 0`),
     index('booking_services_order_idx').on(t.published, t.position),
+    // Feature 007 (FR-012): nombre único sin distinguir mayúsculas.
+    uniqueIndex('booking_services_name_lower_uq').on(sql`lower(${t.name})`),
   ],
 );
 
@@ -600,6 +607,7 @@ export const appointments = pgTable(
       sql`${t.anonymizedAt} is null or (${t.reason} is null and ${t.contactPhone} is null)`,
     ),
     index('appointments_staff_start_idx').on(t.teamMemberId, t.startsAt),
+    index('appointments_starts_at_idx').on(t.startsAt),
     index('appointments_customer_idx').on(t.customerId, t.startsAt.desc()),
     index('appointments_email_active_idx').on(t.contactEmailNormalized).where(sql`${t.status} = 'confirmed'`),
     index('appointments_guest_retention_idx')
@@ -608,6 +616,119 @@ export const appointments = pgTable(
     index('appointments_reminder_idx')
       .on(t.startsAt)
       .where(sql`${t.status} = 'confirmed' and ${t.reminderSentAt} is null`),
+  ],
+);
+
+// ---------- Panel de administración de la agenda (feature 007, data-model.md) ----------
+
+// La exclusión staff_hours_no_overlap (EXCLUDE USING gist) va en SQL en 0006_admin_agenda (F6).
+export const staffHours = pgTable(
+  'staff_hours',
+  {
+    id: id(),
+    teamMemberId: uuid('team_member_id')
+      .notNull()
+      .references(() => teamMembers.id, { onDelete: 'cascade' }),
+    weekday: smallint('weekday').notNull(),
+    opensAt: time('opens_at').notNull(),
+    closesAt: time('closes_at').notNull(),
+  },
+  (t) => [
+    check('staff_hours_weekday', sql`${t.weekday} between 1 and 7`),
+    check('staff_hours_range', sql`${t.closesAt} > ${t.opensAt}`),
+    index('staff_hours_member_idx').on(t.teamMemberId, t.weekday),
+  ],
+);
+
+export const scheduleBlockKind = pgEnum('schedule_block_kind', ['once', 'weekly']);
+
+export const scheduleBlocks = pgTable(
+  'schedule_blocks',
+  {
+    id: uuid('id').primaryKey(),
+    teamMemberId: uuid('team_member_id').references(() => teamMembers.id, { onDelete: 'cascade' }),
+    kind: scheduleBlockKind('kind').notNull(),
+    startsAt: timestamp('starts_at', { withTimezone: true }),
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    fromDate: date('from_date'),
+    untilDate: date('until_date'),
+    weekdays: smallint('weekdays').array(),
+    startTime: time('start_time'),
+    endTime: time('end_time'),
+    reason: text('reason').notNull(),
+    createdBy: uuid('created_by').references(() => customers.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (t) => [
+    check('schedule_blocks_reason_len', sql`char_length(${t.reason}) between 1 and 120`),
+    check(
+      'schedule_blocks_once',
+      sql`${t.kind} <> 'once' or (${t.startsAt} is not null and ${t.endsAt} is not null and ${t.endsAt} > ${t.startsAt}
+        and ${t.fromDate} is null and ${t.untilDate} is null and ${t.weekdays} is null and ${t.startTime} is null and ${t.endTime} is null)`,
+    ),
+    check(
+      'schedule_blocks_weekly',
+      sql`${t.kind} <> 'weekly' or (${t.fromDate} is not null and ${t.untilDate} is not null and ${t.untilDate} >= ${t.fromDate}
+        and ${t.untilDate} - ${t.fromDate} <= 366
+        and ${t.weekdays} is not null and cardinality(${t.weekdays}) > 0 and ${t.weekdays} <@ array[1,2,3,4,5,6,7]::smallint[]
+        and ${t.startTime} is not null and ${t.endTime} is not null and ${t.endTime} > ${t.startTime}
+        and ${t.startsAt} is null and ${t.endsAt} is null)`,
+    ),
+    index('schedule_blocks_member_idx').on(t.teamMemberId),
+    index('schedule_blocks_once_idx').on(t.kind, t.endsAt),
+    index('schedule_blocks_weekly_idx').on(t.kind, t.untilDate),
+  ],
+);
+
+export const appointmentEventKind = pgEnum('appointment_event_kind', ['created', 'rescheduled', 'cancelled']);
+export const appointmentEventActor = pgEnum('appointment_event_actor', [
+  'customer',
+  'guest_link',
+  'clinic_link',
+  'admin',
+  'system',
+]);
+
+export const appointmentEvents = pgTable(
+  'appointment_events',
+  {
+    id: id(),
+    appointmentId: uuid('appointment_id')
+      .notNull()
+      .references(() => appointments.id, { onDelete: 'cascade' }),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    kind: appointmentEventKind('kind').notNull(),
+    actor: appointmentEventActor('actor').notNull(),
+    adminId: uuid('admin_id').references(() => customers.id, { onDelete: 'set null' }),
+    fromStartsAt: timestamp('from_starts_at', { withTimezone: true }),
+    toStartsAt: timestamp('to_starts_at', { withTimezone: true }),
+    fromStaffId: uuid('from_staff_id').references(() => teamMembers.id),
+    toStaffId: uuid('to_staff_id').references(() => teamMembers.id),
+    note: text('note'),
+  },
+  (t) => [
+    check('appointment_events_note_len', sql`${t.note} is null or char_length(${t.note}) <= 300`),
+    check('appointment_events_admin', sql`${t.adminId} is null or ${t.actor} = 'admin'`),
+    index('appointment_events_appointment_idx').on(t.appointmentId, t.at),
+  ],
+);
+
+export const adminAuditLog = pgTable(
+  'admin_audit_log',
+  {
+    id: id(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    actorId: uuid('actor_id').references(() => customers.id, { onDelete: 'set null' }),
+    actorLabel: text('actor_label'),
+    action: text('action').notNull(),
+    entityType: text('entity_type').notNull(),
+    entityId: uuid('entity_id').notNull(),
+    changes: jsonb('changes').notNull().default({}),
+  },
+  (t) => [
+    // Sin CHECK "actor_id o actor_label": ON DELETE SET NULL lo violaría al borrar la cuenta de un
+    // admin del panel. Lo exige recordAdminAction al insertar (desviación anotada en checklists).
+    index('admin_audit_log_entity_idx').on(t.entityType, t.entityId, t.at),
   ],
 );
 

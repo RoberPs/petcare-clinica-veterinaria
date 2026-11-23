@@ -147,3 +147,39 @@ describe('appointment_reminder', () => {
     expect(e.text).toContain('https://petcare.example/mi-cuenta/citas');
   });
 });
+
+describe('variante de la clínica desde el panel (feature 007, contracts/emails.md)', () => {
+  it('cancelada por la clínica: asunto, texto y nota escapada en texto plano', () => {
+    const e = appointmentCancelled(ctx, data, { by: 'clinic', byClinic: true, clinicNote: 'Hola <script>alert(1)</script>\n\nperdón' });
+    expect(e.subject).toBe('Tu cita en PetCare se ha cancelado');
+    expect(e.text).toContain('La clínica ha cancelado tu cita');
+    expect(e.text).toContain('Mensaje de la clínica');
+    expect(e.text).toContain('Hola <script>alert(1)</script> perdón');
+    expect(e.html).toContain('Hola &lt;script&gt;alert(1)&lt;/script&gt; perdón');
+    expect(e.html).not.toContain('<script>');
+    expect(e.text).toContain('/pide-cita');
+    expectSafe(e);
+  });
+
+  it('cancelada por la clínica sin nota: sin el bloque del mensaje', () => {
+    const e = appointmentCancelled(ctx, data, { by: 'clinic', byClinic: true, clinicNote: '   ' });
+    expect(e.text).not.toContain('Mensaje de la clínica');
+  });
+
+  it('movida por la clínica: antes (fecha, hora y profesional) y ahora', () => {
+    const e = appointmentChanged(ctx, { ...data, staffName: 'Dr. Nuevo' }, {
+      previousStartsAt: new Date('2026-11-16T15:30:00Z'),
+      variant: 'guest',
+      cutoffHours: 24,
+      byClinic: true,
+      previousStaffName: 'Dra. Anterior',
+    });
+    expect(e.subject).toBe('Tu cita en PetCare ha cambiado');
+    expect(e.text).toContain('La clínica ha cambiado tu cita');
+    expect(e.text).toContain('16:30');
+    expect(e.text).toContain('Dra. Anterior');
+    expect(e.text).toContain('Dr. Nuevo');
+    expect(e.text).toContain('10:00');
+    expectSafe(e);
+  });
+});

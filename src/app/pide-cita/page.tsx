@@ -47,6 +47,28 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
   const reservas = config?.site.sections.find((s) => s.key === 'reservas');
   if (!config || !reservas?.href) notFound();
 
+  // Feature 007 (FR-017): ningún servicio activo tiene un veterinario reservable con horario.
+  if (config.services.length === 0) {
+    return (
+      <>
+        <section className="page-hero page-hero--compact">
+          <div className="container">
+            <Breadcrumb current="Pide cita" />
+            <h1>Pide cita online</h1>
+          </div>
+        </section>
+        <div className="container">
+          <div className="empty-state">
+            <p>Ahora no hay citas online disponibles. Escríbenos o llámanos y te buscamos un hueco.</p>
+            <Link prefetch={false} className="btn btn--pink" href="/contacto">
+              Contacta con la clínica
+            </Link>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   const { clinic } = config.site;
   const { today, lastDay } = bookingWindow(now, config.rules);
   const q = parseBookingQuery(sp, { services: config.services, staff: config.staff, today, lastDay });

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { bookAppointment } from '@/lib/booking/book';
 import { createSubmissionToken } from '@/lib/form-token';
-import { createAppointment, createCustomer, madrid, q, seedBookingConfig, setupTestDb, teardownTestDb, truncateAll, type BookingSeed } from './helpers/db';
+import { createAppointment, createBlock, createCustomer, createStaffHours, madrid, q, seedBookingConfig, setupTestDb, teardownTestDb, truncateAll, type BookingSeed } from './helpers/db';
 import { ctxFor, guestForm, TUESDAY } from './helpers/booking';
 
 // Reserva de invitado (US1, contracts/forms.md).
@@ -135,5 +135,43 @@ describe('reserva de invitado', () => {
     const [mail] = await q("SELECT payload FROM email_outbox WHERE kind = 'appointment_confirmed'");
     expect(mail!.payload.text).toContain('inicia sesión');
     expect(customer.id).toBeTruthy();
+  });
+});
+
+// ---------- Feature 007: historial, horario por veterinario y bloqueos (F7, F12) ----------
+
+describe('reserva con el panel de la agenda (feature 007)', () => {
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+  beforeEach(async () => {
+    await truncateAll();
+    await seedBookingConfig();
+  });
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  it('la reserva escribe el evento "created" (invitado: guest_link)', async () => {
+    const r = await bookAppointment(guestForm(), ctxFor());
+    expect(r.status).toBe('ok');
+    const events = await q('SELECT kind, actor, admin_id FROM appointment_events');
+    expect(events).toEqual([{ kind: 'created', actor: 'guest_link', admin_id: null }]);
+  });
+
+  it('un bloqueo de toda la clínica deja la franja sin ofrecer (se relee dentro del bloqueo del día)', async () => {
+    await createBlock({ kind: 'once', startsAt: madrid(TUESDAY, '09:30'), endsAt: madrid(TUESDAY, '11:00') });
+    const r = await bookAppointment(guestForm(), ctxFor());
+    expect(r.status).toBe('slot_taken');
+    expect(await q('SELECT id FROM appointments')).toEqual([]);
+    expect((await bookAppointment(guestForm({ hora: '11:00' }), ctxFor())).status).toBe('ok');
+  });
+
+  it('un veterinario sin tramos no se asigna con "Sin preferencia"', async () => {
+    await createStaffHours('nerea-olmedo', []);
+    await bookAppointment(guestForm({ correo: 'a@example.test' }), ctxFor());
+    await bookAppointment(guestForm({ correo: 'b@example.test', hora: '11:00' }), ctxFor());
+    const staff = await q('SELECT DISTINCT t.slug FROM appointments a JOIN team_members t ON t.id = a.team_member_id');
+    expect(staff).toEqual([{ slug: 'inigo-barral' }]);
   });
 });

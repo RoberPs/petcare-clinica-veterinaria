@@ -125,6 +125,41 @@ Si se quita una especie del YAML, sus mascotas pasan a "Otra"; `content-load` av
 6. No hay temporizadores nuevos: `petcare-purge` borra también las suscripciones sin confirmar de más
    de 30 días y las constancias de baja de más de 3 años (sección 6).
 
+### Actualizar a la feature 007 (panel de administración de la agenda)
+
+1. Haz una copia de seguridad (`deploy/backup.sh`).
+2. Aplica la migración `0006_admin_agenda` con `cli/migrate.mjs`. Añade el rol de administrador,
+   el horario por veterinario, los bloqueos, el historial de cada cita y el registro de acciones del
+   panel. Marca como reservables a los profesionales que ya atendían algún servicio y les copia el
+   horario de la clínica, así que la reserva pública ofrece las mismas horas que antes.
+3. **`content:load` ya no sobrescribe la agenda.** Desde esta feature el YAML solo siembra: crea los
+   servicios reservables y los profesionales nuevos, pero no cambia los que ya existen (nombre,
+   duración, reservable, servicios que atiende ni horario), porque se gestionan en `/admin`. La ficha
+   pública del equipo (especialidad, foto, orden y publicado), el horario general, los cierres y las
+   reglas de reserva siguen saliendo del YAML. Para volver a dejarlo todo como en el YAML (por
+   ejemplo, al poner en marcha una clínica nueva) usa `--force-booking`: sobrescribe servicios y
+   profesionales y **borra los horarios por veterinario y los bloqueos** del panel.
+4. Da el rol al primer administrador (la cuenta tiene que existir y tener el correo verificado):
+
+   ```bash
+   docker compose -f deploy/docker-compose.prod.yml exec -T petcare-app node cli/admin.mjs grant <correo> --by "<quién>"
+   ```
+
+5. No hay temporizadores nuevos.
+
+### Administradores del panel (`cli/admin.mjs`)
+
+```bash
+alias admin='docker compose -f deploy/docker-compose.prod.yml exec -T petcare-app node cli/admin.mjs'
+admin list                                  # administradores y desde cuándo
+admin grant recepcion@clinica.example --by "Nombre de quien lo autoriza"
+admin revoke recepcion@clinica.example --by "Nombre de quien lo autoriza"
+```
+
+Códigos de salida: 0 bien (o nada que hacer), 1 error inesperado, 2 uso incorrecto (falta `--by` o
+el correo no es válido) y 3 la cuenta no existe o no está verificada. Retirar el rol surte efecto en
+la siguiente petición de esa persona. Cada cambio queda en `admin_audit_log` con el `--by`.
+
 ### Gestión de pedidos sin panel (`cli/orders.mjs`)
 
 Mientras no haya panel de administración, la clínica gestiona los pedidos desde el VPS:

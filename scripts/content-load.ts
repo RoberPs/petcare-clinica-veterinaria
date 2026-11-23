@@ -14,8 +14,11 @@ if (!file) {
   process.exit(2);
 }
 
+const forceBooking = process.argv.includes('--force-booking');
+if (forceBooking) console.warn('Aviso: --force-booking. Se sobrescriben los datos de agenda del panel.');
+
 try {
-  const summary = await loadContentFile(getDb(), file);
+  const summary = await loadContentFile(getDb(), file, forceBooking ? { forceBooking: true } : {});
   console.log(
     `Contenido cargado desde ${file}: ${summary.services} servicios, ${summary.team} profesionales, ` +
       `${summary.faqs} preguntas, ${summary.closures} cierres y ${summary.species} especies. ` +
