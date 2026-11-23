@@ -30,6 +30,7 @@ export function createBrevoProvider(options: {
         subject: message.subject,
         textContent: message.text,
         htmlContent: message.html,
+        ...(message.headers ? { headers: message.headers } : {}),
       };
       try {
         const res = await fetch(`${baseUrl}/v3/smtp/email`, {

@@ -14,3 +14,16 @@ export function normalizeSearch(text: string): string {
 export function escapeLike(text: string): string {
   return text.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
+
+export const SEARCH_WORDS_MAX = 8;
+export const SEARCH_TEXT_MAX = 100;
+
+/**
+ * Palabras de una búsqueda de consejos (E4): texto recortado a 100 caracteres, normalizado sin
+ * tildes ni mayúsculas, sin repetir y con un máximo de 8. Los comodines de LIKE se escapan al
+ * consultar (escapeLike), así que aquí se conservan como literales.
+ */
+export function searchWords(q: string): string[] {
+  const words = normalizeSearch(q.slice(0, SEARCH_TEXT_MAX)).split(' ').filter(Boolean);
+  return [...new Set(words)].slice(0, SEARCH_WORDS_MAX);
+}

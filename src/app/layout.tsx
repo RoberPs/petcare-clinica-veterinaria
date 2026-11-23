@@ -8,6 +8,7 @@ import { CookieBanner } from '@/components/CookieBanner';
 import { DemoBanner } from '@/components/DemoBanner';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
+import { getNewsletterSettings } from '@/db/queries/newsletter';
 import { getSiteData } from '@/db/queries/site';
 import { getConsent } from '@/lib/consent';
 import { getPathname } from '@/lib/request';
@@ -33,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const site = await getSiteData();
+  const [site, newsletter] = await Promise.all([getSiteData(), getNewsletterSettings()]);
   // El aviso de cookies sale mientras no haya una elección vigente (FR-035 y FR-037).
   const showCookieBanner = getConsent(await cookies()) === null;
   return (
@@ -47,7 +48,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <main id="contenido" tabIndex={-1}>
           {children}
         </main>
-        <SiteFooter site={site} />
+        <SiteFooter site={site} newsletterEnabled={newsletter.enabled} />
         {showCookieBanner ? <CookieBanner returnTo={await getPathname()} /> : null}
       </body>
     </html>

@@ -248,8 +248,8 @@ legal_pages:
       responsabilidad de sus titulares.
   - kind: privacidad
     title: Política de privacidad
-    version: '2026-11-12'
-    updated_on: '2026-11-12'
+    version: '2026-11-16'
+    updated_on: '2026-11-16'
     body_md: |
       ## Quién trata tus datos
 
@@ -299,6 +299,16 @@ legal_pages:
       **No vemos ni guardamos los datos de tu tarjeta**: el pago se hace en la página de la pasarela.
       El carrito se guarda en el servidor y se asocia a tu navegador con la cookie técnica `pc_cart`.
 
+      Si te suscribes al **boletín de consejos y novedades**:
+
+      - **Correo electrónico**: para enviarte el boletín y el enlace para confirmar la suscripción.
+      - La fecha en que te suscribes y confirmas, y la versión de la
+        [política del boletín](/politica-del-boletin) que aceptas.
+
+      Si te das de baja, borramos tu correo de la lista y guardamos solo una huella cifrada, que no
+      se puede revertir sin la clave, con las fechas y el motivo, para poder demostrar que respetamos
+      tu decisión.
+
       ## Base legal
 
       - **Formulario de contacto**: tu consentimiento, que das al marcar la casilla de privacidad.
@@ -308,6 +318,8 @@ legal_pages:
         "Datos personales".
       - **Pedidos de la tienda**: la ejecución del contrato de compra (las condiciones de venta) y,
         después, la obligación legal de conservar los datos de las ventas.
+      - **Boletín**: tu consentimiento, que das al confirmar la suscripción desde el correo y que
+        puedes retirar en cualquier momento con el enlace de baja de cada correo.
 
       ## Cuánto tiempo los guardamos
 
@@ -320,6 +332,8 @@ legal_pages:
       - Los pedidos se guardan **6 años** por obligación legal, también si eliminas la cuenta (en ese
         caso dejan de estar asociados a ella). Pasado ese plazo se borran tus datos de contacto y la
         dirección, y solo quedan los importes.
+      - Las suscripciones al boletín sin confirmar se borran a los **30 días**; las confirmadas se
+        guardan hasta que te das de baja, y la constancia anónima de la baja, **3 años**.
 
       ## Quién más interviene
 
@@ -445,6 +459,48 @@ legal_pages:
 
       Usamos tus datos solo para gestionar el pedido. Tienes toda la información en la
       [política de privacidad](/privacidad).
+
+  - kind: boletin
+    title: Política del boletín
+    version: '1.0'
+    updated_on: '2026-11-16'
+    body_md: |
+      ## Qué es el boletín
+
+      Un correo con consejos para cuidar a tus animales y novedades de la clínica, **como mucho una vez
+      al mes**. **PetCare es una clínica ficticia**: el boletín forma parte de una web de
+      demostración.
+
+      ## Quién lo envía
+
+      El responsable es **${LEGAL_OWNER_NAME}**, responsable de esta web de demostración. Contacto:
+      **${LEGAL_CONTACT_EMAIL}**.
+
+      ## Qué datos usamos
+
+      Solo tu **correo electrónico**, la fecha en que te suscribes y confirmas, y la versión de esta
+      política que aceptas. No lo cruzamos con otros datos ni lo usamos para nada más.
+
+      ## Doble confirmación
+
+      Al suscribirte te enviamos un correo con un enlace para confirmar. Hasta que lo confirmas no
+      recibes el boletín. El enlace caduca a los **7 días**; si no lo usas, puedes pedir otro, y la
+      suscripción sin confirmar se borra a los **30 días**.
+
+      ## Cómo darte de baja
+
+      Cada correo lleva un enlace **"Darme de baja"** que funciona sin iniciar sesión. Si tienes
+      cuenta, también puedes desactivar los consejos y novedades en **Mi cuenta → Datos personales**.
+      Al darte de baja borramos tu correo de la lista y guardamos durante **3 años** solo una huella
+      cifrada, con las fechas y el motivo, para poder demostrar que respetamos tu decisión.
+
+      ## Quién más interviene
+
+      Los correos se envían con **Brevo** (Sendinblue SAS), como encargado del tratamiento.
+
+      ## Tus derechos
+
+      Tienes los mismos derechos que se explican en la [política de privacidad](/privacidad).
 
 booking:
   rules:
@@ -963,9 +1019,360 @@ checkout:
       min_subtotal: "30,00"
       max_uses: 100
 
+# Consejos de salud (feature 006). Textos propios y orientativos: siempre remiten al veterinario.
+post_categories:
+  - { key: perro, label: Perro }
+  - { key: gato, label: Gato }
+  - { key: otros-animales, label: Otros animales }
+
+posts:
+  - slug: cada-cuanto-banar-perro
+    kind: article
+    category: perro
+    title: ¿Cada cuánto hay que bañar a un perro?
+    lead: >-
+      No hay una cifra que sirva para todos: depende del pelo, de la piel y de la vida que lleve
+      cada perro. Te contamos qué tener en cuenta para acertar.
+    published_on: '2026-10-02'
+    image: media/petcare/consejos/bano-perro.svg
+    image_alt: Ilustración de un perro con gotas de agua alrededor
+    body_md: |
+      ## Lo que influye en la frecuencia
+
+      ### El tipo de pelo
+
+      Los perros de pelo largo o rizado suelen necesitar más cuidados que los de pelo corto. Un buen
+      cepillado entre baños reduce los nudos y la suciedad, y a menudo permite espaciar los baños.
+
+      ### La piel
+
+      Algunos perros tienen la piel sensible o con tendencia a la sequedad. En esos casos conviene
+      preguntar al veterinario antes de cambiar de rutina o de producto.
+
+      ### El día a día
+
+      Un perro que pasea por el campo o se mete en charcos se ensucia más que uno que vive sobre todo
+      en casa. Ensuciarse no siempre obliga a un baño completo: muchas veces basta con limpiar las
+      patas.
+
+      ## Cómo bañarlo
+
+      - Usa un champú específico para perros: el de las personas tiene otro pH.
+      - El agua, templada; ni fría ni caliente.
+      - Aclara bien para que no queden restos de producto.
+      - Sécalo a fondo, sobre todo en invierno y en las zonas de pliegues.
+
+      ## Cuándo consultar
+
+      Si notas picor, enrojecimiento, mal olor persistente o caída de pelo, no lo resuelvas con más
+      baños: es mejor que lo vea un veterinario. Puedes [pedir cita](section:reservas).
+
+  - slug: cepillado-dental-gato
+    kind: article
+    category: gato
+    title: Cómo acostumbrar a tu gato al cepillado dental
+    lead: >-
+      La higiene de la boca también importa en los gatos. Con paciencia y pasos cortos, muchos
+      aceptan el cepillado como parte de su rutina.
+    published_on: '2026-09-20'
+    image: media/petcare/consejos/dientes-gato.svg
+    image_alt: Ilustración de un gato junto a un cepillo de dientes
+    body_md: |
+      ## Por qué cuidar su boca
+
+      La acumulación de placa puede causar molestias y mal aliento. Una revisión periódica en la
+      clínica ayuda a detectar a tiempo cualquier problema.
+
+      ## Paso a paso
+
+      ### Primero, que lo huela
+
+      Deja que explore el cepillo y la pasta específica para gatos durante unos días, sin intentar
+      usarlos.
+
+      ### Después, sesiones muy cortas
+
+      Empieza tocando sus encías con el dedo unos segundos y prémialo. Ve alargando poco a poco.
+
+      ### Por último, el cepillo
+
+      Cepilla con suavidad la cara externa de los dientes. No hace falta abrirle la boca a la fuerza.
+
+      ## Lo que no conviene
+
+      - Usar pasta de dientes para personas.
+      - Forzarlo: si se estresa, para y vuelve a intentarlo otro día.
+
+      Si ves encías muy rojas, sangrado o que le cuesta comer, consulta con el veterinario.
+
+  - slug: golpe-de-calor-perros
+    kind: article
+    category: perro
+    title: Golpe de calor en perros, cómo prevenirlo
+    lead: >-
+      Los perros regulan peor el calor que nosotros. Unas pocas precauciones en los días calurosos
+      marcan la diferencia.
+    published_on: '2026-07-10'
+    image: media/petcare/consejos/calor-perro.svg
+    image_alt: Ilustración de un perro bajo un sol intenso
+    body_md: |
+      ## Precauciones en verano
+
+      - Pasea a primera hora de la mañana y al final de la tarde.
+      - Lleva siempre agua para él.
+      - Comprueba el suelo con la mano: si quema para ti, quema para sus almohadillas.
+      - **Nunca lo dejes dentro de un coche**, ni siquiera unos minutos.
+
+      ## Perros con más riesgo
+
+      Los perros de hocico chato, los mayores, los cachorros y los que tienen sobrepeso o problemas
+      de corazón toleran peor el calor.
+
+      ## Señales de alarma
+
+      Jadeo muy intenso, babeo abundante, debilidad o tambaleo son motivo para actuar rápido:
+      llévalo a la sombra, ofrécele agua y **contacta de inmediato con un veterinario**.
+
+  - slug: arena-gato-consejos
+    kind: article
+    category: gato
+    title: El arenero ideal para tu gato
+    lead: >-
+      Dónde está, cuánto se limpia y qué arena lleva: pequeños detalles que influyen en que tu gato
+      lo use con tranquilidad.
+    published_on: '2026-08-14'
+    body_md: |
+      ## Dónde colocarlo
+
+      En un lugar tranquilo, lejos de su comida y de su agua, y fácil de alcanzar. Si hay varios
+      gatos en casa, conviene tener más de un arenero.
+
+      ## Limpieza
+
+      Retira los restos a diario y cambia la arena por completo con regularidad. Muchos gatos
+      rechazan un arenero sucio.
+
+      ## Tipo de arena
+
+      Cada gato tiene sus preferencias. Si cambias de arena, hazlo poco a poco, mezclando la nueva
+      con la anterior.
+
+      ## Cuándo consultar
+
+      Si deja de usar el arenero de repente, va muchas veces sin apenas orinar o notas cambios en sus
+      deposiciones, consulta con el veterinario: puede haber un problema de salud detrás.
+
+  - slug: conejo-alimentacion-heno
+    kind: article
+    category: otros-animales
+    title: El heno, la base de la dieta del conejo
+    lead: >-
+      Un conejo necesita mucha fibra para que su digestión y sus dientes funcionen bien. El heno de
+      calidad debe estar siempre a su alcance.
+    published_on: '2026-06-05'
+    image: media/petcare/consejos/conejo-heno.svg
+    image_alt: Ilustración de un conejo sobre un lecho de heno
+    body_md: |
+      ## Por qué el heno es tan importante
+
+      Masticar heno desgasta de forma natural sus dientes, que crecen durante toda su vida, y mantiene
+      su intestino en movimiento.
+
+      ## Qué más puede comer
+
+      - Verduras de hoja verde, en cantidad moderada.
+      - Pienso específico para conejos, en poca cantidad.
+      - Agua fresca siempre disponible.
+
+      Las frutas y los premios, solo de forma ocasional.
+
+      ## Señales que vigilar
+
+      Si deja de comer o deja de hacer cacas, aunque sea durante unas horas, **consulta con el
+      veterinario sin esperar**: en los conejos puede ser urgente.
+
+  - slug: desparasitacion-perros-gatos
+    kind: article
+    category: perro
+    title: Desparasitación de perros y gatos, lo básico
+    lead: >-
+      Los parásitos internos y externos afectan a la salud de tu mascota y, en algunos casos, a la de
+      tu familia. Te explicamos por qué es importante una pauta adaptada.
+    published_on: '2026-05-12'
+    image: media/petcare/consejos/desparasitacion.svg
+    image_alt: Ilustración de un perro y un gato junto a un escudo
+    body_md: |
+      ## Internos y externos
+
+      ### Parásitos internos
+
+      Viven sobre todo en el aparato digestivo. No siempre dan síntomas visibles.
+
+      ### Parásitos externos
+
+      Pulgas, garrapatas y otros que viven en la piel y el pelo. Algunos transmiten enfermedades.
+
+      ## Una pauta para cada mascota
+
+      La frecuencia y el producto dependen de su edad, su peso, su estilo de vida y la zona donde
+      vivís. Por eso no hay una pauta única: pregunta al veterinario cuál le conviene.
+
+      ## Consejos prácticos
+
+      - Apunta la fecha de cada desparasitación.
+      - Respeta la dosis según su peso actual.
+      - No uses en gatos productos pensados para perros.
+
+  - slug: gato-mayor-revisiones
+    kind: article
+    category: gato
+    title: Tu gato se hace mayor, qué cambia
+    lead: >-
+      Con los años, los gatos cambian sus hábitos. Saber qué es normal y qué conviene revisar te
+      ayuda a cuidarlo mejor en esta etapa.
+    published_on: '2026-04-18'
+    image: media/petcare/consejos/gato-mayor.svg
+    image_alt: Ilustración de un gato descansando sobre un cojín
+    body_md: |
+      ## Cambios habituales
+
+      Duerme más, juega menos y puede buscar sitios más cálidos. Facilítale el acceso a sus lugares
+      favoritos con rampas o escalones.
+
+      ## Revisiones más frecuentes
+
+      En los gatos mayores se recomiendan revisiones periódicas, aunque parezcan sanos. Muchas
+      enfermedades avanzan sin dar señales al principio.
+
+      ## Qué observar en casa
+
+      - Si bebe u orina más de lo habitual.
+      - Cambios de peso o de apetito.
+      - Dificultad para saltar o para usar el arenero.
+
+      Ante cualquiera de estos cambios, [pide cita](section:reservas) para que lo revisemos.
+
+  - slug: hamster-jaula
+    kind: article
+    category: otros-animales
+    title: Cómo preparar la jaula de un hámster
+    lead: >-
+      Espacio, un buen sustrato y sitios para esconderse: lo esencial para que tu hámster esté
+      cómodo y activo.
+    published_on: '2030-01-15'
+    image: media/petcare/consejos/hamster-jaula.svg
+    image_alt: Ilustración de un hámster dentro de su jaula
+    body_md: |
+      ## Espacio
+
+      Cuanto más amplia, mejor. Necesita sitio para moverse, excavar y explorar.
+
+      ## Lo imprescindible
+
+      - Un sustrato profundo para excavar.
+      - Una casita o refugio.
+      - Una rueda de tamaño adecuado, sin barrotes en la pista.
+      - Comedero y bebedero limpios.
+
+      ## Ubicación
+
+      Lejos de corrientes, del sol directo y del ruido. Son animales de hábitos nocturnos: respeta
+      sus horas de descanso.
+
+  - slug: sala-espera-gatos
+    kind: news
+    category: gato
+    title: Estrenamos una zona de espera solo para gatos
+    lead: >-
+      Hemos separado una parte de la sala de espera para que los gatos esperen más tranquilos, lejos
+      de los ladridos.
+    published_on: '2026-11-05'
+    image: media/petcare/consejos/sala-gatos.svg
+    image_alt: Ilustración de dos gatos esperando sobre bancos
+    body_md: |
+      ## Por qué una zona separada
+
+      La visita a la clínica puede estresar a muchos gatos. Un espacio más tranquilo ayuda a que
+      lleguen a la consulta más relajados.
+
+      ## Consejos para el día de la cita
+
+      - Acostúmbralo al transportín en casa unos días antes.
+      - Cubre el transportín con una toalla durante la espera.
+      - Trae su manta o algún objeto con su olor.
+
+  - slug: nuevo-boletin-de-consejos
+    kind: news
+    title: Lanzamos nuestro boletín de consejos
+    lead: >-
+      Desde ahora puedes recibir en tu correo nuestros consejos de salud y las novedades de la
+      clínica, como mucho una vez al mes.
+    published_on: '2026-11-12'
+    body_md: |
+      ## Cómo suscribirte
+
+      Escribe tu correo en el formulario del final de esta página o de la portada y acepta la
+      política del boletín. Te enviaremos un correo para confirmar la suscripción.
+
+      ## Darte de baja
+
+      Cada correo incluye un enlace para darte de baja cuando quieras, sin iniciar sesión.
+
+  - slug: recordatorio-vacunas-otono
+    kind: news
+    category: perro
+    title: Revisa el calendario de vacunas de tu perro
+    lead: >-
+      Aprovecha el cambio de estación para comprobar si tu perro tiene al día sus vacunas y su
+      revisión anual.
+    published_on: '2026-10-15'
+    image: media/petcare/consejos/vacunas.svg
+    image_alt: Ilustración de una huella de perro junto a una jeringuilla
+    body_md: |
+      ## Por qué revisarlo ahora
+
+      Es un buen momento para repasar su cartilla y comprobar las fechas. La pauta de vacunación
+      depende de cada perro, y la decide el veterinario.
+
+      ## Qué traer a la cita
+
+      - Su cartilla o pasaporte.
+      - Las dudas que tengas sobre su salud.
+
+      Puedes [pedir cita](section:reservas) desde la web.
+
+  - slug: cuidados-exoticos-invierno
+    kind: news
+    category: otros-animales
+    title: Conejos y pequeños mamíferos en invierno
+    lead: >-
+      El frío y los cambios bruscos de temperatura también afectan a conejos, hámsteres y cobayas.
+      Repasamos algunos cuidados básicos.
+    published_on: '2026-10-01'
+    image: media/petcare/consejos/invierno-exoticos.svg
+    image_alt: Ilustración de un conejo y un hámster bajo la nieve
+    body_md: |
+      ## En casa
+
+      Mantén su jaula lejos de ventanas, corrientes y fuentes de calor directas, como radiadores.
+
+      ## Si viven en el exterior
+
+      Protege su refugio de la lluvia y del viento, y revisa cada día que el agua no se haya
+      congelado.
+
+      ## Señales de alarma
+
+      Si lo notas apagado, deja de comer o respira con dificultad, consulta con el veterinario.
+
+newsletter:
+  enabled: true
+  title: Recibe nuestros consejos por correo
+  text: Consejos de salud y novedades de la clínica en tu correo, como mucho una vez al mes.
+
 sections:
   - { key: reservas, label: Pide cita, href: /pide-cita }
   - { key: tienda, label: Nuestros productos, href: /productos }
   - { key: carrito, label: Carrito, href: /carrito }
-  - { key: consejos, label: Consejos de salud, href: null }
+  - { key: consejos, label: Consejos de salud, href: /consejos }
   - { key: cuenta, label: Mi cuenta, href: /mi-cuenta }

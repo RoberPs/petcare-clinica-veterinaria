@@ -3,13 +3,14 @@ import { ACCOUNT_MESSAGES, changePasswordSchema, marketingSchema, profileSchema,
 import { getDb } from '@/db/client';
 import { getCustomerById } from '@/db/queries/customers';
 import { recordHit } from '@/db/queries/rate-limit';
-import { customerConsents, customers } from '@/db/schema';
+import { customers } from '@/db/schema';
 import { enqueueAccountEmail, getAccountEmailContext } from '@/email/outbox';
 import { passwordChanged } from '@/email/templates/password-changed';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import { revokeOtherSessions } from '@/lib/auth/session';
 import { deleteTokens } from '@/lib/auth/tokens';
 import { logger } from '@/lib/logger';
+import { subscribeFromAccount, unsubscribeFromAccount } from '@/lib/newsletter/sync';
 import { checkPolicy, errorCode, formRecord, policyBucket, type FlowContext, type FormState } from './common';
 
 // Datos personales y contraseña (US6). El correo no se puede cambiar desde aquí (FR-029).
@@ -95,7 +96,7 @@ export async function processChangePassword(
 
 /**
  * Preferencia de consejos y novedades (US8, FR-042). Solo se registra un consentimiento (opt-in u
- * opt-out) y se actualiza la fecha si el valor cambia.
+ * opt-out) y se actualiza la fecha si el valor cambia (lo hace sync.ts, feature 006).
  */
 export async function processUpdateMarketing(form: FormData, customerId: string): Promise<FormState> {
   const validation = validateForm(marketingSchema, formRecord(form));
@@ -108,11 +109,13 @@ export async function processUpdateMarketing(form: FormData, customerId: string)
         .from(customers)
         .where(eq(customers.id, customerId))
         .for('update');
-      if (!row || row.optIn === wanted) return;
+      if (!row) return;
+      // Boletín (feature 006, E11): la lista y la preferencia se escriben juntas desde sync.ts. Se
+      // llama también si el valor no cambia, para reparar una lista desincronizada.
       const now = new Date();
-      await tx.update(customers).set({ marketingOptIn: wanted, marketingOptInChangedAt: now, updatedAt: now }).where(eq(customers.id, customerId));
-      await tx.insert(customerConsents).values({ customerId, kind: wanted ? 'marketing_opt_in' : 'marketing_opt_out', createdAt: now });
-      logger.info({ customer_id: customerId, code: wanted ? 'opt_in' : 'opt_out' }, 'marketing_updated');
+      if (wanted) await subscribeFromAccount(tx, customerId, now);
+      else await unsubscribeFromAccount(tx, customerId, 'account', now);
+      if (row.optIn !== wanted) logger.info({ customer_id: customerId, code: wanted ? 'opt_in' : 'opt_out' }, 'marketing_updated');
     });
     return { status: 'ok' };
   } catch (error) {

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Icon } from '@/components/Icon';
+import { NewsletterBlock } from '@/components/NewsletterBlock';
 import { Notice } from '@/components/Notice';
 import { sectionHref } from '@/domain/sections';
 import { getHomeData } from '@/db/queries/home';
@@ -16,7 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Portada (US1): propuesta, tres CTA, tres accesos rápidos, cifras y avisos con fuente. Sin boletín.
+// Portada (US1): propuesta, tres CTA, tres accesos rápidos, cifras, avisos con fuente y, si está
+// activo, el bloque del boletín (feature 006).
 type Props = { searchParams: Promise<{ aviso?: string | string[] }> };
 
 export default async function HomePage({ searchParams }: Props) {
@@ -138,6 +140,8 @@ export default async function HomePage({ searchParams }: Props) {
           ))}
         </section>
       ) : null}
+
+      <NewsletterBlock returnTo="/" aviso={aviso} />
     </>
   );
 }

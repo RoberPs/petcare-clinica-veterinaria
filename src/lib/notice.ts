@@ -35,6 +35,9 @@ export const NOTICES = {
   'pedido-no-cancelable': 'Este pedido ya no se puede cancelar desde la web. Contacta con la clínica.',
   'pago-vencido': 'El plazo de pago ha vencido. Vuelve a hacer el pedido desde el carrito.',
   'carrito-error': 'No hemos podido actualizar el carrito. Inténtalo de nuevo en unos minutos.',
+  // Boletín (feature 006): el mismo texto esté o no suscrito el correo (E9).
+  'boletin-revisa-correo':
+    'Revisa tu correo: si la dirección es correcta, te hemos enviado un enlace para confirmar la suscripción. Si no lo ves, mira en la carpeta de spam.',
 } as const;
 
 export type NoticeCode = keyof typeof NOTICES;

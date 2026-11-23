@@ -10,6 +10,7 @@ export default defineConfig({
     env: {
       FORM_SECRET: 'secreto-de-pruebas-unitarias-de-32-caracteres-o-mas',
       CONSENT_VERSION: '1',
+      NEWSLETTER_HASH_KEY: 'cHJ1ZWJhcy1ib2xldGluLWNsYXZlLWRlLTMyLWJ5dGU=',
     },
   },
 });

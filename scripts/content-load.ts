@@ -20,7 +20,9 @@ try {
     `Contenido cargado desde ${file}: ${summary.services} servicios, ${summary.team} profesionales, ` +
       `${summary.faqs} preguntas, ${summary.closures} cierres y ${summary.species} especies. ` +
       `Tienda: ${summary.products} productos, ${summary.shopCategories} categorías y ${summary.shopPets} mascotas` +
-      ` (${summary.productsHidden} productos despublicados).`,
+      ` (${summary.productsHidden} productos despublicados). ` +
+      `Consejos: ${summary.posts} publicaciones (${summary.postsHidden} despublicadas) y ` +
+      `${summary.postCategories} categorías. Boletín: ${summary.newsletterEnabled ? 'activo' : 'desactivado'}.`,
   );
   for (const slug of summary.compareAtIgnored) {
     console.warn(`Aviso: ${slug} tiene compare_at_price menor o igual que price; no se mostrará en oferta.`);

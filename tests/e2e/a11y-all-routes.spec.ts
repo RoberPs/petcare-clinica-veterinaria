@@ -30,6 +30,14 @@ const ROUTES = [
   '/recuperar-contrasena',
   '/recuperar-contrasena/enviado',
   '/restablecer-contrasena',
+  // Feature 006: consejos de salud y boletín (los enlaces no válidos muestran su página de error).
+  '/consejos',
+  '/consejos/cada-cuanto-banar-perro',
+  '/consejos/arena-gato-consejos',
+  '/consejos?q=zzzz',
+  '/boletin/confirmar?t=no-valido',
+  '/boletin/baja?t=no-valido',
+  '/politica-del-boletin',
 ];
 
 // Área personal: se recorre con una sesión creada en la base de datos (loginAs).
@@ -65,6 +73,28 @@ test.describe('accesibilidad en todas las rutas', () => {
     expect(duration.split(',').every((d) => parseFloat(d) <= 0.0001)).toBe(true);
     await context.close();
   });
+});
+
+// FR-031 (feature 006): la sección de consejos no pide nada a otro origen, ni antes ni después de
+// aceptar las cookies.
+test.describe('consejos sin recursos de terceros (feature 006)', () => {
+  for (const route of ['/consejos', '/consejos/cada-cuanto-banar-perro']) {
+    test(`todas las peticiones de ${route} van al mismo origen`, async ({ page, baseURL }, info) => {
+      test.skip(info.project.name !== 'mobile-360', 'una pasada basta');
+      const origin = new URL(baseURL!).origin;
+      const foreign: string[] = [];
+      page.on('request', (request) => {
+        const url = request.url();
+        if (/^https?:/.test(url) && new URL(url).origin !== origin) foreign.push(url);
+      });
+      await page.goto(route);
+      await page.waitForLoadState('networkidle');
+      await page.getByRole('region', { name: 'Aviso de cookies' }).getByRole('button', { name: 'Aceptar' }).click();
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+      expect(foreign).toEqual([]);
+    });
+  }
 });
 
 test.describe('accesibilidad del área personal (feature 002)', () => {

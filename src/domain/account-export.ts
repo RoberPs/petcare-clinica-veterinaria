@@ -5,7 +5,8 @@ import { PAYMENT_METHOD_LABELS, statusLabel, type OrderStatus, type PaymentMetho
 import { petAge, todayInClinicZone } from './pet-age';
 import { CLINIC_TZ, todayInClinic } from './time';
 
-// "Descargar mis datos" (A11, contracts/export-format.md; versión 2 con los pedidos, feature 005). Solo los datos que ha aportado el cliente
+// "Descargar mis datos" (A11, contracts/export-format.md; versión 2 con los pedidos, feature 005;
+// versión 3 con la suscripción al boletín, feature 006). Solo los datos que ha aportado el cliente
 // o que describen su cuenta: ni ids internos, ni el hash de la contraseña, ni sesiones, ni tokens.
 
 export interface AccountExportInput {
@@ -50,7 +51,20 @@ export interface AccountExportInput {
   }[];
   /** Pedidos con customer_id de la cuenta (feature 005, export v2). Nunca los de invitado. */
   orders?: ExportOrder[];
+  /** Suscripción viva al boletín vinculada a la cuenta (feature 006, export v3). */
+  newsletter?: ExportNewsletter | null;
 }
+
+export interface ExportNewsletter {
+  status: 'pending' | 'confirmed';
+  source: 'form' | 'account';
+  createdAt: Date;
+  confirmedAt: Date | null;
+  policyVersion: string;
+}
+
+const NEWSLETTER_STATUS_EXPORT = { pending: 'Pendiente de confirmar', confirmed: 'Confirmada' } as const;
+const NEWSLETTER_SOURCE_EXPORT = { form: 'Formulario', account: 'Cuenta de cliente' } as const;
 
 export interface ExportOrder {
   number: string;
@@ -89,7 +103,7 @@ export function buildAccountExport(data: AccountExportInput, now: Date) {
   const c = data.customer;
   const today = todayInClinicZone(now);
   return {
-    format_version: 2 as const,
+    format_version: 3 as const,
     exported_at: zonedIso(now),
     controller: { name: data.controller.name, contact_email: data.controller.contactEmail },
     account: {
@@ -102,7 +116,20 @@ export function buildAccountExport(data: AccountExportInput, now: Date) {
       created_at: iso(c.createdAt),
       updated_at: iso(c.updatedAt),
     },
-    communications: { marketing_opt_in: c.marketingOptIn, changed_at: iso(c.marketingOptInChangedAt) },
+    communications: {
+      marketing_opt_in: c.marketingOptIn,
+      changed_at: iso(c.marketingOptInChangedAt),
+      // Las constancias de baja son anónimas y no se vinculan a la cuenta: no se exportan.
+      newsletter: data.newsletter
+        ? {
+            status: NEWSLETTER_STATUS_EXPORT[data.newsletter.status],
+            source: NEWSLETTER_SOURCE_EXPORT[data.newsletter.source],
+            subscribed_at: zonedIso(data.newsletter.createdAt),
+            confirmed_at: data.newsletter.confirmedAt ? zonedIso(data.newsletter.confirmedAt) : null,
+            policy_version: data.newsletter.policyVersion,
+          }
+        : null,
+    },
     consents: data.consents.map((k) => ({
       kind: k.kind,
       privacy_version: k.privacyVersion,

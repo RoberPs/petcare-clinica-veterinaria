@@ -28,9 +28,10 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 1. [`.specify/memory/constitution.md`](.specify/memory/constitution.md) (v1.1.0). **Prevalece
    sobre todo.** Ante un conflicto con una spec, un plan o una tarea, gana la constitución.
 2. La spec y el plan de la feature activa, que indica `.specify/feature.json`. Hoy es
-   [`specs/005-cart-checkout/`](specs/005-cart-checkout/): `spec.md`, `plan.md`,
-   `research.md` (decisiones D1–D20), `data-model.md` y `contracts/`. Siguen vigentes las
-   decisiones R1–R17 de la 001, A1–A14 de la 002, B1–B17 de la 003 y C1–C16 de la 004.
+   [`specs/006-health-tips-newsletter/`](specs/006-health-tips-newsletter/): `spec.md`, `plan.md`,
+   `research.md` (decisiones E1–E18), `data-model.md` y `contracts/`. Siguen vigentes las
+   decisiones R1–R17 de la 001, A1–A14 de la 002, B1–B17 de la 003, C1–C16 de la 004 y D1–D20
+   de la 005.
 3. [`design/README.md`](design/README.md), la guía visual.
 
 ## Estado actual
@@ -53,8 +54,13 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
   HTTP, sin SDK, con `PAYMENT_PROVIDER=fake` en local y en los tests. Añade la migración
   `0004_cart_checkout`, sin dependencias nuevas. Los pedidos se gestionan con `npm run orders`
   (`cli/orders.mjs` en producción) y el temporizador `petcare-orders-maintain`.
+- Feature **006 — consejos de salud y boletín**: **implementada** (tareas en
+  `specs/006-health-tips-newsletter/tasks.md`; desviaciones anotadas en su
+  `checklists/requirements.md`). Sin dependencias nuevas; añade la migración
+  `0005_health_tips_newsletter` y el secreto `NEWSLETTER_HASH_KEY`. La lógica con efectos vive en
+  `src/lib/newsletter/`, y la preferencia de la cuenta solo se escribe desde `sync.ts`.
 - **Repositorio**: `RoberPs/petcare-clinica-veterinaria` (propio, sin historial de otros
-  proyectos). **Rama de git**: `005-cart-checkout`. El script de ramas de Spec Kit cuenta
+  proyectos). **Rama de git**: `006-health-tips-newsletter`. El script de ramas de Spec Kit cuenta
   también las del remoto `gestor-citas` (otro proyecto), así que hay que revisar el número que
   propone.
 - PostgreSQL local: desarrollo en el puerto **5434** (el 5432 lo usa un PostgreSQL nativo) y
@@ -161,9 +167,16 @@ npm run test:lighthouse
 - Una feature está **terminada** cuando:
   - funciona de punta a punta con datos persistentes;
   - no tiene datos de una clínica concreta en el código;
-  - pasan sus tests;
+  - pasan sus tests y los de los flujos críticos afectados (ver más abajo);
   - no hay estilos escritos a mano;
   - se ha verificado la accesibilidad (teclado y axe);
   - no hay secretos en el diff;
   - y, si afecta a la portada o al catálogo, Lighthouse da 90 o más.
+- **Tests reducidos al mínimo en cada spec**: en local, durante una feature, solo se ejecutan las
+  pruebas imprescindibles (unitarias, de integración y e2e) de lo nuevo de esa spec, filtrando por
+  archivo o por nombre, **más los tests de los flujos críticos que toque** (principio III: registro
+  e inicio de sesión, reserva de cita, checkout y pago, estados de pedido) **y Lighthouse si toca
+  la portada o el catálogo**. **La batería completa en local** (`npm test`, `test:integration`,
+  `test:e2e` y `test:lighthouse` enteros) **se pasa solo al final del proyecto**; la CI la sigue
+  pasando en cada cambio. Motivo: cada batería completa tarda demasiado.
 - Los commits y los pushes se hacen **solo cuando el usuario lo pide**.

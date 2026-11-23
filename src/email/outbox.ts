@@ -19,7 +19,8 @@ export type AppointmentEmailKind =
   | 'appointment_reminder'
   | 'clinic_appointment';
 export type OrderEmailKind = 'order_confirmed' | 'order_received' | 'order_cancelled' | 'clinic_order';
-export type RenderedEmailKind = AccountEmailKind | AppointmentEmailKind | OrderEmailKind;
+export type NewsletterEmailKind = 'newsletter_confirm';
+export type RenderedEmailKind = AccountEmailKind | AppointmentEmailKind | OrderEmailKind | NewsletterEmailKind;
 
 /**
  * Tipos con límite de 3 por dirección y hora (FR-033 de la 002). Solo los de cuenta: los de cita
@@ -73,7 +74,15 @@ export async function enqueueEmail(tx: DbOrTx, input: EnqueueInput): Promise<Enq
       orderId: input.orderId ?? null,
       recipientHash: hash,
       status: limited ? 'skipped_rate_limit' : 'pending',
-      payload: limited ? null : { to: input.email.to, subject: input.email.subject, html: input.email.html, text: input.email.text },
+      payload: limited
+        ? null
+        : {
+            to: input.email.to,
+            subject: input.email.subject,
+            html: input.email.html,
+            text: input.email.text,
+            ...(input.email.headers ? { headers: input.email.headers } : {}),
+          },
     })
     .returning({ id: emailOutbox.id });
   return { id: row!.id, queued: !limited };

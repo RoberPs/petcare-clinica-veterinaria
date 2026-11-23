@@ -57,7 +57,7 @@ describe('descargar mis datos (US7)', () => {
     expect(res.headers.get('content-disposition')).toMatch(/^attachment; filename="mis-datos-\d{4}-\d{2}-\d{2}\.json"$/);
     expect(res.headers.get('cache-control')).toContain('no-store');
     const text = await res.text();
-    expect(text).toContain('\n  "format_version": 2');
+    expect(text).toContain('\n  "format_version": 3');
     const data = JSON.parse(text);
 
     // Cada columna de usuario de customers aparece con su valor.

@@ -34,7 +34,7 @@ const PRIVATE_ROUTES = [
 ];
 
 /** Rutas dinámicas e indexables que tampoco se guardan en caché (los pasos 1 y 2 de /pide-cita). */
-const NO_STORE_ROUTES = ['/pide-cita'];
+const NO_STORE_ROUTES = ['/pide-cita', '/boletin/:path*'];
 
 /**
  * Enlace de gestión de la clínica (B7): el token va en la ruta, así que nunca sale del sitio como
@@ -66,6 +66,8 @@ const nextConfig: NextConfig = {
       // vuelva a pedir la página al servidor.
       ...[...PRIVATE_ROUTES, ...NO_STORE_ROUTES].map((source) => ({ source, headers: [{ key: 'Cache-Control', value: 'private, no-store' }] })),
       { source: '/gestion-cita/:path*', headers: MANAGE_HEADERS },
+      // Boletín (feature 006): el token de confirmación o de baja va en la query.
+      { source: '/boletin/:path*', headers: MANAGE_HEADERS },
       // Pedido de invitado y confirmación (D18): el token o la ref van en la URL.
       { source: '/pedido/:path*', headers: MANAGE_HEADERS },
       { source: '/pago-simulado/:path*', headers: MANAGE_HEADERS },

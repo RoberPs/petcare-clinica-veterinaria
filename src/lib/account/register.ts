@@ -11,6 +11,7 @@ import { claimSubmission } from '@/lib/auth/submission';
 import { issueToken } from '@/lib/auth/tokens';
 import { verifySubmissionToken } from '@/lib/form-token';
 import { logger } from '@/lib/logger';
+import { setUnverifiedPreference } from '@/lib/newsletter/sync';
 import { checkPolicy, errorCode, formRecord, isHoneypotFilled, policyBucket, type FlowContext, type FormState } from './common';
 
 // Registro (US1, A5). La respuesta es la misma exista o no el correo: "revisa tu correo". Lo que
@@ -70,8 +71,8 @@ export async function processRegistration(form: FormData, ctx: FlowContext): Pro
           lastName: data.last_name,
           phone: data.phone,
           passwordHash,
-          marketingOptIn: data.marketing_opt_in,
-          marketingOptInChangedAt: data.marketing_opt_in ? ctx.now : null,
+          // La preferencia la escribe sync.ts (feature 006, E11) justo después.
+          marketingOptIn: false,
           createdAt: ctx.now,
           updatedAt: ctx.now,
         })
@@ -93,10 +94,9 @@ export async function processRegistration(form: FormData, ctx: FlowContext): Pro
 
       if (inserted.length > 0) {
         const customerId = inserted[0]!.id;
-        await tx.insert(customerConsents).values([
-          privacyConsent(customerId),
-          ...(data.marketing_opt_in ? [{ customerId, kind: 'marketing_opt_in' as const, createdAt: ctx.now }] : []),
-        ]);
+        await tx.insert(customerConsents).values(privacyConsent(customerId));
+        // Sin verificar: solo la preferencia; la lista del boletín espera a la verificación.
+        if (data.marketing_opt_in) await setUnverifiedPreference(tx, customerId, true, ctx.now);
         const link = await issueToken(tx, customerId, 'verify_email', ctx.now);
         const mail = await enqueueAccountEmail(tx, {
           kind: 'verify_email',
@@ -134,17 +134,11 @@ export async function processRegistration(form: FormData, ctx: FlowContext): Pro
           lastName: data.last_name,
           phone: data.phone,
           passwordHash,
-          marketingOptIn: data.marketing_opt_in,
-          marketingOptInChangedAt: data.marketing_opt_in !== existing.marketingOptIn ? ctx.now : existing.marketingOptInChangedAt,
           updatedAt: sql`now()`,
         })
         .where(eq(customers.id, existing.id));
-      await tx.insert(customerConsents).values([
-        privacyConsent(existing.id),
-        ...(data.marketing_opt_in !== existing.marketingOptIn
-          ? [{ customerId: existing.id, kind: data.marketing_opt_in ? ('marketing_opt_in' as const) : ('marketing_opt_out' as const), createdAt: ctx.now }]
-          : []),
-      ]);
+      await tx.insert(customerConsents).values(privacyConsent(existing.id));
+      await setUnverifiedPreference(tx, existing.id, data.marketing_opt_in, ctx.now);
       const link = await issueToken(tx, existing.id, 'verify_email', ctx.now);
       const mail = await enqueueAccountEmail(tx, {
         kind: 'verify_email',

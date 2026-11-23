@@ -29,6 +29,7 @@ export async function truncateAll(): Promise<void> {
       appointments, booking_service_staff, booking_services, booking_settings,
       email_outbox, contact_messages, rate_limit_hits, faqs, faq_topics, services, team_members,
       activity_stats, health_notices, contact_reasons, legal_pages, sections, closures, opening_hours, clinic,
+      newsletter_unsubscribe_records, newsletter_subscriptions, newsletter_settings, posts, post_categories,
       pets, species, customer_consents, customer_sessions, account_tokens, customers, processed_submissions
     RESTART IDENTITY CASCADE
   `);

@@ -39,7 +39,9 @@ describe('acceso de invitado a su pedido', () => {
     const { orderId } = await cardOrder();
     const token = signGuestToken({ orderId, version: 1 });
     const [body, mac] = token.split('.') as [string, string];
-    const flipped = `${body}.${mac.slice(0, -1)}${mac.endsWith('A') ? 'B' : 'A'}`;
+    // Se cambia el primer carácter: en el último, los 2 bits bajos son relleno de base64url y
+    // cambiar "A" por "B" puede dejar los mismos bytes (fallo intermitente).
+    const flipped = `${body}.${mac.startsWith('A') ? 'B' : 'A'}${mac.slice(1)}`;
     expect((await findGuestOrder(flipped, new Date())).status).toBe('not_found');
     expect((await findGuestOrder('nada', new Date())).status).toBe('not_found');
     expect((await findGuestOrder(signGuestToken({ orderId: crypto.randomUUID(), version: 1 }), new Date())).status).toBe('not_found');

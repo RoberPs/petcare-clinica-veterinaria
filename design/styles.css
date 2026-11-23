@@ -571,3 +571,51 @@ fieldset.panel legend { font-size: var(--fs-lead); font-weight: var(--fw-bold); 
   .cart-item__actions { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
 }
 .link-back { display: inline-block; margin-top: var(--space-2); font-weight: var(--fw-semibold); text-decoration: underline; text-underline-offset: var(--underline-offset-sm); }
+
+/* ---------- Consejos de salud (feature 006) ---------- */
+/* Tarjeta: un article con el enlace en el título extendido a toda la tarjeta (como .product). */
+ul.articles { list-style: none; padding: 0; margin: 0; }
+.article-card { position: relative; height: 100%; }
+.article-card__img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.article-card__tags { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.article-card__tags .chip, .article-card__tags .badge { align-self: center; }
+.article-card__link { color: inherit; }
+.article-card__link::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.article-card__link:focus-visible { outline: none; }
+.article-card:has(.article-card__link:focus-visible) { outline: var(--outline-width) solid var(--color-navy); outline-offset: var(--outline-offset); }
+.article-card:hover h3 { text-decoration: underline; text-underline-offset: var(--underline-offset-sm); }
+.photo-hero__card form { margin-top: var(--space-4); }
+.search-label { display: block; font-weight: var(--fw-semibold); margin-bottom: var(--space-2); }
+.band--tabs { padding: var(--space-5) 0; }
+ul.topic-tabs { list-style: none; padding: 0; margin: 0; }
+.topic-tab { display: flex; justify-content: center; align-items: center; min-height: var(--size-target); padding: var(--space-3) var(--space-4); background: var(--color-white); border: var(--border-hairline); border-radius: var(--radius-md); font-weight: var(--fw-semibold); }
+.topic-tab:hover { border-color: var(--color-navy); }
+.topic-tab[aria-current="page"] { background: var(--color-navy); color: var(--color-white); border-color: var(--color-navy); }
+.posts-block-title { margin-top: var(--space-section); }
+.posts-more { margin: var(--space-5) 0 0; }
+.section .pagination { margin-top: var(--space-5); }
+.article-page .article-hero { align-items: start; }
+.article-page h1 { margin: var(--space-4) 0; }
+.article-meta { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin-bottom: var(--space-4); color: var(--color-navy-soft); }
+.article-meta a.chip:hover { text-decoration: underline; }
+.article-hero__img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cta-box .h3 { font-size: var(--fs-h3); margin: 0; }
+.cta-box p { margin: 0; }
+/* Bloque del boletín sobre fondo marino: textos, errores y enlaces con contraste suficiente. */
+.newsletter p { color: var(--color-white); }
+.newsletter .search { flex-wrap: wrap; }
+.newsletter .search .btn { border-radius: 0; padding: var(--space-3) var(--space-4-5); min-height: var(--size-target); }
+.newsletter-form { display: flex; flex-direction: column; gap: var(--space-2); max-width: var(--container-search); margin-top: var(--space-5); }
+.newsletter-form .search { margin-top: 0; }
+.newsletter-form__label { font-weight: var(--fw-semibold); }
+.newsletter .check { color: var(--color-white); }
+.newsletter .check a, .newsletter a { color: var(--color-white); }
+.newsletter .field__error, .newsletter .check--invalid { color: var(--color-pink-light); }
+.newsletter .form-summary a, .newsletter .form-summary p { color: var(--color-pink-dark); }
+.search--invalid { border-color: var(--color-alert); border-width: var(--outline-width); }
+.newsletter__done { background: var(--color-mint-light); color: var(--color-navy); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); margin-top: var(--space-4); max-width: var(--container-search); }
+.newsletter__done p { color: var(--color-navy); margin: 0; }
+.newsletter-page { max-width: var(--container-card); margin: var(--space-6) auto var(--space-section); display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-start; }
+.newsletter-page .newsletter-form { margin-top: 0; }
+.status-ok { background: var(--color-mint-light); color: var(--color-navy); border-left: var(--border-width-thick) solid var(--color-mint-dark); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); }
+.status-ok p { margin: 0; }

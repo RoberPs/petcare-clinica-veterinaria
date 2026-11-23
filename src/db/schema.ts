@@ -212,6 +212,7 @@ export const legalKind = pgEnum('legal_kind', [
   'cookies',
   'terminos',
   'condiciones-venta',
+  'boletin',
 ]);
 
 export const legalPages = pgTable('legal_pages', {
@@ -279,6 +280,7 @@ export const outboxKind = pgEnum('outbox_kind', [
   'order_received',
   'order_cancelled',
   'clinic_order',
+  'newsletter_confirm',
 ]);
 export const outboxStatus = pgEnum('outbox_status', ['pending', 'sent', 'failed', 'skipped_rate_limit']);
 
@@ -288,6 +290,7 @@ export interface OutboxPayload {
   subject: string;
   html: string;
   text: string;
+  headers?: Record<string, string>;
 }
 
 export const emailOutbox = pgTable(
@@ -465,7 +468,7 @@ export const processedSubmissions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    check('processed_submissions_scope', sql`${t.scope} in ('register', 'pet_create')`),
+    check('processed_submissions_scope', sql`${t.scope} in ('register', 'pet_create', 'newsletter')`),
     index('processed_submissions_created_idx').on(t.createdAt),
   ],
 );
@@ -1041,5 +1044,123 @@ export const paymentEvents = pgTable(
   (t) => [
     check('payment_events_result', sql`${t.result} is null or ${t.result} in ('ok', 'ignored', 'error')`),
     index('payment_events_received_idx').on(t.receivedAt),
+  ],
+);
+
+// ---------- Consejos de salud y boletín (feature 006, data-model.md) ----------
+
+export const postKind = pgEnum('post_kind', ['article', 'news']);
+export const newsletterStatus = pgEnum('newsletter_status', ['pending', 'confirmed']);
+export const newsletterSource = pgEnum('newsletter_source', ['form', 'account']);
+export const newsletterUnsubscribeReason = pgEnum('newsletter_unsubscribe_reason', [
+  'link',
+  'one_click',
+  'account',
+  'account_deleted',
+]);
+
+export const postCategories = pgTable(
+  'post_categories',
+  {
+    key: text('key').primaryKey(),
+    label: text('label').notNull(),
+    sortOrder: integer('sort_order').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('post_categories_key_format', sql`${t.key} ~ '^[a-z][a-z0-9-]{0,31}$'`),
+    check('post_categories_label_len', sql`char_length(${t.label}) between 1 and 40`),
+  ],
+);
+
+export const posts = pgTable(
+  'posts',
+  {
+    id: id(),
+    slug: text('slug').notNull().unique(),
+    kind: postKind('kind').notNull(),
+    categoryKey: text('category_key').references(() => postCategories.key, {
+      onDelete: 'restrict',
+      onUpdate: 'cascade',
+    }),
+    title: text('title').notNull(),
+    lead: text('lead').notNull(),
+    bodyMd: text('body_md').notNull(),
+    image: text('image'),
+    imageAlt: text('image_alt'),
+    metaDescription: text('meta_description').notNull(),
+    searchText: text('search_text').notNull(),
+    published: published(),
+    publishedAt: timestamp('published_at', { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    check('posts_slug', sql`${t.slug} ~ '^[a-z0-9-]{1,80}$'`),
+    check('posts_category_required', sql`${t.kind} = 'news' or ${t.categoryKey} is not null`),
+    check('posts_title_len', sql`char_length(${t.title}) between 1 and 120`),
+    check('posts_lead_len', sql`char_length(${t.lead}) between 1 and 400`),
+    check('posts_body_len', sql`char_length(${t.bodyMd}) <= 40000`),
+    check('posts_image_alt', sql`${t.image} is null or char_length(coalesce(${t.imageAlt}, '')) > 0`),
+    check('posts_meta_description_len', sql`char_length(${t.metaDescription}) between 1 and 160`),
+    index('posts_kind_idx').on(t.kind, t.publishedAt.desc()).where(sql`${t.published}`),
+    index('posts_category_idx').on(t.categoryKey, t.publishedAt.desc()).where(sql`${t.published}`),
+  ],
+);
+
+export const newsletterSubscriptions = pgTable(
+  'newsletter_subscriptions',
+  {
+    id: id(),
+    email: text('email').notNull().unique(),
+    status: newsletterStatus('status').notNull(),
+    source: newsletterSource('source').notNull(),
+    customerId: uuid('customer_id')
+      .unique()
+      .references(() => customers.id, { onDelete: 'set null' }),
+    policyVersion: text('policy_version').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    confirmTokenHash: text('confirm_token_hash').unique(),
+    confirmExpiresAt: timestamp('confirm_expires_at', { withTimezone: true }),
+    confirmSentAt: timestamp('confirm_sent_at', { withTimezone: true }),
+  },
+  (t) => [
+    check('newsletter_email_len', sql`char_length(${t.email}) between 3 and 254`),
+    check('newsletter_confirmed_at', sql`(${t.status} = 'confirmed') = (${t.confirmedAt} is not null)`),
+    index('newsletter_pending_created_idx').on(t.createdAt).where(sql`${t.status} = 'pending'`),
+  ],
+);
+
+export const newsletterUnsubscribeRecords = pgTable(
+  'newsletter_unsubscribe_records',
+  {
+    id: id(),
+    emailHmac: text('email_hmac').notNull(),
+    source: newsletterSource('source').notNull(),
+    policyVersion: text('policy_version').notNull(),
+    subscribedAt: timestamp('subscribed_at', { withTimezone: true }).notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }).notNull().defaultNow(),
+    reason: newsletterUnsubscribeReason('reason').notNull(),
+  },
+  (t) => [
+    index('newsletter_unsub_at_idx').on(t.unsubscribedAt),
+    index('newsletter_unsub_hmac_idx').on(t.emailHmac),
+  ],
+);
+
+export const newsletterSettings = pgTable(
+  'newsletter_settings',
+  {
+    id: smallint('id').primaryKey().default(1),
+    enabled: boolean('enabled').notNull(),
+    title: text('title').notNull(),
+    text: text('text').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('newsletter_settings_singleton', sql`${t.id} = 1`),
+    check('newsletter_settings_title_len', sql`char_length(${t.title}) between 1 and 80`),
+    check('newsletter_settings_text_len', sql`char_length(${t.text}) between 1 and 240`),
   ],
 );

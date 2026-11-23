@@ -21,7 +21,7 @@ test.describe('US7 · descarga y eliminación', () => {
     const file = await download;
     expect(file.suggestedFilename()).toMatch(/^mis-datos-\d{4}-\d{2}-\d{2}\.json$/);
     const data = JSON.parse(readFileSync((await file.path())!, 'utf8'));
-    expect(data).toMatchObject({ format_version: 2, account: { email: c.email, first_name: 'Lucía' } });
+    expect(data).toMatchObject({ format_version: 3, account: { email: c.email, first_name: 'Lucía' } });
     expect(data.pets).toEqual([expect.objectContaining({ name: 'Bruno', species: 'Perro' })]);
     if (!isNoJs(info.project.name)) await expect(page).toHaveURL(/\/mi-cuenta\/datos$/);
   });

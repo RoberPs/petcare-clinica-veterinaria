@@ -7,6 +7,7 @@ import { parse as parseYaml } from 'yaml';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { parseEuros } from '@/domain/money';
+import { markdownToPlainText } from '@/domain/markdown-text';
 import { normalizeSearch } from '@/domain/search';
 import { CLINIC_TZ } from '@/domain/time';
 import { parseContent, type ContentFile, type ContentIssue } from './schema';
@@ -46,6 +47,7 @@ export function checkImages(content: ContentFile, publicDir = join(process.cwd()
     ...(content.shop?.products ?? []).map(
       (p, i) => [`shop.products[${i}].image`, p.image] as [string, string | null | undefined],
     ),
+    ...content.posts.map((p, i) => [`posts[${i}].image`, p.image] as [string, string | null | undefined]),
   ];
   return refs
     .filter(([, p]) => p && !existsSync(join(publicDir, p)))
@@ -83,6 +85,11 @@ export interface LoadSummary {
   productsHidden: number;
   /** Productos con compare_at_price <= price: se cargan, pero no se muestran en oferta (FR-016). */
   compareAtIgnored: string[];
+  /** Feature 006: publicaciones del archivo y las que quedan despublicadas en la base. */
+  posts: number;
+  postsHidden: number;
+  postCategories: number;
+  newsletterEnabled: boolean;
 }
 
 /** Bloque shop: (feature 004, C12). Sin bloque, el catálogo entero queda despublicado. */
@@ -238,12 +245,95 @@ async function loadCheckout(tx: Db, checkout: ContentFile['checkout']): Promise<
   }
 }
 
+/**
+ * Categorías de consejos (feature 006): upsert por clave. Una categoría ausente del archivo se borra
+ * si no tiene publicaciones; si las tiene, la carga falla con el slug de la primera.
+ */
+async function loadPostCategories(tx: Db, categories: ContentFile['post_categories']): Promise<void> {
+  for (const [i, cat] of categories.entries()) {
+    const v = { key: cat.key, label: cat.label, sortOrder: i };
+    await tx
+      .insert(s.postCategories)
+      .values(v)
+      .onConflictDoUpdate({ target: s.postCategories.key, set: { ...v, updatedAt: now } });
+  }
+}
+
+async function deleteMissingPostCategories(tx: Db, categories: ContentFile['post_categories']): Promise<void> {
+  const keys = categories.map((cat) => cat.key);
+  const absent = keys.length > 0 ? notInArray(s.postCategories.key, keys) : undefined;
+  const [inUse] = await tx
+    .select({ key: s.posts.categoryKey, slug: s.posts.slug })
+    .from(s.posts)
+    .innerJoin(s.postCategories, eq(s.posts.categoryKey, s.postCategories.key))
+    .where(absent)
+    .orderBy(s.posts.slug)
+    .limit(1);
+  if (inUse) {
+    throw new ContentValidationError([
+      {
+        path: 'post_categories',
+        message: `no se puede quitar la categoría "${inUse.key}": la usa la publicación "${inUse.slug}"`,
+      },
+    ]);
+  }
+  await tx.delete(s.postCategories).where(absent);
+}
+
+/** Publicaciones (feature 006): upsert por slug; las ausentes del archivo quedan despublicadas. */
+async function loadPosts(tx: Db, posts: ContentFile['posts']): Promise<void> {
+  for (const p of posts) {
+    const v = {
+      slug: p.slug,
+      kind: p.kind,
+      categoryKey: p.category ?? null,
+      title: p.title,
+      lead: p.lead,
+      bodyMd: p.body_md,
+      image: toPublic(p.image),
+      imageAlt: p.image ? (p.image_alt ?? null) : null,
+      metaDescription: p.meta_description,
+      searchText: normalizeSearch(`${p.title} ${p.lead} ${markdownToPlainText(p.body_md)}`),
+      published: p.published,
+      publishedAt: madridDayStart(p.published_on),
+    };
+    await tx.insert(s.posts).values(v).onConflictDoUpdate({ target: s.posts.slug, set: { ...v, updatedAt: now } });
+  }
+  await unpublishMissing(tx, s.posts, posts.map((x) => x.slug));
+}
+
+/** Bloque newsletter: (feature 006, E13). Sin bloque, el boletín queda desactivado. */
+async function loadNewsletter(tx: Db, newsletter: ContentFile['newsletter']): Promise<void> {
+  const v = newsletter
+    ? { id: 1, enabled: newsletter.enabled, title: newsletter.title, text: newsletter.text }
+    : { id: 1, enabled: false, title: 'Boletín', text: 'Boletín desactivado.' };
+  if (!newsletter) {
+    // Si ya había una fila, se conservan sus textos y solo se desactiva.
+    await tx
+      .insert(s.newsletterSettings)
+      .values(v)
+      .onConflictDoUpdate({ target: s.newsletterSettings.id, set: { enabled: false, updatedAt: now } });
+    return;
+  }
+  await tx
+    .insert(s.newsletterSettings)
+    .values(v)
+    .onConflictDoUpdate({ target: s.newsletterSettings.id, set: { ...v, updatedAt: now } });
+}
+
 export async function loadContent(db: Db, content: ContentFile): Promise<LoadSummary> {
   const c = content.clinic;
   let petsMovedToOther = 0;
   let productsHidden = 0;
+  let postsHidden = 0;
   await db.transaction(async (tx) => {
     await loadShop(tx, content.shop);
+    await loadPostCategories(tx, content.post_categories);
+    await loadPosts(tx, content.posts);
+    await deleteMissingPostCategories(tx, content.post_categories);
+    await loadNewsletter(tx, content.newsletter);
+    const [postsOff] = await tx.select({ n: count() }).from(s.posts).where(eq(s.posts.published, false));
+    postsHidden = postsOff?.n ?? 0;
     await loadCheckout(tx, content.checkout);
     const [hidden] = await tx.select({ n: count() }).from(s.products).where(eq(s.products.published, false));
     productsHidden = hidden?.n ?? 0;
@@ -444,6 +534,10 @@ export async function loadContent(db: Db, content: ContentFile): Promise<LoadSum
     products: content.shop?.products.length ?? 0,
     productsHidden,
     compareAtIgnored: compareAtIgnored(content),
+    posts: content.posts.length,
+    postsHidden,
+    postCategories: content.post_categories.length,
+    newsletterEnabled: content.newsletter?.enabled ?? false,
   };
 }
 
@@ -456,5 +550,11 @@ export async function loadContentFile(
   const content = readContentFile(file, options.env ?? process.env);
   const missing = checkImages(content, options.publicDir);
   if (missing.length > 0) throw new ContentValidationError(missing);
+  // E7: con el boletín activo hace falta la clave de la huella anónima de las bajas.
+  if (content.newsletter?.enabled && !(options.env ?? process.env).NEWSLETTER_HASH_KEY) {
+    throw new ContentValidationError([
+      { path: 'newsletter.enabled', message: 'el boletín está activo, pero falta la variable de entorno NEWSLETTER_HASH_KEY' },
+    ]);
+  }
   return loadContent(db, content);
 }

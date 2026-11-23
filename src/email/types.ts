@@ -11,6 +11,8 @@ export interface OutgoingEmail {
   subject: string;
   text: string;
   html: string;
+  /** Cabeceras adicionales (p. ej. List-Unsubscribe del boletín, E10). */
+  headers?: Record<string, string>;
 }
 
 export interface SendResult {

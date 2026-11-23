@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { isSectionEnabled } from '@/domain/sections';
 import { listProductSlugs } from '@/db/queries/catalog';
+import { getNewsletterSettings } from '@/db/queries/newsletter';
+import { listVisiblePostSlugs } from '@/db/queries/posts';
 import { getSiteData } from '@/db/queries/site';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +22,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Condiciones de venta (feature 005): solo con la compra activa.
   if (isSectionEnabled('carrito', sections)) {
     pages.push({ url: `${base}/condiciones-de-venta`, changeFrequency: 'monthly', priority: 0.6 });
+  }
+  // Consejos (feature 006): el listado y cada publicación visible; la política del boletín si está activo.
+  if (isSectionEnabled('consejos', sections)) {
+    const posts = await listVisiblePostSlugs();
+    pages.push(
+      { url: `${base}/consejos`, changeFrequency: 'weekly', priority: 0.7 },
+      ...posts.map((p) => ({ url: `${base}/consejos/${p.slug}`, lastModified: p.updatedAt, changeFrequency: 'monthly' as const, priority: 0.5 })),
+    );
+  }
+  if ((await getNewsletterSettings())?.enabled) {
+    pages.push({ url: `${base}/politica-del-boletin`, changeFrequency: 'monthly', priority: 0.3 });
   }
   if (!isSectionEnabled('tienda', sections)) return pages;
   const products = await listProductSlugs();

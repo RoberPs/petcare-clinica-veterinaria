@@ -97,6 +97,6 @@ export async function createPet(pool: Pool, customerId: string, options: CreateP
 export async function resetAccountState(pool: Pool): Promise<void> {
   await pool.query(
     `TRUNCATE pets, customer_consents, customer_sessions, account_tokens, processed_submissions, customers,
-       rate_limit_hits, email_outbox CASCADE`,
+       rate_limit_hits, email_outbox, newsletter_subscriptions, newsletter_unsubscribe_records CASCADE`,
   );
 }

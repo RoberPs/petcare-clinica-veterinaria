@@ -1,10 +1,11 @@
 import { testEnv } from '../test-env';
 import { axeCheck, dismissCookies, expect, test } from './fixtures';
 
-// Los cuatro textos se actualizaron con la feature 005 (compra, pago y cookie del carrito, D19).
+// Los cuatro textos se actualizaron con la feature 005 (compra, pago y cookie del carrito, D19); la
+// privacidad, otra vez con la 006 (finalidad del boletín).
 const PAGES: [string, string, string, string][] = [
   ['Aviso legal', '/aviso-legal', 'Aviso legal', '12 de noviembre de 2026'],
-  ['Política de privacidad', '/privacidad', 'Política de privacidad', '12 de noviembre de 2026'],
+  ['Política de privacidad', '/privacidad', 'Política de privacidad', '16 de noviembre de 2026'],
   ['Política de cookies', '/politica-de-cookies', 'Política de cookies', '12 de noviembre de 2026'],
   ['Términos de uso', '/terminos', 'Términos de uso', '12 de noviembre de 2026'],
 ];

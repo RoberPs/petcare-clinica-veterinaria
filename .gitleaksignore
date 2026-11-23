@@ -1,0 +1,4 @@
+# Falsos positivos revisados a mano. Solo valores de prueba, nunca secretos reales.
+# NEWSLETTER_HASH_KEY de los tests: base64 de "pruebas-boletin-clave-de-32-byte" (feature 006).
+6e7dd107dcbe3fe213b9560dc9a7ad5bf7e8c2c3:tests/test-env.ts:generic-api-key:34
+6e7dd107dcbe3fe213b9560dc9a7ad5bf7e8c2c3:vitest.config.ts:generic-api-key:13
