@@ -9,7 +9,9 @@ import { axeCheck, countEmailsTo, dismissCookies, expect, extractLink, latestEma
 
 // El enlace de baja se firma aquí con el mismo FORM_SECRET que usa el servidor de pruebas: en el
 // alta desde la cuenta no se envía ningún correo del boletín (FR-024).
-process.env.FORM_SECRET ??= testEnv.FORM_SECRET;
+// Se fuerza (no `??=`): el token se firma aquí y debe usar la misma clave que el servidor de
+// Playwright (`testEnv`), aunque el entorno (la CI) defina otro FORM_SECRET.
+process.env.FORM_SECRET = testEnv.FORM_SECRET;
 
 let counter = 0;
 const uniqueEmail = () => `cuenta-boletin-${Date.now()}-${counter++}@example.test`;
