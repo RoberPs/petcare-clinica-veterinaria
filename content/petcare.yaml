@@ -1,0 +1,1378 @@
+# Contenido de la clínica de demostración PetCare. PetCare es una clínica FICTICIA.
+# Todos los textos están redactados para este proyecto (no se copian de design/ ni de terceros).
+# Los datos personales del responsable y el buzón de destino se resuelven desde el entorno (${VAR}).
+# Carga: npm run content:load -- --file content/petcare.yaml
+
+clinic:
+  name: PetCare
+  demo_banner_enabled: true
+  logo: media/petcare/logo.svg
+  hero:
+    title: Veterinaria de barrio con tiempo para escucharte
+    text: >-
+      Consultas sin prisas, medicina preventiva y un equipo que explica cada paso. Cuidamos de perros,
+      gatos y pequeños mamíferos en un espacio pensado para que estén tranquilos.
+    image: media/petcare/hero.svg
+    image_alt: Ilustración de un perro y un gato sentados juntos sobre un cojín
+  about:
+    title: Conoce PetCare
+    text: >-
+      Una consulta luminosa, salas de espera separadas para perros y gatos, y profesionales que
+      prefieren una explicación clara a una palabra técnica.
+    image: media/petcare/clinica.svg
+    image_alt: Ilustración de la sala de consulta con una camilla y una ventana grande
+  # Dirección inventada a propósito (no corresponde a ningún local real).
+  address:
+    line: Calle de la Demostración, 1
+    postal_code: '28000'
+    city: Madrid
+    province: Madrid
+  # Coordenadas de un espacio público genérico (un parque), nunca de una vivienda ni de un negocio.
+  geo:
+    lat: 40.415300
+    lng: -3.684500
+  # Teléfono que controla el responsable de la demo. Nunca se inventa un número.
+  phone:
+    e164: '${CLINIC_PHONE_E164}'
+    display: '${CLINIC_PHONE_DISPLAY}'
+  public_email: null
+  inbox_email: '${CLINIC_INBOX_EMAIL}'
+  response_time_text: en un plazo de 24 horas laborables
+  legal:
+    owner_name: '${LEGAL_OWNER_NAME}'
+    contact_email: '${LEGAL_CONTACT_EMAIL}'
+    tax_id: null
+    address: null
+
+opening_hours:
+  - { weekday: 1, opens: '09:30', closes: '14:00' }
+  - { weekday: 1, opens: '16:30', closes: '20:00' }
+  - { weekday: 2, opens: '09:30', closes: '14:00' }
+  - { weekday: 2, opens: '16:30', closes: '20:00' }
+  - { weekday: 3, opens: '09:30', closes: '14:00' }
+  - { weekday: 3, opens: '16:30', closes: '20:00' }
+  - { weekday: 4, opens: '09:30', closes: '14:00' }
+  - { weekday: 4, opens: '16:30', closes: '20:00' }
+  - { weekday: 5, opens: '09:30', closes: '14:00' }
+  - { weekday: 5, opens: '16:30', closes: '20:00' }
+  - { weekday: 6, opens: '10:00', closes: '14:00' }
+
+closures:
+  - { slug: inmaculada-2026, starts_on: '2026-12-08', ends_on: '2026-12-08', reason: Festivo nacional }
+
+services:
+  - slug: consulta-general
+    name: Consulta general
+    description: >-
+      Exploración completa, revisión del historial y un plan claro para lo que necesite tu animal,
+      explicado sin tecnicismos.
+  - slug: vacunacion-y-desparasitacion
+    name: Vacunación y desparasitación
+    description: >-
+      Calendario de vacunas adaptado a la edad y al estilo de vida de tu mascota, con recordatorios
+      para que no se te pase ninguna dosis.
+  - slug: medicina-preventiva
+    name: Medicina preventiva
+    description: >-
+      Revisiones anuales, analíticas de control y consejos de alimentación para detectar a tiempo
+      cualquier cambio.
+  - slug: cirugia-programada
+    name: Cirugía programada
+    description: >-
+      Esterilizaciones y pequeñas intervenciones con anestesia monitorizada y seguimiento del
+      postoperatorio en casa.
+  - slug: salud-dental
+    name: Salud dental
+    description: >-
+      Limpiezas de boca con ultrasonidos, extracciones cuando hacen falta y pautas sencillas para el
+      cepillado diario.
+  - slug: dermatologia
+    name: Dermatología
+    description: >-
+      Estudio de picores, caída de pelo y alergias, con pruebas en consulta y tratamientos que se
+      pueden seguir en casa.
+  - slug: ecografia-y-radiologia
+    name: Ecografía y radiología
+    description: >-
+      Pruebas de imagen en la propia clínica para llegar antes al diagnóstico, sin desplazamientos
+      añadidos.
+  - slug: exoticos-y-pequenos-mamiferos
+    name: Conejos y pequeños mamíferos
+    description: >-
+      Atención específica para conejos, cobayas y hurones, con un manejo tranquilo adaptado a cada
+      especie.
+
+team:
+  - slug: nerea-olmedo
+    name: Dra. Nerea Olmedo
+    specialty: Dirección clínica · Medicina interna
+    photo: media/petcare/equipo-1.svg
+    photo_alt: Retrato ilustrado de la Dra. Nerea Olmedo
+  - slug: inigo-barral
+    name: Dr. Íñigo Barral
+    specialty: Cirugía y anestesia
+    photo: media/petcare/equipo-2.svg
+    photo_alt: Retrato ilustrado del Dr. Íñigo Barral
+  - slug: carlota-vives
+    name: Dra. Carlota Vives
+    specialty: Dermatología y salud dental
+    photo: media/petcare/equipo-3.svg
+    photo_alt: Retrato ilustrado de la Dra. Carlota Vives
+  - slug: samuel-ortuno
+    name: Samuel Ortuño
+    specialty: Auxiliar de veterinaria
+    photo: media/petcare/equipo-4.svg
+    photo_alt: Retrato ilustrado de Samuel Ortuño
+
+faq_topics:
+  - slug: citas
+    name: Citas
+    faqs:
+      - slug: como-reservo
+        question: ¿Cómo reservo una visita?
+        answer_md: >-
+          Por ahora, llamando por teléfono o escribiéndonos desde la página de
+          [Contacto](/contacto). Muy pronto también podrás hacerlo desde
+          [Pide cita](section:reservas).
+      - slug: cuanto-dura-la-consulta
+        question: ¿Cuánto dura una consulta normal?
+        answer_md: >-
+          Reservamos unos **30 minutos** por visita para explorar con calma y resolver tus dudas.
+      - slug: llegar-tarde
+        question: ¿Qué pasa si llego tarde?
+        answer_md: >-
+          Avísanos en cuanto lo sepas. Si el margen es pequeño te atendemos igualmente; si no, te
+          proponemos otro hueco ese mismo día o el siguiente.
+  - slug: tienda
+    name: Tienda
+    faqs:
+      - slug: que-vendeis
+        question: ¿Vendéis piensos y antiparasitarios?
+        answer_md: >-
+          Sí. Tenemos una selección de alimentación y productos de higiene que recomendamos en
+          consulta. Puedes verla en [Nuestros productos](section:tienda).
+      - slug: recoger-pedido
+        question: ¿Puedo encargar un producto y recogerlo después?
+        answer_md: >-
+          Claro. Haz el pedido en [Nuestros productos](section:tienda) y elige «Recogida en la
+          clínica»: te avisamos por correo y lo dejamos preparado con tu nombre en recepción. Puedes
+          pagarlo con tarjeta al hacer el pedido o en la clínica al recogerlo.
+      - slug: devoluciones
+        question: ¿Admitís devoluciones?
+        answer_md: >-
+          Si el envase está sin abrir, puedes devolverlo en los 14 días siguientes a la compra con el
+          justificante.
+  - slug: tu-mascota
+    name: Tu mascota
+    faqs:
+      - slug: primera-visita
+        question: ¿Qué llevo el primer día?
+        answer_md: >-
+          La cartilla sanitaria, los informes que tengas de otras clínicas y, si es un gato, un
+          transportín cerrado.
+      - slug: cada-cuanto-revision
+        question: ¿Cada cuánto conviene una revisión?
+        answer_md: >-
+          Una vez al año en adultos sanos y cada seis meses a partir de los ocho años, o antes si
+          notas algún cambio.
+      - slug: miedo-al-veterinario
+        question: Mi perro se pone muy nervioso, ¿qué hago?
+        answer_md: >-
+          Cuéntanoslo al pedir la visita. Podemos darte un horario más tranquilo y preparar la sala
+          antes de que entréis.
+      - slug: urgencias
+        question: ¿Atendéis urgencias?
+        answer_md: >-
+          Dentro del horario, sí: llámanos antes de venir. Fuera de horario, acude a un servicio de
+          urgencias veterinarias de 24 horas.
+
+# Cifras FICTICIAS de la demo (FR-011).
+activity_stats:
+  - slug: visitas
+    value_text: '+3.200'
+    label: visitas al año
+    description: Consultas, revisiones y vacunas en una clínica de tamaño humano.
+  - slug: equipo
+    value_text: '4'
+    label: personas en el equipo
+    description: Veterinarios y auxiliares que conocen a cada paciente por su nombre.
+  - slug: anos
+    value_text: '9'
+    label: años en el barrio
+    description: Acompañando a las familias desde el primer día de su mascota.
+
+# Sin avisos de salud: solo se publican si tienen una fuente real verificable.
+health_notices: []
+
+species:
+  - { key: perro, label: Perro }
+  - { key: gato, label: Gato }
+  - { key: conejo, label: Conejo }
+  - { key: huron, label: Hurón }
+  - { key: ave, label: Ave }
+
+contact_reasons:
+  - { slug: informacion-general, label: Información general }
+  - { slug: consulta-cita, label: Consulta sobre una cita }
+  - { slug: pedido-tienda, label: Pedido de la tienda }
+  - { slug: otro, label: Otro }
+
+legal_pages:
+  - kind: aviso-legal
+    title: Aviso legal
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
+    body_md: |
+      ## Una web de demostración
+
+      Esta web es una **demostración**. **PetCare es una clínica veterinaria ficticia**: no presta
+      servicios veterinarios y no tiene local abierto al público. La tienda funciona de punta a punta,
+      pero **los pagos son de prueba**: no se cobra nada y no se envía ningún producto. Los nombres del
+      equipo, las cifras y la dirección son inventados.
+
+      ## Titular de la web
+
+      El titular y responsable de esta web de demostración es **${LEGAL_OWNER_NAME}**. Puedes
+      escribir a **${LEGAL_CONTACT_EMAIL}** para cualquier cuestión sobre la web.
+
+      Al tratarse de una demostración, no se indica razón social ni NIF de ninguna empresa.
+
+      ## Uso de la web
+
+      Los contenidos se ofrecen solo con fines de demostración. No sustituyen el consejo de un
+      profesional veterinario: si tu animal está enfermo, acude a una clínica real.
+
+      ## Enlaces
+
+      Esta web puede enlazar a servicios de terceros, como el mapa de OpenStreetMap. Su contenido es
+      responsabilidad de sus titulares.
+  - kind: privacidad
+    title: Política de privacidad
+    version: '2026-11-16'
+    updated_on: '2026-11-16'
+    body_md: |
+      ## Quién trata tus datos
+
+      El responsable del tratamiento es **${LEGAL_OWNER_NAME}**, responsable de esta web de
+      demostración. **PetCare es una clínica ficticia**, así que tus datos no llegan a ninguna
+      clínica: los recibe el responsable de la demo. Contacto: **${LEGAL_CONTACT_EMAIL}**.
+
+      ## Qué datos pedimos y para qué
+
+      En el formulario de contacto:
+
+      - **Nombre y correo electrónico**: para responder a tu mensaje.
+      - **Teléfono** (opcional): para devolverte la llamada si lo prefieres.
+      - **Motivo**: para dirigir tu consulta a quien corresponda.
+      - **Mensaje**: para saber qué necesitas.
+
+      Guardamos también la fecha en que aceptas esta política y su versión. No guardamos tu
+      dirección IP junto al mensaje: solo se usa, cifrada y durante 24 horas, para frenar envíos
+      automáticos.
+
+      Si creas una **cuenta de cliente**:
+
+      - **Nombre y apellidos**: para saludarte y saber quién eres cuando pidas cita.
+      - **Correo electrónico**: para iniciar sesión, confirmar que es tuyo y enviarte los avisos de
+        tu cuenta (confirmación, cambio de contraseña, eliminación).
+      - **Contraseña**: para proteger tu cuenta. Solo guardamos una huella cifrada (Argon2id), nunca
+        la contraseña.
+      - **Teléfono y dirección** (opcionales): para contactarte y, en el futuro, para los envíos de
+        la tienda.
+      - **Tus mascotas** (nombre, especie y fecha de nacimiento): para tener su ficha a mano y
+        preparar sus citas.
+      - **Preferencia de consejos y novedades** (opcional): solo te escribimos si la activas.
+      - La fecha y la versión de esta política y de los términos cuando los aceptas, y los cambios de
+        tu preferencia de comunicaciones.
+
+      Para frenar los accesos indebidos contamos los intentos fallidos de inicio de sesión, siempre
+      cifrados y durante 24 horas como mucho.
+
+      Si haces un **pedido en la tienda** (con cuenta o sin ella):
+
+      - **Nombre, apellidos y correo electrónico**: para identificar el pedido y enviarte la
+        confirmación y los avisos de su estado.
+      - **Dirección, código postal y ciudad**: solo si eliges el envío a domicilio, para entregarlo.
+      - **Los productos, los importes y el estado del pedido**, incluido el pago y, si lo hay, el
+        reembolso.
+
+      **No vemos ni guardamos los datos de tu tarjeta**: el pago se hace en la página de la pasarela.
+      El carrito se guarda en el servidor y se asocia a tu navegador con la cookie técnica `pc_cart`.
+
+      Si te suscribes al **boletín de consejos y novedades**:
+
+      - **Correo electrónico**: para enviarte el boletín y el enlace para confirmar la suscripción.
+      - La fecha en que te suscribes y confirmas, y la versión de la
+        [política del boletín](/politica-del-boletin) que aceptas.
+
+      Si te das de baja, borramos tu correo de la lista y guardamos solo una huella cifrada, que no
+      se puede revertir sin la clave, con las fechas y el motivo, para poder demostrar que respetamos
+      tu decisión.
+
+      ## Base legal
+
+      - **Formulario de contacto**: tu consentimiento, que das al marcar la casilla de privacidad.
+      - **Cuenta de cliente y mascotas**: la ejecución del contrato (los términos de uso) que aceptas
+        al crear la cuenta.
+      - **Consejos y novedades**: tu consentimiento, que puedes retirar cuando quieras desde
+        "Datos personales".
+      - **Pedidos de la tienda**: la ejecución del contrato de compra (las condiciones de venta) y,
+        después, la obligación legal de conservar los datos de las ventas.
+      - **Boletín**: tu consentimiento, que das al confirmar la suscripción desde el correo y que
+        puedes retirar en cualquier momento con el enlace de baja de cada correo.
+
+      ## Cuánto tiempo los guardamos
+
+      - Los mensajes de contacto se borran automáticamente a los **12 meses**.
+      - Los datos de tu cuenta y de tus mascotas se guardan **hasta que eliminas la cuenta**. Al
+        eliminarla se borran en el acto y de forma definitiva.
+      - Las cuentas que no se confirman se borran a los **7 días**.
+      - Las sesiones caducan solas (a las 2 horas sin actividad, o a los 30 días con "Recordarme").
+      - Los carritos sin cuenta se borran a los **30 días** sin cambios.
+      - Los pedidos se guardan **6 años** por obligación legal, también si eliminas la cuenta (en ese
+        caso dejan de estar asociados a ella). Pasado ese plazo se borran tus datos de contacto y la
+        dirección, y solo quedan los importes.
+      - Las suscripciones al boletín sin confirmar se borran a los **30 días**; las confirmadas se
+        guardan hasta que te das de baja, y la constancia anónima de la baja, **3 años**.
+
+      ## Quién más interviene
+
+      Los correos se envían con **Brevo** (Sendinblue SAS), que actúa como encargado del tratamiento
+      con un contrato que protege tus datos. Los pagos con tarjeta los procesa **Stripe** (Stripe
+      Payments Europe, Ltd.), también como encargado del tratamiento; en esta demostración funciona en
+      modo de pruebas y no se cobra nada. No cedemos datos a nadie más.
+
+      ## Tus derechos
+
+      Puedes pedir el acceso, la rectificación, la supresión, la limitación, la oposición y la
+      portabilidad de tus datos escribiendo a **${LEGAL_CONTACT_EMAIL}**. Si crees que no se han
+      respetado, puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).
+
+      Si tienes cuenta, desde **Mi cuenta → Datos personales** puedes, sin escribirnos:
+
+      - corregir tus datos y los de tus mascotas;
+      - **descargar tus datos** en un archivo JSON, con tus pedidos (portabilidad);
+      - **eliminar tu cuenta**, con todos sus datos y mascotas (supresión);
+      - activar o desactivar los consejos y novedades.
+  - kind: cookies
+    title: Política de cookies
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
+    body_md: |
+      ## Qué cookies usamos
+
+      - **pc_consent** (propia y necesaria): recuerda si aceptas o rechazas las cookies de terceros.
+        Dura 12 meses y no sirve para seguirte.
+      - **pc_session** (propia y necesaria): mantiene abierta tu sesión si tienes cuenta. Se borra al
+        cerrar el navegador o, si marcas "Recordarme", a los 30 días. Solo se crea al iniciar sesión.
+      - **pc_login_hint** (propia y necesaria): rellena tu correo en "Iniciar sesión" justo después
+        de confirmarlo. Dura 10 minutos.
+      - **pc_cart** (propia y necesaria): recuerda tu carrito si compras sin cuenta. Solo se crea al
+        añadir el primer producto y dura 30 días. Al iniciar sesión, el carrito pasa a tu cuenta y la
+        cookie se borra.
+
+      No usamos cookies de analítica ni de publicidad.
+
+      ## Contenido de terceros
+
+      El **mapa de OpenStreetMap** de las páginas La clínica y Contacto se carga desde
+      openstreetmap.org y puede guardar datos en tu navegador. Por eso **solo se carga si lo
+      aceptas**. Si lo rechazas, verás la dirección y un enlace para abrirla en el mapa.
+
+      ## Cambiar tu elección
+
+      Puedes cambiar o retirar tu consentimiento en cualquier momento desde **Configurar cookies**,
+      en el pie de todas las páginas. La web es una demostración: **PetCare es una clínica
+      ficticia** y el responsable es ${LEGAL_OWNER_NAME}.
+  - kind: terminos
+    title: Términos de uso
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
+    body_md: |
+      ## Objeto
+
+      Estos términos regulan el uso de esta web de demostración. **PetCare es una clínica
+      ficticia**: no presta servicios veterinarios. La tienda funciona de punta a punta, pero los
+      pagos son de prueba: **no se cobra nada y no se envía ningún producto**. Las compras se rigen
+      por las [condiciones de venta](/condiciones-de-venta).
+
+      ## Uso correcto
+
+      Te pedimos que no uses el formulario para enviar publicidad, contenido ofensivo o datos de
+      otras personas sin su permiso.
+
+      ## Responsabilidad
+
+      La información sobre salud animal es orientativa y no sustituye la consulta con un
+      veterinario.
+
+      ## Contacto
+
+      Para cualquier duda sobre estos términos, escribe a ${LEGAL_CONTACT_EMAIL}.
+  - kind: condiciones-venta
+    title: Condiciones de venta
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
+    body_md: |
+      ## Una tienda de demostración
+
+      **PetCare es una clínica veterinaria ficticia** y esta tienda es una demostración. Todo el
+      proceso de compra es real (carrito, pedido, pago, correos y seguimiento), pero **los pagos son
+      de prueba**: no se cobra nada, no se envía ningún producto y no se emiten facturas. No uses una
+      tarjeta real.
+
+      El responsable de esta web es **${LEGAL_OWNER_NAME}**. Contacto: **${LEGAL_CONTACT_EMAIL}**.
+
+      ## Precios
+
+      Los precios se muestran en euros con el **IVA incluido**. El importe de cada pedido es el que
+      ves en el resumen antes de confirmarlo y el que figura en el correo de confirmación.
+
+      ## Pedido y pago
+
+      - **Con tarjeta**: al confirmar el pedido pasas a la página de la pasarela de pago. Las unidades
+        quedan reservadas durante el plazo de pago que se indica; si no se completa, el pedido se
+        cancela y las unidades vuelven a estar disponibles.
+      - **En la clínica**: solo con recogida en la clínica. El pedido queda reservado hasta la fecha
+        límite de recogida que te indicamos por correo; si no lo recoges, se cancela.
+
+      Mientras el pedido esté pendiente de pago puedes cancelarlo desde el enlace del correo o desde
+      **Mi cuenta → Mis pedidos**.
+
+      ## Envío y recogida
+
+      Puedes elegir el envío a domicilio (solo en España) o la recogida en la clínica en su horario.
+      El coste y el plazo de cada opción se muestran antes de confirmar.
+
+      ## Cancelaciones y reembolsos
+
+      Si la clínica cancela un pedido ya pagado, te devuelve el importe completo en el mismo medio de
+      pago (en esta demostración, de forma simulada). Las devoluciones de productos ya entregados no
+      están disponibles en la demostración.
+
+      ## Códigos de descuento
+
+      Cada código tiene sus condiciones (vigencia, pedido mínimo y número de usos). Solo se puede
+      aplicar un código por pedido y no se aplica a los gastos de envío.
+
+      ## Datos personales
+
+      Usamos tus datos solo para gestionar el pedido. Tienes toda la información en la
+      [política de privacidad](/privacidad).
+
+  - kind: boletin
+    title: Política del boletín
+    version: '1.0'
+    updated_on: '2026-11-16'
+    body_md: |
+      ## Qué es el boletín
+
+      Un correo con consejos para cuidar a tus animales y novedades de la clínica, **como mucho una vez
+      al mes**. **PetCare es una clínica ficticia**: el boletín forma parte de una web de
+      demostración.
+
+      ## Quién lo envía
+
+      El responsable es **${LEGAL_OWNER_NAME}**, responsable de esta web de demostración. Contacto:
+      **${LEGAL_CONTACT_EMAIL}**.
+
+      ## Qué datos usamos
+
+      Solo tu **correo electrónico**, la fecha en que te suscribes y confirmas, y la versión de esta
+      política que aceptas. No lo cruzamos con otros datos ni lo usamos para nada más.
+
+      ## Doble confirmación
+
+      Al suscribirte te enviamos un correo con un enlace para confirmar. Hasta que lo confirmas no
+      recibes el boletín. El enlace caduca a los **7 días**; si no lo usas, puedes pedir otro, y la
+      suscripción sin confirmar se borra a los **30 días**.
+
+      ## Cómo darte de baja
+
+      Cada correo lleva un enlace **"Darme de baja"** que funciona sin iniciar sesión. Si tienes
+      cuenta, también puedes desactivar los consejos y novedades en **Mi cuenta → Datos personales**.
+      Al darte de baja borramos tu correo de la lista y guardamos durante **3 años** solo una huella
+      cifrada, con las fechas y el motivo, para poder demostrar que respetamos tu decisión.
+
+      ## Quién más interviene
+
+      Los correos se envían con **Brevo** (Sendinblue SAS), como encargado del tratamiento.
+
+      ## Tus derechos
+
+      Tienes los mismos derechos que se explican en la [política de privacidad](/privacidad).
+
+booking:
+  rules:
+    slot_step_minutes: 30
+    min_lead_minutes: 120
+    horizon_days: 60
+    change_cutoff_hours: 24
+    max_active_per_email: 3
+    max_active_per_customer: 9
+    reminder_hours_before: 24
+    retention_months: 12
+  services:
+    - slug: consulta-general
+      name: Consulta general
+      duration_minutes: 30
+      service: consulta-general
+      staff: [nerea-olmedo, inigo-barral, carlota-vives]
+    - slug: vacunacion
+      name: Vacunación
+      duration_minutes: 15
+      service: vacunacion-y-desparasitacion
+      staff: [nerea-olmedo, inigo-barral, carlota-vives]
+    - slug: revision-dental
+      name: Revisión dental
+      duration_minutes: 30
+      service: salud-dental
+      staff: [carlota-vives]
+    - slug: cirugia
+      name: Cirugía
+      duration_minutes: 60
+      service: cirugia-programada
+      staff: [inigo-barral]
+    - slug: dermatologia
+      name: Dermatología
+      duration_minutes: 30
+      service: dermatologia
+      staff: [carlota-vives]
+    - slug: otro
+      name: Otro
+      duration_minutes: 30
+      staff: [nerea-olmedo, inigo-barral, carlota-vives]
+
+
+# Catálogo de la tienda (feature 004, contracts/content-file.md). Productos genéricos de demostración,
+# sin marcas; los precios van en euros con IVA incluido, como cadena.
+shop:
+  settings:
+    shipping_text: 24-48 h
+    page_size: 12
+    meta_description: Alimentación, higiene, juguetes, accesorios y cuidado para perros, gatos y otros animales, seleccionados por nuestro equipo.
+    demo_notice:
+      enabled: true
+      text: "Tienda de demostración: los pagos son de prueba y no se envía nada."
+  categories:
+    - { slug: alimentacion, name: Alimentación }
+    - { slug: higiene, name: Higiene }
+    - { slug: juguetes, name: Juguetes }
+    - { slug: accesorios, name: Accesorios }
+    - { slug: salud-bienestar, name: Salud y bienestar }
+  pets:
+    - { slug: perro, name: Perro }
+    - { slug: gato, name: Gato }
+    - { slug: otros, name: Otros animales }
+  products:
+    - slug: pienso-perro-adulto
+      name: Pienso de pollo para perro adulto, 12 kg
+      category: alimentacion
+      pets: [perro]
+      price: "42.50"
+      compare_at_price: "47.90"
+      vat_rate: 10
+      stock: 14
+      is_new: true
+      image: media/petcare/productos/pienso-perro-adulto.svg
+      image_alt: Saco de pienso ilustrado con una huella en la etiqueta
+      short_description: Croquetas de pollo para el día a día de perros adultos de tamaño medio.
+      description: |
+        Croquetas de tamaño medio pensadas para el día a día de un perro adulto activo. Aportan
+        proteína de calidad, fibra para una buena digestión y ácidos grasos que ayudan a mantener
+        el pelo brillante.
+
+        Si tu perro tiene alguna necesidad especial, pregúntanos en consulta cuál le conviene más.
+      ingredients: |
+        Carne de pollo deshidratada (26 %), arroz, maíz, grasa animal, pulpa de remolacha, aceite de
+        pescado, minerales y vitaminas.
+      usage: |
+        Reparte la ración diaria en dos tomas y deja siempre agua fresca a su alcance. Haz el cambio
+        desde otro pienso de forma gradual, durante 7 días.
+
+    - slug: pienso-gato-esterilizado
+      name: Pienso para gato esterilizado 3 kg
+      category: alimentacion
+      pets: [gato]
+      price: "24.50"
+      vat_rate: 10
+      stock: 20
+      image: media/petcare/productos/pienso-gato-esterilizado.svg
+      image_alt: Saco de pienso ilustrado en tonos azules
+      short_description: Receta baja en grasa que ayuda a mantener el peso del gato esterilizado.
+      description: |
+        Tras la esterilización, muchos gatos necesitan menos calorías. Esta receta controla la grasa
+        y aumenta la fibra para que se sientan saciados, y cuida las vías urinarias.
+      ingredients: |
+        Pavo deshidratado (30 %), arroz, proteína de guisante, fibra vegetal, aceite de pescado,
+        taurina, minerales y vitaminas.
+      usage: |
+        Sigue la tabla de la bolsa según el peso ideal de tu gato, no el actual, y divide la ración
+        en varias tomas al día.
+
+    - slug: comida-humeda-gato
+      name: Sobres de comida húmeda para gato, 12 unidades
+      category: alimentacion
+      pets: [gato]
+      price: "14.90"
+      vat_rate: 10
+      stock: 30
+      image: media/petcare/productos/comida-humeda-gato.svg
+      image_alt: Caja ilustrada con varias latas redondas
+      short_description: Doce raciones individuales en salsa para complementar el pienso seco.
+      description: |
+        Raciones de 85 g en salsa suave. Aportan hidratación extra, algo especialmente útil en gatos
+        que beben poco.
+      ingredients: |
+        Carne y subproductos animales (pollo 4 %), pescado, cereales, minerales y azúcares.
+      usage: |
+        Una ración al día como complemento del pienso. Una vez abierta, guárdala en la nevera y
+        úsala en 24 horas.
+
+    - slug: heno-conejo
+      name: Heno natural para conejos 1 kg
+      category: alimentacion
+      pets: [otros]
+      price: "6.90"
+      vat_rate: 10
+      stock: 25
+      image: media/petcare/productos/heno-conejo.svg
+      image_alt: Fardo de heno ilustrado atado con una cinta verde
+      short_description: Heno de hierba seca, la base de la dieta de conejos y cobayas.
+      description: |
+        Heno largo y aromático que ayuda al desgaste natural de los dientes y al buen funcionamiento
+        del intestino de conejos, cobayas y chinchillas.
+      ingredients: |
+        Heno de gramíneas (100 %).
+      usage: |
+        Debe estar disponible a todas horas. Cámbialo a diario y guárdalo en un lugar seco.
+
+    - slug: barritas-dentales-perro
+      name: Barritas dentales para perro
+      category: alimentacion
+      pets: [perro]
+      price: "7.50"
+      vat_rate: 10
+      stock: 40
+      image: media/petcare/productos/barritas-dentales-perro.svg
+      image_alt: Barrita masticable con forma de hueso ilustrada
+      short_description: Premios masticables que ayudan a reducir la placa dental.
+      description: |
+        Su textura obliga a masticar despacio, lo que ayuda a arrastrar la placa. No sustituyen al
+        cepillado, pero lo complementan.
+      ingredients: |
+        Almidón de patata, glicerina, celulosa, extracto de menta y minerales.
+      usage: |
+        Un snack al día para perros de más de 10 kg. Vigila a tu perro mientras lo come.
+
+    - slug: champu-piel-sensible
+      name: Champú para piel sensible 250 ml
+      category: higiene
+      pets: [perro, gato]
+      price: "12.90"
+      vat_rate: 21
+      stock: 18
+      image: media/petcare/productos/champu-piel-sensible.svg
+      image_alt: Bote de champú ilustrado en color verde menta
+      short_description: Champú suave con avena, sin perfume, para pieles delicadas.
+      description: |
+        Limpia sin resecar y calma la piel que pica. Su pH está adaptado a perros y gatos, y no lleva
+        perfume para que no moleste a los animales más sensibles.
+      ingredients: |
+        Agua, extracto de avena, glicerina, tensioactivos suaves de origen vegetal y pantenol.
+      usage: |
+        Moja bien el pelo, aplica el champú, masajea durante 5 minutos y aclara con abundante agua.
+        Evita los ojos.
+
+    - slug: arena-aglomerante-gato
+      name: Arena aglomerante para gato 10 l
+      category: higiene
+      pets: [gato]
+      price: "11.90"
+      vat_rate: 21
+      stock: 0
+      image: media/petcare/productos/arena-aglomerante-gato.svg
+      image_alt: Bolsa de arena ilustrada en tonos azules
+      short_description: Arena de bentonita que forma bolas compactas y controla el olor.
+      description: |
+        Absorbe la orina al momento y forma bolas fáciles de retirar, así que la bandeja dura más
+        limpia.
+      usage: |
+        Llena la bandeja con 5 a 7 cm de arena. Retira las bolas a diario y cámbiala entera cada
+        dos o tres semanas.
+
+    - slug: toallitas-limpieza
+      name: Toallitas de limpieza para mascotas
+      category: higiene
+      pets: [perro, gato]
+      price: "5.90"
+      vat_rate: 21
+      stock: 50
+      image: media/petcare/productos/toallitas-limpieza.svg
+      image_alt: Paquete de toallitas ilustrado con una toallita asomando
+      short_description: Toallitas húmedas para patas, hocico y pelo después del paseo.
+      description: |
+        Paquete de 40 toallitas grandes y resistentes para una limpieza rápida entre baños.
+      usage: |
+        Pasa la toallita en el sentido del pelo. No la uses en heridas ni en los ojos.
+
+    - slug: cepillo-desenredante
+      name: Cepillo desenredante
+      category: higiene
+      pets: [perro, gato]
+      price: "10.50"
+      compare_at_price: "13.90"
+      vat_rate: 21
+      stock: 12
+      image: media/petcare/productos/cepillo-desenredante.svg
+      image_alt: Cepillo de púas ilustrado con mango azul marino
+      short_description: Cepillo de púas flexibles para pelo medio y largo.
+      description: |
+        Deshace los nudos sin tirones y retira el pelo muerto. Cepillar con regularidad reduce las
+        bolas de pelo en los gatos.
+      usage: |
+        Cepilla en el sentido del pelo, por zonas pequeñas. En los nudos grandes, sujeta el pelo
+        por la base para no tirar de la piel.
+
+    - slug: pelota-caucho-flotante
+      name: Pelota de caucho flotante
+      category: juguetes
+      pets: [perro]
+      price: "8.40"
+      vat_rate: 21
+      stock: 22
+      image: media/petcare/productos/pelota-caucho-flotante.svg
+      image_alt: Pelota ilustrada en verde con dos líneas blancas
+      short_description: Pelota de caucho que bota y flota, para jugar dentro y fuera de casa.
+      description: |
+        Caucho natural muy resistente a los mordiscos. Su tamaño evita que se la trague un perro
+        mediano o grande.
+
+    - slug: raton-hierba-gatera
+      name: Ratón de tela con hierba gatera
+      category: juguetes
+      pets: [gato]
+      price: "4.50"
+      vat_rate: 21
+      stock: 35
+      image: media/petcare/productos/raton-hierba-gatera.svg
+      image_alt: Ratón de juguete ilustrado en gris con orejas rosas
+      short_description: Ratón de tela relleno de hierba gatera para estimular el juego.
+      description: |
+        Un clásico que despierta el instinto de caza. La hierba gatera anima a muchos gatos a jugar y
+        a moverse más.
+
+    - slug: tunel-roedores
+      name: Túnel de juego para roedores
+      category: juguetes
+      pets: [otros]
+      price: "10.50"
+      vat_rate: 21
+      stock: 8
+      image: media/petcare/productos/tunel-roedores.svg
+      image_alt: Túnel en forma de arco ilustrado en azul claro
+      short_description: Túnel plegable donde conejos y cobayas pueden esconderse y jugar.
+      description: |
+        Les da un lugar donde refugiarse y explorar, lo que reduce el estrés de los animales de
+        presa.
+      usage: |
+        Colócalo en una zona tranquila del recinto. Lávalo a mano con agua templada.
+
+    - slug: varita-plumas-gato
+      name: Varita de plumas para gato
+      category: juguetes
+      pets: [gato]
+      price: "5.40"
+      vat_rate: 21
+      stock: 0
+      image: media/petcare/productos/varita-plumas-gato.svg
+      image_alt: Varita de juguete ilustrada con tres plumas de colores
+      short_description: Varita flexible con plumas para jugar con tu gato.
+      description: |
+        Permite jugar a distancia y simular el vuelo de un pájaro. Diez minutos de juego al día
+        ayudan a mantener a raya el aburrimiento.
+      usage: |
+        Guárdala al terminar de jugar: las plumas y el cordel no deben quedar a su alcance sin
+        vigilancia.
+
+    - slug: rascador-torre
+      name: Rascador de torre para gato
+      category: accesorios
+      pets: [gato]
+      price: "49.90"
+      vat_rate: 21
+      stock: 5
+      is_new: true
+      image: media/petcare/productos/rascador-torre.svg
+      image_alt: Rascador de varios niveles ilustrado con una pelota colgante
+      short_description: Rascador de dos alturas con plataforma y juguete colgante.
+      description: |
+        Rascar es una necesidad para el gato: cuida sus uñas y marca su territorio. Este rascador le
+        ofrece un lugar propio para hacerlo y una plataforma desde la que vigilar.
+      usage: |
+        Colócalo cerca de su zona de descanso. Si al principio no lo usa, frota un poco de hierba
+        gatera en el poste.
+
+    - slug: correa-ajustable
+      name: Correa ajustable de nailon
+      category: accesorios
+      pets: [perro]
+      price: "14.50"
+      vat_rate: 21
+      stock: 16
+      image: media/petcare/productos/correa-ajustable.svg
+      image_alt: Correa ilustrada en verde azulado con mosquetón
+      short_description: Correa de 1,2 a 2 m con asa acolchada y mosquetón giratorio.
+      description: |
+        Nailon resistente y lavable. La longitud se ajusta en tres posiciones para la ciudad o para
+        pasear por el campo.
+      usage: |
+        Revisa el mosquetón cada cierto tiempo y cambia la correa si ves el tejido deshilachado.
+
+    - slug: cama-acolchada
+      name: Cama acolchada lavable
+      category: accesorios
+      pets: [perro, gato]
+      price: "34.90"
+      vat_rate: 21
+      stock: 7
+      image: media/petcare/productos/cama-acolchada.svg
+      image_alt: Cama redonda ilustrada en rosa con una huella en el centro
+      short_description: Cama redonda con borde alto para descansar enroscado.
+      description: |
+        Relleno suave que recupera la forma y funda que se quita y se lava a máquina. El borde alto
+        da sensación de refugio.
+      usage: |
+        Lava la funda a 30 °C y déjala secar al aire.
+
+    - slug: comedero-doble
+      name: Comedero doble de acero
+      category: accesorios
+      pets: [perro, gato]
+      price: "15.90"
+      vat_rate: 21
+      stock: 19
+      image: media/petcare/productos/comedero-doble.svg
+      image_alt: Base con dos cuencos ilustrados, uno con agua y otro con pienso
+      short_description: Dos cuencos de acero inoxidable sobre una base antideslizante.
+      description: |
+        El acero no guarda olores y se limpia fácilmente. La base evita que el comedero se desplace
+        mientras come.
+      usage: |
+        Lava los cuencos a diario. Aptos para el lavavajillas.
+
+    - slug: transportin-ventilado
+      name: Transportín ventilado
+      category: accesorios
+      pets: [gato, otros]
+      price: "32.00"
+      vat_rate: 21
+      stock: 6
+      image: media/petcare/productos/transportin-ventilado.svg
+      image_alt: Transportín ilustrado con asa y rejilla delantera
+      short_description: Transportín rígido con rejilla y asa para gatos y animales pequeños.
+      description: |
+        Ideal para las visitas a la clínica. La parte superior se abre, así que es más fácil sacar a
+        un animal nervioso sin forzarlo.
+      usage: |
+        Déjalo abierto en casa unos días antes del viaje, con una manta conocida dentro, para que
+        se acostumbre.
+
+    - slug: bebedero-roedores
+      name: Bebedero para roedores 500 ml
+      category: accesorios
+      pets: [otros]
+      price: "7.90"
+      vat_rate: 21
+      stock: 14
+      short_description: Bebedero de botella con boquilla antigoteo para jaulas.
+      description: |
+        Mantiene el agua limpia y sin restos de comida. Se sujeta a los barrotes con un soporte
+        ajustable.
+      usage: |
+        Cambia el agua a diario y limpia la botella una vez por semana.
+
+    - slug: pipetas-antiparasitarias-perro
+      name: Pipetas antiparasitarias para perro, 3 unidades
+      category: salud-bienestar
+      pets: [perro]
+      price: "21.90"
+      vat_rate: 21
+      stock: 10
+      image: media/petcare/productos/pipetas-antiparasitarias-perro.svg
+      image_alt: Tres pipetas ilustradas en verde menta
+      short_description: Protección frente a pulgas y garrapatas para perros de 10 a 25 kg.
+      description: |
+        Cada pipeta protege durante unas cuatro semanas. Consulta con nuestro equipo el calendario
+        de desparasitación más adecuado para tu perro.
+      ingredients: |
+        Sustancias activas antiparasitarias de uso veterinario. Consulta el prospecto.
+      usage: |
+        Separa el pelo entre los omóplatos y aplica todo el contenido sobre la piel. No bañes al
+        perro en las 48 horas siguientes.
+
+    - slug: collar-antiparasitario-gato
+      name: Collar antiparasitario para gato
+      category: salud-bienestar
+      pets: [gato]
+      price: "17.90"
+      vat_rate: 21
+      stock: 9
+      image: media/petcare/productos/collar-antiparasitario-gato.svg
+      image_alt: Collar ilustrado en verde azulado con hebilla amarilla
+      short_description: Collar con cierre de seguridad que protege frente a pulgas durante meses.
+      description: |
+        Su cierre se abre si el collar se engancha, para evitar accidentes. Pregúntanos si es la
+        mejor opción para tu gato.
+      usage: |
+        Ajústalo dejando el espacio de dos dedos entre el collar y el cuello, y corta lo que sobre.
+
+    - slug: suplemento-articular-perro
+      name: Suplemento articular para perro
+      category: salud-bienestar
+      pets: [perro]
+      price: "26.90"
+      vat_rate: 10
+      stock: 11
+      image: media/petcare/productos/suplemento-articular-perro.svg
+      image_alt: Bote ilustrado con una cruz verde en la etiqueta
+      short_description: Complemento con glucosamina para perros mayores o muy activos.
+      description: |
+        Ayuda a mantener la movilidad de las articulaciones. Es un complemento: si notas cojera o
+        rigidez, pide cita para revisarlo.
+      ingredients: |
+        Glucosamina, condroitina, colágeno hidrolizado y aceite de pescado.
+      usage: |
+        Un comprimido al día por cada 10 kg de peso, con la comida.
+
+    - slug: pasta-malta-gato
+      name: Pasta de malta para gato
+      category: salud-bienestar
+      pets: [gato]
+      price: "6.90"
+      vat_rate: 10
+      stock: 15
+      image: media/petcare/productos/pasta-malta-gato.svg
+      image_alt: Tubo de pasta ilustrado en color ámbar
+      short_description: Pasta que facilita la eliminación de las bolas de pelo.
+      description: |
+        Muy útil en época de muda y en gatos de pelo largo. La mayoría la toma directamente del dedo.
+      ingredients: |
+        Extracto de malta, aceites vegetales, fibra y levadura.
+      usage: |
+        Unos 2 cm de pasta al día durante la muda, y dos veces por semana el resto del año.
+
+    - slug: complemento-vitaminico-aves
+      name: Complemento vitamínico para aves
+      category: salud-bienestar
+      pets: [otros]
+      price: "8.50"
+      vat_rate: 10
+      stock: 13
+      image: media/petcare/productos/complemento-vitaminico-aves.svg
+      image_alt: Frasco cuentagotas ilustrado junto a una gota azul
+      short_description: Vitaminas en gotas para aves de jaula, para añadir al agua.
+      description: |
+        Refuerza la alimentación en la muda de la pluma y en épocas de más estrés, como los cambios
+        de estación.
+      ingredients: |
+        Vitaminas A, D3, E y del grupo B, y aminoácidos.
+      usage: |
+        Diez gotas por cada 100 ml de agua, cinco días seguidos. Cambia el agua a diario.
+
+# Carrito y pago (feature 005, contracts/content-file.md). Los importes van en euros con coma.
+checkout:
+  order_prefix: "PC-"
+  reservation_minutes: 30
+  pickup_days: 7
+  cart_retention_days: 30
+  max_qty_per_line: 10
+  max_pending_per_email: 3
+  max_pending_per_customer: 3
+  guest_link_days: 90
+  notice: "Tienda de demostración: los pagos son de prueba, no se cobra nada y no se envía ningún producto."
+  payment_methods:
+    card: true
+    in_clinic: true
+  shipping_methods:
+    - code: domicilio
+      kind: home_delivery
+      name: Envío a domicilio
+      description: Entrega en 24-48 h
+      cost: "0,00"
+      vat_rate: 21
+      postal_prefixes: null
+    - code: recogida
+      kind: clinic_pickup
+      name: Recogida en la clínica
+      description: Recógelo en la clínica en su horario
+      cost: "0,00"
+      vat_rate: 21
+  discount_codes:
+    - code: BIENVENIDA10
+      kind: percent
+      value: 10
+      ends_at: 2027-12-31
+    - code: PETCARE5
+      kind: fixed
+      value: "5,00"
+      min_subtotal: "30,00"
+      max_uses: 100
+
+# Consejos de salud (feature 006). Textos propios y orientativos: siempre remiten al veterinario.
+post_categories:
+  - { key: perro, label: Perro }
+  - { key: gato, label: Gato }
+  - { key: otros-animales, label: Otros animales }
+
+posts:
+  - slug: cada-cuanto-banar-perro
+    kind: article
+    category: perro
+    title: ¿Cada cuánto hay que bañar a un perro?
+    lead: >-
+      No hay una cifra que sirva para todos: depende del pelo, de la piel y de la vida que lleve
+      cada perro. Te contamos qué tener en cuenta para acertar.
+    published_on: '2026-10-02'
+    image: media/petcare/consejos/bano-perro.svg
+    image_alt: Ilustración de un perro con gotas de agua alrededor
+    body_md: |
+      ## Lo que influye en la frecuencia
+
+      ### El tipo de pelo
+
+      Los perros de pelo largo o rizado suelen necesitar más cuidados que los de pelo corto. Un buen
+      cepillado entre baños reduce los nudos y la suciedad, y a menudo permite espaciar los baños.
+
+      ### La piel
+
+      Algunos perros tienen la piel sensible o con tendencia a la sequedad. En esos casos conviene
+      preguntar al veterinario antes de cambiar de rutina o de producto.
+
+      ### El día a día
+
+      Un perro que pasea por el campo o se mete en charcos se ensucia más que uno que vive sobre todo
+      en casa. Ensuciarse no siempre obliga a un baño completo: muchas veces basta con limpiar las
+      patas.
+
+      ## Cómo bañarlo
+
+      - Usa un champú específico para perros: el de las personas tiene otro pH.
+      - El agua, templada; ni fría ni caliente.
+      - Aclara bien para que no queden restos de producto.
+      - Sécalo a fondo, sobre todo en invierno y en las zonas de pliegues.
+
+      ## Cuándo consultar
+
+      Si notas picor, enrojecimiento, mal olor persistente o caída de pelo, no lo resuelvas con más
+      baños: es mejor que lo vea un veterinario. Puedes [pedir cita](section:reservas).
+
+  - slug: cepillado-dental-gato
+    kind: article
+    category: gato
+    title: Cómo acostumbrar a tu gato al cepillado dental
+    lead: >-
+      La higiene de la boca también importa en los gatos. Con paciencia y pasos cortos, muchos
+      aceptan el cepillado como parte de su rutina.
+    published_on: '2026-09-20'
+    image: media/petcare/consejos/dientes-gato.svg
+    image_alt: Ilustración de un gato junto a un cepillo de dientes
+    body_md: |
+      ## Por qué cuidar su boca
+
+      La acumulación de placa puede causar molestias y mal aliento. Una revisión periódica en la
+      clínica ayuda a detectar a tiempo cualquier problema.
+
+      ## Paso a paso
+
+      ### Primero, que lo huela
+
+      Deja que explore el cepillo y la pasta específica para gatos durante unos días, sin intentar
+      usarlos.
+
+      ### Después, sesiones muy cortas
+
+      Empieza tocando sus encías con el dedo unos segundos y prémialo. Ve alargando poco a poco.
+
+      ### Por último, el cepillo
+
+      Cepilla con suavidad la cara externa de los dientes. No hace falta abrirle la boca a la fuerza.
+
+      ## Lo que no conviene
+
+      - Usar pasta de dientes para personas.
+      - Forzarlo: si se estresa, para y vuelve a intentarlo otro día.
+
+      Si ves encías muy rojas, sangrado o que le cuesta comer, consulta con el veterinario.
+
+  - slug: golpe-de-calor-perros
+    kind: article
+    category: perro
+    title: Golpe de calor en perros, cómo prevenirlo
+    lead: >-
+      Los perros regulan peor el calor que nosotros. Unas pocas precauciones en los días calurosos
+      marcan la diferencia.
+    published_on: '2026-07-10'
+    image: media/petcare/consejos/calor-perro.svg
+    image_alt: Ilustración de un perro bajo un sol intenso
+    body_md: |
+      ## Precauciones en verano
+
+      - Pasea a primera hora de la mañana y al final de la tarde.
+      - Lleva siempre agua para él.
+      - Comprueba el suelo con la mano: si quema para ti, quema para sus almohadillas.
+      - **Nunca lo dejes dentro de un coche**, ni siquiera unos minutos.
+
+      ## Perros con más riesgo
+
+      Los perros de hocico chato, los mayores, los cachorros y los que tienen sobrepeso o problemas
+      de corazón toleran peor el calor.
+
+      ## Señales de alarma
+
+      Jadeo muy intenso, babeo abundante, debilidad o tambaleo son motivo para actuar rápido:
+      llévalo a la sombra, ofrécele agua y **contacta de inmediato con un veterinario**.
+
+  - slug: arena-gato-consejos
+    kind: article
+    category: gato
+    title: El arenero ideal para tu gato
+    lead: >-
+      Dónde está, cuánto se limpia y qué arena lleva: pequeños detalles que influyen en que tu gato
+      lo use con tranquilidad.
+    published_on: '2026-08-14'
+    body_md: |
+      ## Dónde colocarlo
+
+      En un lugar tranquilo, lejos de su comida y de su agua, y fácil de alcanzar. Si hay varios
+      gatos en casa, conviene tener más de un arenero.
+
+      ## Limpieza
+
+      Retira los restos a diario y cambia la arena por completo con regularidad. Muchos gatos
+      rechazan un arenero sucio.
+
+      ## Tipo de arena
+
+      Cada gato tiene sus preferencias. Si cambias de arena, hazlo poco a poco, mezclando la nueva
+      con la anterior.
+
+      ## Cuándo consultar
+
+      Si deja de usar el arenero de repente, va muchas veces sin apenas orinar o notas cambios en sus
+      deposiciones, consulta con el veterinario: puede haber un problema de salud detrás.
+
+  - slug: conejo-alimentacion-heno
+    kind: article
+    category: otros-animales
+    title: El heno, la base de la dieta del conejo
+    lead: >-
+      Un conejo necesita mucha fibra para que su digestión y sus dientes funcionen bien. El heno de
+      calidad debe estar siempre a su alcance.
+    published_on: '2026-06-05'
+    image: media/petcare/consejos/conejo-heno.svg
+    image_alt: Ilustración de un conejo sobre un lecho de heno
+    body_md: |
+      ## Por qué el heno es tan importante
+
+      Masticar heno desgasta de forma natural sus dientes, que crecen durante toda su vida, y mantiene
+      su intestino en movimiento.
+
+      ## Qué más puede comer
+
+      - Verduras de hoja verde, en cantidad moderada.
+      - Pienso específico para conejos, en poca cantidad.
+      - Agua fresca siempre disponible.
+
+      Las frutas y los premios, solo de forma ocasional.
+
+      ## Señales que vigilar
+
+      Si deja de comer o deja de hacer cacas, aunque sea durante unas horas, **consulta con el
+      veterinario sin esperar**: en los conejos puede ser urgente.
+
+  - slug: desparasitacion-perros-gatos
+    kind: article
+    category: perro
+    title: Desparasitación de perros y gatos, lo básico
+    lead: >-
+      Los parásitos internos y externos afectan a la salud de tu mascota y, en algunos casos, a la de
+      tu familia. Te explicamos por qué es importante una pauta adaptada.
+    published_on: '2026-05-12'
+    image: media/petcare/consejos/desparasitacion.svg
+    image_alt: Ilustración de un perro y un gato junto a un escudo
+    body_md: |
+      ## Internos y externos
+
+      ### Parásitos internos
+
+      Viven sobre todo en el aparato digestivo. No siempre dan síntomas visibles.
+
+      ### Parásitos externos
+
+      Pulgas, garrapatas y otros que viven en la piel y el pelo. Algunos transmiten enfermedades.
+
+      ## Una pauta para cada mascota
+
+      La frecuencia y el producto dependen de su edad, su peso, su estilo de vida y la zona donde
+      vivís. Por eso no hay una pauta única: pregunta al veterinario cuál le conviene.
+
+      ## Consejos prácticos
+
+      - Apunta la fecha de cada desparasitación.
+      - Respeta la dosis según su peso actual.
+      - No uses en gatos productos pensados para perros.
+
+  - slug: gato-mayor-revisiones
+    kind: article
+    category: gato
+    title: Tu gato se hace mayor, qué cambia
+    lead: >-
+      Con los años, los gatos cambian sus hábitos. Saber qué es normal y qué conviene revisar te
+      ayuda a cuidarlo mejor en esta etapa.
+    published_on: '2026-04-18'
+    image: media/petcare/consejos/gato-mayor.svg
+    image_alt: Ilustración de un gato descansando sobre un cojín
+    body_md: |
+      ## Cambios habituales
+
+      Duerme más, juega menos y puede buscar sitios más cálidos. Facilítale el acceso a sus lugares
+      favoritos con rampas o escalones.
+
+      ## Revisiones más frecuentes
+
+      En los gatos mayores se recomiendan revisiones periódicas, aunque parezcan sanos. Muchas
+      enfermedades avanzan sin dar señales al principio.
+
+      ## Qué observar en casa
+
+      - Si bebe u orina más de lo habitual.
+      - Cambios de peso o de apetito.
+      - Dificultad para saltar o para usar el arenero.
+
+      Ante cualquiera de estos cambios, [pide cita](section:reservas) para que lo revisemos.
+
+  - slug: hamster-jaula
+    kind: article
+    category: otros-animales
+    title: Cómo preparar la jaula de un hámster
+    lead: >-
+      Espacio, un buen sustrato y sitios para esconderse: lo esencial para que tu hámster esté
+      cómodo y activo.
+    published_on: '2030-01-15'
+    image: media/petcare/consejos/hamster-jaula.svg
+    image_alt: Ilustración de un hámster dentro de su jaula
+    body_md: |
+      ## Espacio
+
+      Cuanto más amplia, mejor. Necesita sitio para moverse, excavar y explorar.
+
+      ## Lo imprescindible
+
+      - Un sustrato profundo para excavar.
+      - Una casita o refugio.
+      - Una rueda de tamaño adecuado, sin barrotes en la pista.
+      - Comedero y bebedero limpios.
+
+      ## Ubicación
+
+      Lejos de corrientes, del sol directo y del ruido. Son animales de hábitos nocturnos: respeta
+      sus horas de descanso.
+
+  - slug: sala-espera-gatos
+    kind: news
+    category: gato
+    title: Estrenamos una zona de espera solo para gatos
+    lead: >-
+      Hemos separado una parte de la sala de espera para que los gatos esperen más tranquilos, lejos
+      de los ladridos.
+    published_on: '2026-11-05'
+    image: media/petcare/consejos/sala-gatos.svg
+    image_alt: Ilustración de dos gatos esperando sobre bancos
+    body_md: |
+      ## Por qué una zona separada
+
+      La visita a la clínica puede estresar a muchos gatos. Un espacio más tranquilo ayuda a que
+      lleguen a la consulta más relajados.
+
+      ## Consejos para el día de la cita
+
+      - Acostúmbralo al transportín en casa unos días antes.
+      - Cubre el transportín con una toalla durante la espera.
+      - Trae su manta o algún objeto con su olor.
+
+  - slug: nuevo-boletin-de-consejos
+    kind: news
+    title: Lanzamos nuestro boletín de consejos
+    lead: >-
+      Desde ahora puedes recibir en tu correo nuestros consejos de salud y las novedades de la
+      clínica, como mucho una vez al mes.
+    published_on: '2026-11-12'
+    body_md: |
+      ## Cómo suscribirte
+
+      Escribe tu correo en el formulario del final de esta página o de la portada y acepta la
+      política del boletín. Te enviaremos un correo para confirmar la suscripción.
+
+      ## Darte de baja
+
+      Cada correo incluye un enlace para darte de baja cuando quieras, sin iniciar sesión.
+
+  - slug: recordatorio-vacunas-otono
+    kind: news
+    category: perro
+    title: Revisa el calendario de vacunas de tu perro
+    lead: >-
+      Aprovecha el cambio de estación para comprobar si tu perro tiene al día sus vacunas y su
+      revisión anual.
+    published_on: '2026-10-15'
+    image: media/petcare/consejos/vacunas.svg
+    image_alt: Ilustración de una huella de perro junto a una jeringuilla
+    body_md: |
+      ## Por qué revisarlo ahora
+
+      Es un buen momento para repasar su cartilla y comprobar las fechas. La pauta de vacunación
+      depende de cada perro, y la decide el veterinario.
+
+      ## Qué traer a la cita
+
+      - Su cartilla o pasaporte.
+      - Las dudas que tengas sobre su salud.
+
+      Puedes [pedir cita](section:reservas) desde la web.
+
+  - slug: cuidados-exoticos-invierno
+    kind: news
+    category: otros-animales
+    title: Conejos y pequeños mamíferos en invierno
+    lead: >-
+      El frío y los cambios bruscos de temperatura también afectan a conejos, hámsteres y cobayas.
+      Repasamos algunos cuidados básicos.
+    published_on: '2026-10-01'
+    image: media/petcare/consejos/invierno-exoticos.svg
+    image_alt: Ilustración de un conejo y un hámster bajo la nieve
+    body_md: |
+      ## En casa
+
+      Mantén su jaula lejos de ventanas, corrientes y fuentes de calor directas, como radiadores.
+
+      ## Si viven en el exterior
+
+      Protege su refugio de la lluvia y del viento, y revisa cada día que el agua no se haya
+      congelado.
+
+      ## Señales de alarma
+
+      Si lo notas apagado, deja de comer o respira con dificultad, consulta con el veterinario.
+
+newsletter:
+  enabled: true
+  title: Recibe nuestros consejos por correo
+  text: Consejos de salud y novedades de la clínica en tu correo, como mucho una vez al mes.
+
+sections:
+  - { key: reservas, label: Pide cita, href: /pide-cita }
+  - { key: tienda, label: Nuestros productos, href: /productos }
+  - { key: carrito, label: Carrito, href: /carrito }
+  - { key: consejos, label: Consejos de salud, href: /consejos }
+  - { key: cuenta, label: Mi cuenta, href: /mi-cuenta }

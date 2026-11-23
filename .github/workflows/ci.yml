@@ -1,0 +1,125 @@
+# CI de PetCare. Cualquier trabajo que falle bloquea el merge (constitución: flujo y puertas).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  FORM_SECRET: secreto-de-ci-solo-para-pruebas-de-32-caracteres
+  CONSENT_VERSION: '1'
+  # Feature 006: content:load la exige si el boletín está activo.
+  NEWSLETTER_HASH_KEY: clave-de-ci-solo-para-pruebas-del-boletin
+  EMAIL_PROVIDER: fake
+  DATABASE_URL_TEST: postgres://petcare:petcare@localhost:5433/petcare_test
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm test -- --passWithNoTests
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: petcare
+          POSTGRES_PASSWORD: petcare
+          POSTGRES_DB: petcare_test
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U petcare" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run test:integration -- --passWithNoTests
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: petcare
+          POSTGRES_PASSWORD: petcare
+          POSTGRES_DB: petcare_test
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U petcare" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # El servidor de correo falso y la app los arranca Playwright (webServer).
+      - run: npm run test:e2e -- --pass-with-no-tests
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: playwright-report, retention-days: 7 }
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: petcare
+          POSTGRES_PASSWORD: petcare
+          POSTGRES_DB: petcare_test
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U petcare" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://petcare:petcare@localhost:5433/petcare_test
+      SITE_URL: http://localhost:3200
+      EMAIL_FROM: PetCare CI <no-responder@example.test>
+      FAKE_EMAIL_URL: http://localhost:8026
+      CLINIC_INBOX_EMAIL: buzon-clinica@example.test
+      CLINIC_PHONE_E164: '+34600000000'
+      CLINIC_PHONE_DISPLAY: 600 00 00 00
+      LEGAL_OWNER_NAME: Responsable de CI
+      LEGAL_CONTACT_EMAIL: derechos@example.test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run content:load -- --file content/petcare.yaml
+      - run: npm run build
+      - run: npm run test:lighthouse
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    # La acción lee los commits del PR con la API: necesita este permiso además de `contents`.
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

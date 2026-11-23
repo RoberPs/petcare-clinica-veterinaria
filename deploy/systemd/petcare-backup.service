@@ -1,0 +1,10 @@
+# copia de seguridad diaria de la base de datos (pg_dump, 14 días)
+[Unit]
+Description=PetCare: copia de seguridad diaria de la base de datos (pg_dump, 14 días)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/petcare
+ExecStart=/opt/petcare/deploy/backup.sh

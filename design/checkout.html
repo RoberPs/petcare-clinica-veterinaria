@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finalizar compra</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="styles.css"></head>
+<body>
+<div id="site-header"></div>
+<main>
+  <section class="page-hero"><div class="container"><h1 style="margin:0">Finalizar compra</h1></div></section>
+  <div class="container cart-layout">
+    <form class="form" action="#" method="post">
+      <div class="steps"><span>1 Carrito</span><span class="is-active">2 Datos y pago</span><span>3 Confirmación</span></div>
+      <section class="panel"><h2>Datos de envío</h2>
+        <div class="field-row"><label class="field">Nombre<input type="text" autocomplete="given-name"></label><label class="field">Apellidos<input type="text" autocomplete="family-name"></label></div>
+        <label class="field" style="margin-top:16px">Dirección<input type="text" autocomplete="street-address"></label>
+        <div class="field-row" style="margin-top:16px"><label class="field">Código postal<input type="text" autocomplete="postal-code"></label><label class="field">Ciudad<input type="text" autocomplete="address-level2"></label></div>
+      </section>
+      <section class="panel"><h2>Método de envío</h2>
+        <label class="option"><input type="radio" name="envio" checked> Envío a domicilio (24-48 h) · Gratis</label>
+        <label class="option"><input type="radio" name="envio"> Recogida en clínica · Gratis</label>
+      </section>
+      <section class="panel"><h2>Método de pago</h2>
+        <label class="option"><input type="radio" name="pago" checked> Tarjeta (pasarela de pago externa)</label>
+        <label class="option"><input type="radio" name="pago"> Bizum</label>
+        <label class="option"><input type="radio" name="pago"> Pago en clínica</label>
+        <p class="product__meta">Los datos de tarjeta los gestionará la pasarela de pago; no se solicitan en esta página.</p>
+      </section>
+      <button class="btn" type="submit" style="align-self:flex-start">Confirmar pedido</button>
+    </form>
+    <aside class="summary">
+      <h2 style="font-size:20px">Tu pedido</h2>
+      <div class="summary__row"><span>Pienso premium 12 kg × 1</span><span>39,90 €</span></div>
+      <div class="summary__row"><span>Snacks dentales × 2</span><span>17,80 €</span></div>
+      <div class="summary__row"><span>Envío</span><span>Gratis</span></div>
+      <div class="summary__row summary__row--total"><span>Total</span><span>57,70 €</span></div>
+    </aside>
+  </div>
+</main>
+<div id="site-footer"></div><script src="layout.js"></script>
+</body></html>

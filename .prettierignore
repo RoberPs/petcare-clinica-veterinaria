@@ -1,0 +1,14 @@
+node_modules/
+.next/
+cli/
+dist/
+build/
+coverage/
+test-results/
+playwright-report/
+.lighthouseci/
+drizzle/
+design/
+package-lock.json
+specs/
+src/domain/common-passwords.ts

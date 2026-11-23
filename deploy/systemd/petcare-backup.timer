@@ -1,0 +1,10 @@
+[Unit]
+Description=PetCare: copia de seguridad diaria de la base de datos (pg_dump, 14 días) (a diario)
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

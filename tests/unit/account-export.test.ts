@@ -1,0 +1,168 @@
+import { describe, expect, it } from 'vitest';
+import { buildAccountExport, exportFileName } from '@/domain/account-export';
+
+// Forma del JSON de "Descargar mis datos" (contracts/export-format.md, format_version 4).
+
+// Sin anotar el tipo: así se pueden pasar columnas de más (id, hash…) y comprobar que no se exportan.
+const input = {
+  controller: { name: 'Responsable de Pruebas', contactEmail: 'derechos@example.test' },
+  customer: {
+    id: '11111111-1111-4111-8111-111111111111',
+    email: 'Ana@Example.test',
+    firstName: 'Ana',
+    lastName: 'Prueba',
+    phone: null,
+    addressLine: 'Calle Mayor 1',
+    postalCode: '28001',
+    city: 'Madrid',
+    province: null,
+    passwordHash: '$argon2id$secreto',
+    emailVerifiedAt: new Date('2026-11-01T09:00:00Z'),
+    marketingOptIn: true,
+    marketingOptInChangedAt: new Date('2026-11-02T09:00:00Z'),
+    createdAt: new Date('2026-11-01T08:00:00Z'),
+    updatedAt: new Date('2026-11-02T09:00:00Z'),
+  },
+  consents: [
+    { id: 'c1', kind: 'privacy_terms', privacyVersion: '2026-11-11', termsVersion: '2026-11-10', createdAt: new Date('2026-11-01T08:00:00Z') },
+    { id: 'c2', kind: 'marketing_opt_in', privacyVersion: null, termsVersion: null, createdAt: new Date('2026-11-02T09:00:00Z') },
+  ],
+  pets: [
+    { id: 'p1', name: 'Toby', speciesKey: 'perro', speciesLabel: 'Perro', birthDate: '2022-08-01', createdAt: new Date('2026-11-01T10:00:00Z'), updatedAt: new Date('2026-11-01T10:00:00Z') },
+    { id: 'p2', name: 'Pío', speciesKey: null, speciesLabel: null, birthDate: '2026-06-11', createdAt: new Date('2026-11-01T10:00:00Z'), updatedAt: new Date('2026-11-01T10:00:00Z') },
+  ],
+};
+
+const now = new Date('2026-11-11T09:15:00Z');
+
+describe('exportación de datos (A11)', () => {
+  it('sigue el contrato format_version 4', () => {
+    const out = buildAccountExport(input, now);
+    expect(out).toEqual({
+      format_version: 4,
+      exported_at: '2026-11-11T10:15:00+01:00',
+      controller: { name: 'Responsable de Pruebas', contact_email: 'derechos@example.test' },
+      account: {
+        email: 'Ana@Example.test',
+        first_name: 'Ana',
+        last_name: 'Prueba',
+        phone: null,
+        address: { line: 'Calle Mayor 1', postal_code: '28001', city: 'Madrid', province: null },
+        email_verified_at: '2026-11-01T09:00:00.000Z',
+        created_at: '2026-11-01T08:00:00.000Z',
+        updated_at: '2026-11-02T09:00:00.000Z',
+      },
+      communications: { marketing_opt_in: true, changed_at: '2026-11-02T09:00:00.000Z', newsletter: null },
+      consents: [
+        { kind: 'privacy_terms', privacy_version: '2026-11-11', terms_version: '2026-11-10', at: '2026-11-01T08:00:00.000Z' },
+        { kind: 'marketing_opt_in', privacy_version: null, terms_version: null, at: '2026-11-02T09:00:00.000Z' },
+      ],
+      pets: [
+        { name: 'Toby', species: 'Perro', species_key: 'perro', birth_date: '2022-08-01', age_at_export: '4 años', created_at: '2026-11-01T10:00:00.000Z', updated_at: '2026-11-01T10:00:00.000Z' },
+        { name: 'Pío', species: 'Otra', species_key: null, birth_date: '2026-06-11', age_at_export: '5 meses', created_at: '2026-11-01T10:00:00.000Z', updated_at: '2026-11-01T10:00:00.000Z' },
+      ],
+      citas: [],
+      orders: [],
+    });
+  });
+
+  it('incluye las citas (feature 003) de la más reciente a la más antigua, con su estado', () => {
+    const appt = (startsAt: string, extra: Record<string, unknown> = {}) => ({
+      id: 'a',
+      serviceName: 'Consulta general',
+      staffName: 'Dra. Prueba',
+      petName: 'Toby',
+      petSpeciesLabel: 'Perro',
+      startsAt: new Date(startsAt),
+      endsAt: new Date(new Date(startsAt).getTime() + 30 * 60_000),
+      status: 'confirmed' as const,
+      cancelledBy: null,
+      reason: null,
+      contactPhone: '600 123 456',
+      createdAt: new Date('2026-11-01T08:00:00Z'),
+      ...extra,
+    });
+    const out = buildAccountExport(
+      {
+        ...input,
+        appointments: [
+          appt('2026-11-02T09:00:00Z'),
+          appt('2026-11-20T09:00:00Z', { reason: 'Vacuna' }),
+          appt('2026-11-15T09:00:00Z', { status: 'cancelled' as const, cancelledBy: 'clinic' as const, clinicNote: 'La doctora está de baja.' }),
+        ],
+      },
+      now,
+    );
+    expect(out.citas.map((c) => [c.inicio, c.estado, c.cancelada_por])).toEqual([
+      ['2026-11-20T10:00:00+01:00', 'confirmada', null],
+      ['2026-11-15T10:00:00+01:00', 'cancelada', 'clinica'],
+      ['2026-11-02T10:00:00+01:00', 'realizada', null],
+    ]);
+    expect(out.citas[0]).toEqual({
+      servicio: 'Consulta general',
+      profesional: 'Dra. Prueba',
+      mascota: 'Toby',
+      especie: 'Perro',
+      inicio: '2026-11-20T10:00:00+01:00',
+      fin: '2026-11-20T10:30:00+01:00',
+      estado: 'confirmada',
+      cancelada_por: null,
+      motivo: 'Vacuna',
+      telefono_contacto: '600 123 456',
+      reservada_el: '2026-11-01T09:00:00+01:00',
+      clinic_note: null,
+    });
+    // Feature 007 (export v4): la nota de la clínica al cancelar.
+    expect(out.citas[1]!.clinic_note).toBe('La doctora está de baja.');
+    expect(JSON.stringify(out.citas)).not.toContain('"id"');
+  });
+
+  it('incluye los pedidos (feature 005, v2) del más reciente al más antiguo, con importes en euros', () => {
+    const base = {
+      refundStatus: 'none' as const,
+      paymentMethod: 'card' as const,
+      shippingName: 'Envío a domicilio',
+      firstName: 'Lucía',
+      lastName: 'Pérez',
+      addressLine: 'Calle 1',
+      postalCode: '28001',
+      city: 'Madrid',
+      discountCode: null,
+      discountCents: 0,
+      shippingCostCents: 0,
+      vatCents: 344,
+    };
+    const out = buildAccountExport(
+      {
+        ...input,
+        orders: [
+          { ...base, number: 'PC-000001', createdAt: new Date('2026-11-01T09:15:00Z'), status: 'delivered', subtotalCents: 1980, totalCents: 1980, items: [{ productName: 'Pienso', quantity: 2, unitPriceCents: 990, vatRate: 21 }] },
+          { ...base, number: 'PC-000002', createdAt: new Date('2026-11-05T09:15:00Z'), status: 'cancelled', refundStatus: 'refunded', discountCode: 'BIENVENIDA10', discountCents: 198, subtotalCents: 1980, totalCents: 1782, items: [] },
+        ],
+      },
+      now,
+    );
+    expect(out.orders.map((o) => o.number)).toEqual(['PC-000002', 'PC-000001']);
+    expect(out.orders[0]).toMatchObject({ refunded: true, discount: { code: 'BIENVENIDA10', amount: '1,98 €' }, total: '17,82 €' });
+    expect(out.orders[1]).toMatchObject({
+      created_at: '2026-11-01T10:15:00+01:00',
+      status: 'Entregado',
+      payment_method: 'Tarjeta',
+      shipping: { method: 'Envío a domicilio', postal_code: '28001' },
+      items: [{ name: 'Pienso', quantity: 2, unit_price: '9,90 €', total: '19,80 €', vat_rate: 21 }],
+      discount: null,
+    });
+  });
+
+  it('no incluye ids internos, el hash de la contraseña ni nada de seguridad', () => {
+    const text = JSON.stringify(buildAccountExport(input, now));
+    expect(text).not.toContain('11111111-1111');
+    expect(text).not.toContain('argon2');
+    expect(text).not.toContain('"id"');
+    expect(text).not.toMatch(/token|session|password/i);
+  });
+
+  it('el nombre del archivo lleva la fecha de Madrid', () => {
+    expect(exportFileName(new Date('2026-11-10T23:30:00Z'))).toBe('mis-datos-2026-11-11.json');
+  });
+});

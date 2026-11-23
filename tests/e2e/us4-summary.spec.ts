@@ -1,0 +1,50 @@
+import { createCustomer, createPet, resetAccountState } from './db';
+import { axeCheck, dismissCookies, expect, loginAs, test } from './fixtures';
+
+// US4 · resumen del área personal.
+
+test.describe('US4 · resumen', () => {
+  test.beforeEach(async () => {
+    await resetAccountState();
+  });
+
+  test('saludo con el nombre real, mascotas con especie y edad, y accesos', async ({ page }) => {
+    const c = await createCustomer({ firstName: 'Lucía' });
+    await createPet(c.id, { name: 'Bruno', speciesKey: 'perro', birthDate: '2020-01-01' });
+    await createPet(c.id, { name: 'Pío', speciesKey: null, birthDate: '2024-01-01' });
+    await loginAs(page, c);
+    await page.goto('/mi-cuenta');
+    await dismissCookies(page);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Hola, Lucía' })).toBeVisible();
+    const nav = page.getByRole('navigation', { name: 'Mi cuenta' });
+    await expect(nav.getByRole('link', { name: 'Resumen' })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('link', { name: 'Mis citas' })).toHaveAttribute('href', '/mi-cuenta/citas');
+    await expect(nav.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/mi-cuenta/pedidos');
+
+    const cards = page.locator('ul.pets > li.pet:not(.pet--add)');
+    await expect(cards).toHaveCount(2);
+    await expect(cards.nth(0)).toContainText(/Bruno.*Perro · \d+ años/s);
+    await expect(cards.nth(1)).toContainText(/Pío.*Otra · \d+ (año|años)/s);
+    await expect(page.getByRole('link', { name: 'Pedir cita para Bruno' })).toHaveAttribute('href', /^\/pide-cita\?mascota=[0-9a-f-]{36}$/);
+    await expect(page.getByRole('link', { name: 'Añadir mascota' })).toHaveAttribute('href', '/mi-cuenta/mascotas/nueva');
+    // Con la compra activa (feature 005), "Últimos pedidos" invita a la tienda si aún no hay pedidos.
+    await expect(page.getByRole('heading', { level: 2, name: 'Últimos pedidos' })).toBeVisible();
+    await axeCheck(page);
+
+    await nav.getByRole('link', { name: 'Mis citas' }).click();
+    await expect(page).toHaveURL(/\/mi-cuenta\/citas$/);
+  });
+
+  test('sin mascotas muestra el estado vacío con "Añadir mascota"', async ({ page }) => {
+    const c = await createCustomer({ firstName: 'Mario' });
+    await loginAs(page, c);
+    await page.goto('/mi-cuenta');
+    await dismissCookies(page);
+    await expect(page.getByRole('heading', { level: 1, name: 'Hola, Mario' })).toBeVisible();
+    const empty = page.locator('.empty-state').filter({ hasText: 'Aún no has añadido ninguna mascota' });
+    await expect(empty).toBeVisible();
+    await expect(empty.getByRole('link', { name: 'Añadir mascota' })).toHaveAttribute('href', '/mi-cuenta/mascotas/nueva');
+    await axeCheck(page);
+  });
+});

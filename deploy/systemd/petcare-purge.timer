@@ -1,0 +1,10 @@
+[Unit]
+Description=PetCare: borra los mensajes de más de 12 meses y los registros del límite de más de 24 h (a diario)
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

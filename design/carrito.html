@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrito</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="styles.css"></head>
+<body>
+<div id="site-header"></div>
+<main>
+  <section class="page-hero"><div class="container"><h1 style="margin:0">Tu carrito</h1></div></section>
+  <div class="container cart-layout">
+    <section>
+      <article class="cart-item"><div class="cart-item__img">🥣</div><div><h3>Pienso premium adulto 12 kg</h3><span class="product__meta">Alimentación · Perro</span><br><button class="remove">Eliminar</button></div><div class="qty"><button>−</button><input value="1"><button>+</button></div><span class="price">39,90 €</span></article>
+      <article class="cart-item"><div class="cart-item__img">🦴</div><div><h3>Snacks dentales (pack 7)</h3><span class="product__meta">Salud y bienestar · Perro</span><br><button class="remove">Eliminar</button></div><div class="qty"><button>−</button><input value="2"><button>+</button></div><span class="price">17,80 €</span></article>
+      <a href="productos.html" style="text-decoration:underline;font-weight:600">← Seguir comprando</a>
+    </section>
+    <aside class="summary">
+      <h2 style="font-size:20px">Resumen del pedido</h2>
+      <div class="summary__row"><span>Subtotal</span><span>57,70 €</span></div>
+      <div class="summary__row"><span>Envío</span><span>Gratis</span></div>
+      <label class="field" style="margin-top:8px">Código de descuento<input type="text" placeholder="Introduce tu código"></label>
+      <div class="summary__row summary__row--total"><span>Total</span><span>57,70 €</span></div>
+      <a class="btn btn--block" href="checkout.html">Finalizar compra</a>
+    </aside>
+  </div>
+</main>
+<div id="site-footer"></div><script src="layout.js"></script>
+</body></html>

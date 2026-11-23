@@ -1,0 +1,27 @@
+﻿<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi cuenta</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="styles.css"></head>
+<body>
+<div id="site-header"></div>
+<main>
+  <section class="page-hero"><div class="container"><h1 style="margin:0">Hola, María</h1></div></section>
+  <div class="container account-grid">
+    <nav class="side-nav" aria-label="Cuenta"><a href="cuenta.html" aria-current="page">Resumen</a><a href="#">Mis mascotas</a><a href="#">Mis citas</a><a href="#">Mis pedidos</a><a href="#">Datos personales</a><a href="login.html">Cerrar sesión</a></nav>
+    <div>
+      <h2 style="margin-bottom:16px">Mis mascotas</h2>
+      <div class="pets">
+        <div class="pet"><div class="pet__avatar">🐶</div><h3>Toby</h3><span class="product__meta">Perro · 4 años</span><a class="btn btn--sm btn--sky" href="cita.html">Pedir cita</a></div>
+        <div class="pet"><div class="pet__avatar">🐱</div><h3>Luna</h3><span class="product__meta">Gato · 2 años</span><a class="btn btn--sm btn--sky" href="cita.html">Pedir cita</a></div>
+        <a class="pet" href="#" style="justify-content:center;align-items:center;border:2px dashed var(--color-sky);background:transparent"><span style="font-size:32px">＋</span><strong>Añadir mascota</strong></a>
+      </div>
+      <h2 style="margin:40px 0 16px">Últimos pedidos</h2>
+      <table class="orders"><thead><tr><th>Pedido</th><th>Fecha</th><th>Estado</th><th>Total</th></tr></thead>
+        <tbody><tr><td>#1042</td><td>02/11/2026</td><td><span class="badge">Entregado</span></td><td>57,70 €</td></tr>
+        <tr><td>#1037</td><td>18/10/2026</td><td><span class="badge">Entregado</span></td><td>18,50 €</td></tr></tbody></table>
+    </div>
+  </div>
+</main>
+<div id="site-footer"></div><script src="layout.js"></script>
+</body></html>
+
