@@ -10,6 +10,9 @@ await build({
     'content-load': 'scripts/content-load.ts',
     'email-dispatch': 'scripts/email-dispatch.ts',
     'retention-purge': 'scripts/retention-purge.ts',
+    // Feature 005: gestión de pedidos sin panel (D15) y tarea de mantenimiento (D16).
+    orders: 'scripts/orders.ts',
+    'orders-maintain': 'scripts/orders-maintain.ts',
   },
   outdir: 'cli',
   outExtension: { '.js': '.mjs' },

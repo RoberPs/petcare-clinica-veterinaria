@@ -4,12 +4,16 @@ import {
   accountTokens,
   appointments,
   bookingSettings,
+  carts,
   contactMessages,
   customers,
   customerSessions,
   emailOutbox,
+  orders,
+  paymentEvents,
   processedSubmissions,
   rateLimitHits,
+  shopSettings,
 } from './schema';
 
 // Conservación (FR-030, R15): los mensajes se borran a los 12 meses (su bandeja de salida, en cascada)
@@ -21,6 +25,10 @@ import {
 // Feature 003 (B12, FR-030): las citas de invitado se anonimizan cuando su fecha tiene más de
 // retention_months (12 por defecto). Los correos de cita cerrados se borran a las 24 h con los de
 // cuenta (ninguno tiene mensaje de contacto). Las citas de cliente se anonimizan al borrar la cuenta.
+//
+// Feature 005 (D16): carritos de invitado sin cambios en cart_retention_days (con sus líneas, en
+// cascada), avisos de la pasarela de más de 90 días y pedidos de más de 6 años anonimizados (se
+// conservan importes y líneas). Los correos de pedido cerrados caen con la regla de las 24 h.
 
 export interface PurgeResult {
   messages: number;
@@ -31,6 +39,9 @@ export interface PurgeResult {
   submissions: number;
   accountEmails: number;
   guestAppointments: number;
+  guestCarts: number;
+  paymentEvents: number;
+  anonymizedOrders: number;
 }
 
 export async function purgeExpired(db: Db): Promise<PurgeResult> {
@@ -100,6 +111,32 @@ export async function purgeExpired(db: Db): Promise<PurgeResult> {
       )
       .returning({ id: appointments.id });
 
+    const [shop] = await tx.select({ days: shopSettings.cartRetentionDays }).from(shopSettings).limit(1);
+    const cartDays = shop?.days ?? 30;
+    const guestCarts = await tx
+      .delete(carts)
+      .where(and(isNull(carts.customerId), lt(carts.updatedAt, sql`now() - make_interval(days => ${cartDays})`)))
+      .returning({ id: carts.id });
+    const events = await tx
+      .delete(paymentEvents)
+      .where(lt(paymentEvents.receivedAt, sql`now() - interval '90 days'`))
+      .returning({ id: paymentEvents.providerEventId });
+    const anonymizedOrders = await tx
+      .update(orders)
+      .set({
+        contactEmail: null,
+        contactEmailNormalized: null,
+        firstName: null,
+        lastName: null,
+        addressLine: null,
+        postalCode: null,
+        city: null,
+        anonymizedAt: sql`now()`,
+        updatedAt: sql`now()`,
+      })
+      .where(and(isNull(orders.anonymizedAt), lt(orders.createdAt, sql`now() - interval '6 years'`)))
+      .returning({ id: orders.id });
+
     return {
       messages: messages.length,
       hits: hits.length,
@@ -109,6 +146,9 @@ export async function purgeExpired(db: Db): Promise<PurgeResult> {
       submissions: submissions.length,
       accountEmails: accountEmails.length,
       guestAppointments: guestAppointments.length,
+      guestCarts: guestCarts.length,
+      paymentEvents: events.length,
+      anonymizedOrders: anonymizedOrders.length,
     };
   });
 }

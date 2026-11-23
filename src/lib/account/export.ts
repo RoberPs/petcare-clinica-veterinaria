@@ -3,6 +3,7 @@ import { buildAccountExport, exportFileName } from '@/domain/account-export';
 import { getDb } from '@/db/client';
 import { getCustomerById } from '@/db/queries/customers';
 import { listCustomerAppointments } from '@/db/queries/appointments';
+import { customerOrdersForExport } from '@/db/queries/orders';
 import { listPets } from '@/db/queries/pets';
 import { clinic, customerConsents } from '@/db/schema';
 import { loginUrl } from '@/lib/auth/require-customer';
@@ -38,7 +39,7 @@ export async function handleExportRequest(request: Request, now: Date): Promise<
   }
 
   const db = getDb();
-  const [customer, consents, pets, [owner], appointments] = await Promise.all([
+  const [customer, consents, pets, [owner], appointments, orders] = await Promise.all([
     getCustomerById(session.id),
     db
       .select()
@@ -48,12 +49,13 @@ export async function handleExportRequest(request: Request, now: Date): Promise<
     listPets(session.id),
     db.select({ name: clinic.legalOwnerName, contactEmail: clinic.legalContactEmail }).from(clinic).limit(1),
     listCustomerAppointments(session.id),
+    customerOrdersForExport(session.id),
   ]);
   if (!customer || !owner)
     return Response.json({ error: 'no disponible' }, { status: 500, headers: NO_STORE });
 
   const body = JSON.stringify(
-    buildAccountExport({ controller: owner, customer, consents, pets, appointments }, now),
+    buildAccountExport({ controller: owner, customer, consents, pets, appointments, orders }, now),
     null,
     2,
   );

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { summarizeHours } from '@/domain/hours';
+import { isSectionEnabled } from '@/domain/sections';
 import type { SiteData } from '@/db/queries/site';
 import { OpenStatus } from './OpenStatus';
 
@@ -64,6 +65,11 @@ export function SiteFooter({ site }: { site: SiteData }) {
               <li>
                 <Link prefetch={false} href="/terminos">Términos de uso</Link>
               </li>
+              {isSectionEnabled('carrito', site.sections) ? (
+                <li>
+                  <Link prefetch={false} href="/condiciones-de-venta">Condiciones de venta</Link>
+                </li>
+              ) : null}
               <li>
                 <Link prefetch={false} href="/cookies/configurar">Configurar cookies</Link>
               </li>

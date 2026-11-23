@@ -17,6 +17,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
   // Catálogo (C14): el listado y las fichas visibles, solo con la tienda activa.
   const { sections } = await getSiteData();
+  // Condiciones de venta (feature 005): solo con la compra activa.
+  if (isSectionEnabled('carrito', sections)) {
+    pages.push({ url: `${base}/condiciones-de-venta`, changeFrequency: 'monthly', priority: 0.6 });
+  }
   if (!isSectionEnabled('tienda', sections)) return pages;
   const products = await listProductSlugs();
   return [

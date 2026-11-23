@@ -16,6 +16,15 @@ const envSchema = z
     CONSENT_VERSION: z.string({ error: 'falta CONSENT_VERSION' }).min(1, 'falta CONSENT_VERSION'),
     TRUSTED_PROXY_IPS: z.preprocess(emptyToUndefined, z.string().optional()),
     SITE_URL: z.string({ error: 'falta SITE_URL' }).url('SITE_URL no es una URL válida'),
+    // Feature 005 (D1, D2): pasarela de pago.
+    NODE_ENV: z.preprocess(emptyToUndefined, z.string().optional()),
+    PAYMENT_PROVIDER: z.preprocess(
+      emptyToUndefined,
+      z.enum(['stripe', 'fake'], { error: 'PAYMENT_PROVIDER debe ser "stripe" o "fake"' }).default('fake'),
+    ),
+    STRIPE_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+    STRIPE_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
+    PAYMENT_FAKE_ALLOWED: z.preprocess(emptyToUndefined, z.enum(['true', 'false']).default('false')),
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === 'brevo' && !env.BREVO_API_KEY) {
@@ -23,6 +32,26 @@ const envSchema = z
     }
     if (env.EMAIL_PROVIDER === 'fake' && !env.FAKE_EMAIL_URL) {
       ctx.addIssue({ code: 'custom', path: ['FAKE_EMAIL_URL'], message: 'falta FAKE_EMAIL_URL (EMAIL_PROVIDER=fake)' });
+    }
+    // Principio VII: solo claves de prueba de Stripe. No hay forma de usar una clave real sin cambiar el código.
+    if (env.PAYMENT_PROVIDER === 'stripe') {
+      if (!env.STRIPE_SECRET_KEY || !/^(sk|rk)_test_/.test(env.STRIPE_SECRET_KEY)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['STRIPE_SECRET_KEY'],
+          message: 'STRIPE_SECRET_KEY debe ser una clave de prueba (sk_test_… o rk_test_…)',
+        });
+      }
+      if (!env.STRIPE_WEBHOOK_SECRET || !env.STRIPE_WEBHOOK_SECRET.startsWith('whsec_')) {
+        ctx.addIssue({ code: 'custom', path: ['STRIPE_WEBHOOK_SECRET'], message: 'STRIPE_WEBHOOK_SECRET debe empezar por whsec_' });
+      }
+    }
+    if (env.PAYMENT_PROVIDER === 'fake' && env.NODE_ENV === 'production' && env.PAYMENT_FAKE_ALLOWED !== 'true') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENT_PROVIDER'],
+        message: 'PAYMENT_PROVIDER=fake no se permite en producción salvo con PAYMENT_FAKE_ALLOWED=true',
+      });
     }
   });
 
@@ -45,6 +74,13 @@ export function getEnv(): Env {
       .filter(Boolean),
   };
   return cached;
+}
+
+/** Valida un entorno sin cachearlo (pruebas y comprobaciones de arranque). */
+export function parseEnv(source: Record<string, string | undefined>): { ok: true } | { ok: false; error: string } {
+  const parsed = envSchema.safeParse(source);
+  if (parsed.success) return { ok: true };
+  return { ok: false, error: parsed.error.issues.map((i) => `${i.path.join('.') || '(entorno)'}: ${i.message}`).join('; ') };
 }
 
 /** Solo para pruebas: olvida la configuración leída. */

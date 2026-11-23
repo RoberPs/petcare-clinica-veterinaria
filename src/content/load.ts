@@ -2,11 +2,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { and, count, eq, isNotNull, notInArray, sql } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
+import { Temporal } from '@js-temporal/polyfill';
 import { parse as parseYaml } from 'yaml';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
 import { parseEuros } from '@/domain/money';
 import { normalizeSearch } from '@/domain/search';
+import { CLINIC_TZ } from '@/domain/time';
 import { parseContent, type ContentFile, type ContentIssue } from './schema';
 
 // Carga idempotente del archivo de contenido en la base de datos (R3). Las páginas leen solo de la base.
@@ -160,12 +162,89 @@ async function loadShop(tx: Db, shop: ContentFile['shop']): Promise<void> {
   await unpublishMissing(tx, s.products, shop.products.map((x) => x.slug));
 }
 
+/** Inicio del día `isoDate` en Europe/Madrid (`nextDay` = inicio del día siguiente: fin inclusivo). */
+function madridDayStart(isoDate: string, nextDay = false): Date {
+  const day = Temporal.PlainDate.from(isoDate).add({ days: nextDay ? 1 : 0 });
+  return new Date(day.toZonedDateTime({ timeZone: CLINIC_TZ }).epochMilliseconds);
+}
+
+/**
+ * Bloque checkout: (feature 005, contracts/content-file.md). Upsert por `code`; lo que desaparece
+ * del archivo pasa a enabled = false (los pedidos lo referencian) y uses_count nunca se toca. Sin
+ * bloque, no queda ningún método ni código activo.
+ */
+async function loadCheckout(tx: Db, checkout: ContentFile['checkout']): Promise<void> {
+  if (!checkout) {
+    await tx.update(s.shippingMethods).set({ enabled: false, updatedAt: now }).where(eq(s.shippingMethods.enabled, true));
+    await tx.update(s.discountCodes).set({ enabled: false, updatedAt: now }).where(eq(s.discountCodes.enabled, true));
+    await tx.update(s.shopSettings).set({ cardEnabled: false, inClinicEnabled: false, checkoutNoticeText: null, updatedAt: now });
+    return;
+  }
+  // Solo actualiza: la fila la crea el bloque shop: (el carrito exige la tienda).
+  await tx.update(s.shopSettings).set({
+    cardEnabled: checkout.payment_methods.card,
+    inClinicEnabled: checkout.payment_methods.in_clinic,
+    reservationMinutes: checkout.reservation_minutes,
+    pickupDays: checkout.pickup_days,
+    cartRetentionDays: checkout.cart_retention_days,
+    maxQtyPerLine: checkout.max_qty_per_line,
+    maxPendingPerEmail: checkout.max_pending_per_email,
+    maxPendingPerCustomer: checkout.max_pending_per_customer,
+    orderPrefix: checkout.order_prefix,
+    guestLinkDays: checkout.guest_link_days,
+    checkoutNoticeText: checkout.notice ?? null,
+    updatedAt: now,
+  });
+
+  const shippingCodes = checkout.shipping_methods.map((m) => m.code);
+  // Primero se desactivan los que desaparecen: así el índice único de la recogida activa no choca.
+  await tx
+    .update(s.shippingMethods)
+    .set({ enabled: false, updatedAt: now })
+    .where(shippingCodes.length > 0 ? notInArray(s.shippingMethods.code, shippingCodes) : sql`true`);
+  for (const [i, m] of checkout.shipping_methods.entries()) {
+    const v = {
+      code: m.code,
+      kind: m.kind,
+      name: m.name,
+      description: m.description,
+      costCents: m.cost,
+      vatRate: m.vat_rate,
+      postalPrefixes: m.kind === 'home_delivery' ? (m.postal_prefixes ?? null) : null,
+      enabled: true,
+      position: i,
+    };
+    await tx.insert(s.shippingMethods).values(v).onConflictDoUpdate({ target: s.shippingMethods.code, set: { ...v, updatedAt: now } });
+  }
+
+  const discountCodes = checkout.discount_codes.map((d) => d.code);
+  await tx
+    .update(s.discountCodes)
+    .set({ enabled: false, updatedAt: now })
+    .where(discountCodes.length > 0 ? notInArray(s.discountCodes.code, discountCodes) : sql`true`);
+  for (const d of checkout.discount_codes) {
+    const v = {
+      code: d.code,
+      kind: d.kind,
+      value: d.value,
+      minSubtotalCents: d.min_subtotal ?? null,
+      startsAt: d.starts_at ? madridDayStart(d.starts_at) : null,
+      endsAt: d.ends_at ? madridDayStart(d.ends_at, true) : null,
+      maxUses: d.max_uses ?? null,
+      enabled: true,
+    };
+    // uses_count no se toca: ni al crear (0 por defecto) ni al actualizar.
+    await tx.insert(s.discountCodes).values(v).onConflictDoUpdate({ target: s.discountCodes.code, set: { ...v, updatedAt: now } });
+  }
+}
+
 export async function loadContent(db: Db, content: ContentFile): Promise<LoadSummary> {
   const c = content.clinic;
   let petsMovedToOther = 0;
   let productsHidden = 0;
   await db.transaction(async (tx) => {
     await loadShop(tx, content.shop);
+    await loadCheckout(tx, content.checkout);
     const [hidden] = await tx.select({ n: count() }).from(s.products).where(eq(s.products.published, false));
     productsHidden = hidden?.n ?? 0;
 

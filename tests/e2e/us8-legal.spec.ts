@@ -1,12 +1,12 @@
 import { testEnv } from '../test-env';
 import { axeCheck, dismissCookies, expect, test } from './fixtures';
 
-// La privacidad y las cookies se actualizaron con la feature 002 (cuentas y cookies de sesión).
+// Los cuatro textos se actualizaron con la feature 005 (compra, pago y cookie del carrito, D19).
 const PAGES: [string, string, string, string][] = [
-  ['Aviso legal', '/aviso-legal', 'Aviso legal', '10 de noviembre de 2026'],
-  ['Política de privacidad', '/privacidad', 'Política de privacidad', '11 de noviembre de 2026'],
-  ['Política de cookies', '/politica-de-cookies', 'Política de cookies', '11 de noviembre de 2026'],
-  ['Términos de uso', '/terminos', 'Términos de uso', '10 de noviembre de 2026'],
+  ['Aviso legal', '/aviso-legal', 'Aviso legal', '12 de noviembre de 2026'],
+  ['Política de privacidad', '/privacidad', 'Política de privacidad', '12 de noviembre de 2026'],
+  ['Política de cookies', '/politica-de-cookies', 'Política de cookies', '12 de noviembre de 2026'],
+  ['Términos de uso', '/terminos', 'Términos de uso', '12 de noviembre de 2026'],
 ];
 
 test.describe('US8 · páginas legales', () => {

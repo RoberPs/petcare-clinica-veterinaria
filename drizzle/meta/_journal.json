@@ -29,6 +29,13 @@
       "when": 1794463272499,
       "tag": "0003_product_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794490113005,
+      "tag": "0004_cart_checkout",
+      "breakpoints": true
     }
   ]
 }

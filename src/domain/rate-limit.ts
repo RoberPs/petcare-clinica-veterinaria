@@ -68,6 +68,10 @@ export const RATE_POLICIES = {
   auth_origin: { max: 10, windowMinutes: 10, key: 'origin' },
   /** Reservas de cita (feature 003, B9), por origen: el mismo criterio que el contacto. */
   booking_origin: { max: 5, windowMinutes: 10, key: 'origin' },
+  /** Pedidos confirmados (feature 005), por origen. */
+  checkout_origin: { max: 5, windowMinutes: 10, key: 'origin' },
+  /** Intentos de código de descuento (feature 005, D12), por origen: evita adivinar códigos. */
+  discount_origin: { max: 10, windowMinutes: 10, key: 'origin' },
 } as const satisfies Record<string, RatePolicy>;
 
 export type RatePolicyName = keyof typeof RATE_POLICIES;

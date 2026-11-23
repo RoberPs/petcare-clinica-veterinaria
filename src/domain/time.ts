@@ -49,3 +49,8 @@ export function formatDateTime(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(z.day)}/${pad(z.month)}/${z.year} ${pad(z.hour)}:${pad(z.minute)}`;
 }
+
+/** Fecha de un instante en Europe/Madrid: "10/11/2026". */
+export function formatDate(date: Date): string {
+  return formatDateTime(date).slice(0, 10);
+}

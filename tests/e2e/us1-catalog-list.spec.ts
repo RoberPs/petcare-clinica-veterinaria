@@ -3,7 +3,10 @@ import { axeCheck, dismissCookies, expect, isNoJs, test } from './fixtures';
 
 type Content = Record<string, any>;
 const setTienda = (c: Content, href: string | null) => {
-  c.sections = (c.sections as { key: string }[]).map((s) => (s.key === 'tienda' ? { ...s, href } : s));
+  // Sin tienda tampoco hay carrito (feature 005: el carrito exige la tienda).
+  c.sections = (c.sections as { key: string }[]).map((s) =>
+    s.key === 'tienda' ? { ...s, href } : s.key === 'carrito' && href === null ? { ...s, href: null } : s,
+  );
 };
 
 test.describe('US1 · listado de productos', () => {
@@ -19,28 +22,29 @@ test.describe('US1 · listado de productos', () => {
     }
     await expect(page).toHaveURL(/\/productos$/);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuestros productos');
-    await expect(page.locator('.shop-notice')).toHaveText('Tienda de demostración: estos productos no están a la venta.');
+    await expect(page.locator('.shop-notice')).toHaveText('Tienda de demostración: los pagos son de prueba y no se envía nada.');
     await expect(page.locator('#resultados')).toHaveText('24 productos');
 
     const cards = page.locator('.product-grid > li .product');
     await expect(cards).toHaveCount(12);
     const first = cards.first();
-    await expect(first).toHaveAttribute('href', '/productos/pienso-perro-adulto');
+    await expect(first.locator('.product__link')).toHaveAttribute('href', '/productos/pienso-perro-adulto');
     await expect(first.locator('.product__meta')).toHaveText('Alimentación · Perro');
     await expect(first.locator('h3')).toHaveText('Pienso de pollo para perro adulto, 12 kg');
     await expect(first.locator('img')).toHaveAttribute('alt', 'Saco de pienso ilustrado con una huella en la etiqueta');
     for (const price of await page.locator('.product .price').allTextContents()) {
       expect(price).toMatch(/\d{1,3}(\.\d{3})*,\d{2} €/);
     }
-    // Sin botones de compra (FR-019).
-    await expect(page.locator('.product-grid button')).toHaveCount(0);
+    // Feature 005 (FR-001, sustituye FR-019): "Añadir" en cada tarjeta con stock.
+    await expect(cards.first().getByRole('button', { name: /^Añadir .* al carrito$/ })).toBeVisible();
     await axeCheck(page);
   });
 
   test('la tarjeta abre su ficha con el teclado', async ({ page }) => {
     await page.goto('/productos');
     await dismissCookies(page);
-    const first = page.locator('.product').first();
+    // Feature 005: la tarjeta es un article; el enlace del título la cubre entera (.product__link).
+    const first = page.locator('.product__link').first();
     await first.focus();
     await expect(first).toBeFocused();
     await page.keyboard.press('Enter');

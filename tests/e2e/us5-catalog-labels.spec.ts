@@ -1,7 +1,7 @@
 import { loadPetcare, loadPetcareVariant } from './db';
 import { axeCheck, expect, test } from './fixtures';
 
-const card = (page: import('@playwright/test').Page, slug: string) => page.locator(`a.product[href="/productos/${slug}"]`);
+const card = (page: import('@playwright/test').Page, slug: string) => page.locator('article.product').filter({ has: page.locator(`a[href="/productos/${slug}"]`) });
 
 test.describe('US5 · etiquetas Novedad y Oferta', () => {
   test('en las tarjetas: las dos juntas, solo novedad y solo oferta con el precio tachado', async ({ page }) => {

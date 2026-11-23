@@ -154,7 +154,9 @@ faq_topics:
       - slug: recoger-pedido
         question: ¿Puedo encargar un producto y recogerlo después?
         answer_md: >-
-          Claro. Pregúntanos por teléfono y lo dejamos preparado con tu nombre en recepción.
+          Claro. Haz el pedido en [Nuestros productos](section:tienda) y elige «Recogida en la
+          clínica»: te avisamos por correo y lo dejamos preparado con tu nombre en recepción. Puedes
+          pagarlo con tarjeta al hacer el pedido o en la clínica al recogerlo.
       - slug: devoluciones
         question: ¿Admitís devoluciones?
         answer_md: >-
@@ -218,13 +220,14 @@ contact_reasons:
 legal_pages:
   - kind: aviso-legal
     title: Aviso legal
-    version: '2026-11-10'
-    updated_on: '2026-11-10'
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
     body_md: |
       ## Una web de demostración
 
       Esta web es una **demostración**. **PetCare es una clínica veterinaria ficticia**: no presta
-      servicios veterinarios, no vende productos y no tiene local abierto al público. Los nombres del
+      servicios veterinarios y no tiene local abierto al público. La tienda funciona de punta a punta,
+      pero **los pagos son de prueba**: no se cobra nada y no se envía ningún producto. Los nombres del
       equipo, las cifras y la dirección son inventados.
 
       ## Titular de la web
@@ -245,8 +248,8 @@ legal_pages:
       responsabilidad de sus titulares.
   - kind: privacidad
     title: Política de privacidad
-    version: '2026-11-11'
-    updated_on: '2026-11-11'
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
     body_md: |
       ## Quién trata tus datos
 
@@ -285,6 +288,17 @@ legal_pages:
       Para frenar los accesos indebidos contamos los intentos fallidos de inicio de sesión, siempre
       cifrados y durante 24 horas como mucho.
 
+      Si haces un **pedido en la tienda** (con cuenta o sin ella):
+
+      - **Nombre, apellidos y correo electrónico**: para identificar el pedido y enviarte la
+        confirmación y los avisos de su estado.
+      - **Dirección, código postal y ciudad**: solo si eliges el envío a domicilio, para entregarlo.
+      - **Los productos, los importes y el estado del pedido**, incluido el pago y, si lo hay, el
+        reembolso.
+
+      **No vemos ni guardamos los datos de tu tarjeta**: el pago se hace en la página de la pasarela.
+      El carrito se guarda en el servidor y se asocia a tu navegador con la cookie técnica `pc_cart`.
+
       ## Base legal
 
       - **Formulario de contacto**: tu consentimiento, que das al marcar la casilla de privacidad.
@@ -292,6 +306,8 @@ legal_pages:
         al crear la cuenta.
       - **Consejos y novedades**: tu consentimiento, que puedes retirar cuando quieras desde
         "Datos personales".
+      - **Pedidos de la tienda**: la ejecución del contrato de compra (las condiciones de venta) y,
+        después, la obligación legal de conservar los datos de las ventas.
 
       ## Cuánto tiempo los guardamos
 
@@ -300,11 +316,17 @@ legal_pages:
         eliminarla se borran en el acto y de forma definitiva.
       - Las cuentas que no se confirman se borran a los **7 días**.
       - Las sesiones caducan solas (a las 2 horas sin actividad, o a los 30 días con "Recordarme").
+      - Los carritos sin cuenta se borran a los **30 días** sin cambios.
+      - Los pedidos se guardan **6 años** por obligación legal, también si eliminas la cuenta (en ese
+        caso dejan de estar asociados a ella). Pasado ese plazo se borran tus datos de contacto y la
+        dirección, y solo quedan los importes.
 
       ## Quién más interviene
 
       Los correos se envían con **Brevo** (Sendinblue SAS), que actúa como encargado del tratamiento
-      con un contrato que protege tus datos. No cedemos datos a nadie más.
+      con un contrato que protege tus datos. Los pagos con tarjeta los procesa **Stripe** (Stripe
+      Payments Europe, Ltd.), también como encargado del tratamiento; en esta demostración funciona en
+      modo de pruebas y no se cobra nada. No cedemos datos a nadie más.
 
       ## Tus derechos
 
@@ -315,13 +337,13 @@ legal_pages:
       Si tienes cuenta, desde **Mi cuenta → Datos personales** puedes, sin escribirnos:
 
       - corregir tus datos y los de tus mascotas;
-      - **descargar tus datos** en un archivo JSON (portabilidad);
+      - **descargar tus datos** en un archivo JSON, con tus pedidos (portabilidad);
       - **eliminar tu cuenta**, con todos sus datos y mascotas (supresión);
       - activar o desactivar los consejos y novedades.
   - kind: cookies
     title: Política de cookies
-    version: '2026-11-11'
-    updated_on: '2026-11-11'
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
     body_md: |
       ## Qué cookies usamos
 
@@ -331,6 +353,9 @@ legal_pages:
         cerrar el navegador o, si marcas "Recordarme", a los 30 días. Solo se crea al iniciar sesión.
       - **pc_login_hint** (propia y necesaria): rellena tu correo en "Iniciar sesión" justo después
         de confirmarlo. Dura 10 minutos.
+      - **pc_cart** (propia y necesaria): recuerda tu carrito si compras sin cuenta. Solo se crea al
+        añadir el primer producto y dura 30 días. Al iniciar sesión, el carrito pasa a tu cuenta y la
+        cookie se borra.
 
       No usamos cookies de analítica ni de publicidad.
 
@@ -347,13 +372,15 @@ legal_pages:
       ficticia** y el responsable es ${LEGAL_OWNER_NAME}.
   - kind: terminos
     title: Términos de uso
-    version: '2026-11-10'
-    updated_on: '2026-11-10'
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
     body_md: |
       ## Objeto
 
       Estos términos regulan el uso de esta web de demostración. **PetCare es una clínica
-      ficticia**: aquí no se contratan servicios ni se compran productos.
+      ficticia**: no presta servicios veterinarios. La tienda funciona de punta a punta, pero los
+      pagos son de prueba: **no se cobra nada y no se envía ningún producto**. Las compras se rigen
+      por las [condiciones de venta](/condiciones-de-venta).
 
       ## Uso correcto
 
@@ -368,6 +395,56 @@ legal_pages:
       ## Contacto
 
       Para cualquier duda sobre estos términos, escribe a ${LEGAL_CONTACT_EMAIL}.
+  - kind: condiciones-venta
+    title: Condiciones de venta
+    version: '2026-11-12'
+    updated_on: '2026-11-12'
+    body_md: |
+      ## Una tienda de demostración
+
+      **PetCare es una clínica veterinaria ficticia** y esta tienda es una demostración. Todo el
+      proceso de compra es real (carrito, pedido, pago, correos y seguimiento), pero **los pagos son
+      de prueba**: no se cobra nada, no se envía ningún producto y no se emiten facturas. No uses una
+      tarjeta real.
+
+      El responsable de esta web es **${LEGAL_OWNER_NAME}**. Contacto: **${LEGAL_CONTACT_EMAIL}**.
+
+      ## Precios
+
+      Los precios se muestran en euros con el **IVA incluido**. El importe de cada pedido es el que
+      ves en el resumen antes de confirmarlo y el que figura en el correo de confirmación.
+
+      ## Pedido y pago
+
+      - **Con tarjeta**: al confirmar el pedido pasas a la página de la pasarela de pago. Las unidades
+        quedan reservadas durante el plazo de pago que se indica; si no se completa, el pedido se
+        cancela y las unidades vuelven a estar disponibles.
+      - **En la clínica**: solo con recogida en la clínica. El pedido queda reservado hasta la fecha
+        límite de recogida que te indicamos por correo; si no lo recoges, se cancela.
+
+      Mientras el pedido esté pendiente de pago puedes cancelarlo desde el enlace del correo o desde
+      **Mi cuenta → Mis pedidos**.
+
+      ## Envío y recogida
+
+      Puedes elegir el envío a domicilio (solo en España) o la recogida en la clínica en su horario.
+      El coste y el plazo de cada opción se muestran antes de confirmar.
+
+      ## Cancelaciones y reembolsos
+
+      Si la clínica cancela un pedido ya pagado, te devuelve el importe completo en el mismo medio de
+      pago (en esta demostración, de forma simulada). Las devoluciones de productos ya entregados no
+      están disponibles en la demostración.
+
+      ## Códigos de descuento
+
+      Cada código tiene sus condiciones (vigencia, pedido mínimo y número de usos). Solo se puede
+      aplicar un código por pedido y no se aplica a los gastos de envío.
+
+      ## Datos personales
+
+      Usamos tus datos solo para gestionar el pedido. Tienes toda la información en la
+      [política de privacidad](/privacidad).
 
 booking:
   rules:
@@ -420,7 +497,7 @@ shop:
     meta_description: Alimentación, higiene, juguetes, accesorios y cuidado para perros, gatos y otros animales, seleccionados por nuestro equipo.
     demo_notice:
       enabled: true
-      text: "Tienda de demostración: estos productos no están a la venta."
+      text: "Tienda de demostración: los pagos son de prueba y no se envía nada."
   categories:
     - { slug: alimentacion, name: Alimentación }
     - { slug: higiene, name: Higiene }
@@ -847,9 +924,48 @@ shop:
       usage: |
         Diez gotas por cada 100 ml de agua, cinco días seguidos. Cambia el agua a diario.
 
+# Carrito y pago (feature 005, contracts/content-file.md). Los importes van en euros con coma.
+checkout:
+  order_prefix: "PC-"
+  reservation_minutes: 30
+  pickup_days: 7
+  cart_retention_days: 30
+  max_qty_per_line: 10
+  max_pending_per_email: 3
+  max_pending_per_customer: 3
+  guest_link_days: 90
+  notice: "Tienda de demostración: los pagos son de prueba, no se cobra nada y no se envía ningún producto."
+  payment_methods:
+    card: true
+    in_clinic: true
+  shipping_methods:
+    - code: domicilio
+      kind: home_delivery
+      name: Envío a domicilio
+      description: Entrega en 24-48 h
+      cost: "0,00"
+      vat_rate: 21
+      postal_prefixes: null
+    - code: recogida
+      kind: clinic_pickup
+      name: Recogida en la clínica
+      description: Recógelo en la clínica en su horario
+      cost: "0,00"
+      vat_rate: 21
+  discount_codes:
+    - code: BIENVENIDA10
+      kind: percent
+      value: 10
+      ends_at: 2027-12-31
+    - code: PETCARE5
+      kind: fixed
+      value: "5,00"
+      min_subtotal: "30,00"
+      max_uses: 100
+
 sections:
   - { key: reservas, label: Pide cita, href: /pide-cita }
   - { key: tienda, label: Nuestros productos, href: /productos }
-  - { key: carrito, label: Carrito, href: null }
+  - { key: carrito, label: Carrito, href: /carrito }
   - { key: consejos, label: Consejos de salud, href: null }
   - { key: cuenta, label: Mi cuenta, href: /mi-cuenta }

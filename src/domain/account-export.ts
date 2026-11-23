@@ -1,9 +1,11 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { appointmentView } from './appointment-view';
+import { formatEur } from './money';
+import { PAYMENT_METHOD_LABELS, statusLabel, type OrderStatus, type PaymentMethod, type RefundStatus } from './order-status';
 import { petAge, todayInClinicZone } from './pet-age';
 import { CLINIC_TZ, todayInClinic } from './time';
 
-// "Descargar mis datos" (A11, contracts/export-format.md). Solo los datos que ha aportado el cliente
+// "Descargar mis datos" (A11, contracts/export-format.md; versión 2 con los pedidos, feature 005). Solo los datos que ha aportado el cliente
 // o que describen su cuenta: ni ids internos, ni el hash de la contraseña, ni sesiones, ni tokens.
 
 export interface AccountExportInput {
@@ -46,6 +48,29 @@ export interface AccountExportInput {
     contactPhone: string | null;
     createdAt: Date;
   }[];
+  /** Pedidos con customer_id de la cuenta (feature 005, export v2). Nunca los de invitado. */
+  orders?: ExportOrder[];
+}
+
+export interface ExportOrder {
+  number: string;
+  createdAt: Date;
+  status: OrderStatus;
+  refundStatus: RefundStatus;
+  paymentMethod: PaymentMethod;
+  shippingName: string;
+  firstName: string | null;
+  lastName: string | null;
+  addressLine: string | null;
+  postalCode: string | null;
+  city: string | null;
+  discountCode: string | null;
+  discountCents: number;
+  subtotalCents: number;
+  shippingCostCents: number;
+  totalCents: number;
+  vatCents: number;
+  items: { productName: string; quantity: number; unitPriceCents: number; vatRate: number }[];
 }
 
 const STATE_EXPORT = { confirmed: 'confirmada', cancelled: 'cancelada', done: 'realizada' } as const;
@@ -64,7 +89,7 @@ export function buildAccountExport(data: AccountExportInput, now: Date) {
   const c = data.customer;
   const today = todayInClinicZone(now);
   return {
-    format_version: 1 as const,
+    format_version: 2 as const,
     exported_at: zonedIso(now),
     controller: { name: data.controller.name, contact_email: data.controller.contactEmail },
     account: {
@@ -108,6 +133,35 @@ export function buildAccountExport(data: AccountExportInput, now: Date) {
         motivo: a.reason,
         telefono_contacto: a.contactPhone,
         reservada_el: zonedIso(a.createdAt),
+      })),
+    orders: [...(data.orders ?? [])]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((o) => ({
+        number: o.number,
+        created_at: zonedIso(o.createdAt),
+        status: statusLabel(o.status),
+        refunded: o.refundStatus === 'refunded',
+        payment_method: PAYMENT_METHOD_LABELS[o.paymentMethod],
+        shipping: {
+          method: o.shippingName,
+          first_name: o.firstName,
+          last_name: o.lastName,
+          address_line: o.addressLine,
+          postal_code: o.postalCode,
+          city: o.city,
+        },
+        items: o.items.map((i) => ({
+          name: i.productName,
+          quantity: i.quantity,
+          unit_price: formatEur(i.unitPriceCents),
+          total: formatEur(i.unitPriceCents * i.quantity),
+          vat_rate: i.vatRate,
+        })),
+        discount: o.discountCode ? { code: o.discountCode, amount: formatEur(o.discountCents) } : null,
+        subtotal: formatEur(o.subtotalCents),
+        shipping_cost: formatEur(o.shippingCostCents),
+        total: formatEur(o.totalCents),
+        vat_included: formatEur(o.vatCents),
       })),
   };
 }

@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { sectionHref } from '@/domain/sections';
 import type { SiteData } from '@/db/queries/site';
+import { CartLink } from './CartLink';
 import { MobileNav } from './MobileNav';
 import { NavLink } from './NavLink';
 import { mainNavItems } from './nav-items';
@@ -33,9 +34,7 @@ export function SiteHeader({ site }: { site: SiteData }) {
           <Link prefetch={false} className="chip btn btn--pink btn--sm" href="/contacto">
             Contacto
           </Link>
-          <Link prefetch={false} className="icon-link" href={sectionHref('carrito', sections)} aria-label="Carrito">
-            <Image src="/media/icons/carrito.svg" alt="" width={24} height={24} />
-          </Link>
+          <CartLink sections={sections} />
         </div>
       </div>
     </header>
