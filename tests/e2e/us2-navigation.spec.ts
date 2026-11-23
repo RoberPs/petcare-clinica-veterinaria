@@ -3,7 +3,7 @@ import { loadPetcare, loadPetcareVariant } from './db';
 import { axeCheck, dismissCookies, expect, isNoJs, test } from './fixtures';
 
 const MAIN = ['Tratamientos', 'La clínica', 'Nuestros productos', 'Consejos de salud', 'Preguntas frecuentes'];
-const ROUTES = ['/', '/tratamientos', '/la-clinica', '/contacto', '/preguntas-frecuentes', '/privacidad', '/proximamente/tienda'];
+const ROUTES = ['/', '/tratamientos', '/la-clinica', '/contacto', '/preguntas-frecuentes', '/privacidad', '/proximamente/carrito'];
 
 test.describe('US2 · cabecera y pie comunes', () => {
   test('orden de la cabecera (FR-003) en escritorio', async ({ page }, info) => {

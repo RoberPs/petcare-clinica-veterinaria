@@ -20,7 +20,7 @@ test.describe('US4 · resumen', () => {
     const nav = page.getByRole('navigation', { name: 'Mi cuenta' });
     await expect(nav.getByRole('link', { name: 'Resumen' })).toHaveAttribute('aria-current', 'page');
     await expect(nav.getByRole('link', { name: 'Mis citas' })).toHaveAttribute('href', '/mi-cuenta/citas');
-    await expect(nav.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/proximamente/tienda');
+    await expect(nav.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/proximamente/carrito');
 
     const cards = page.locator('ul.pets > li.pet:not(.pet--add)');
     await expect(cards).toHaveCount(2);

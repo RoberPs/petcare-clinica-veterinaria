@@ -5,6 +5,8 @@ import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import { parse as parseYaml } from 'yaml';
 import type { Db } from '@/db/client';
 import * as s from '@/db/schema';
+import { parseEuros } from '@/domain/money';
+import { normalizeSearch } from '@/domain/search';
 import { parseContent, type ContentFile, type ContentIssue } from './schema';
 
 // Carga idempotente del archivo de contenido en la base de datos (R3). Las páginas leen solo de la base.
@@ -39,6 +41,9 @@ export function checkImages(content: ContentFile, publicDir = join(process.cwd()
     ['clinic.hero.image', content.clinic.hero.image],
     ['clinic.about.image', content.clinic.about?.image],
     ...content.team.map((m, i) => [`team[${i}].photo`, m.photo] as [string, string | null | undefined]),
+    ...(content.shop?.products ?? []).map(
+      (p, i) => [`shop.products[${i}].image`, p.image] as [string, string | null | undefined],
+    ),
   ];
   return refs
     .filter(([, p]) => p && !existsSync(join(publicDir, p)))
@@ -55,6 +60,12 @@ async function unpublishMissing(tx: Db, table: SlugTable, slugs: string[]): Prom
 
 const now = sql`now()`;
 
+function compareAtIgnored(content: ContentFile): string[] {
+  return (content.shop?.products ?? [])
+    .filter((p) => p.compare_at_price && parseEuros(p.compare_at_price)! <= parseEuros(p.price)!)
+    .map((p) => p.slug);
+}
+
 export interface LoadSummary {
   services: number;
   team: number;
@@ -63,12 +74,101 @@ export interface LoadSummary {
   species: number;
   /** Mascotas cuya especie ha desaparecido del archivo y pasan a "Otra" (species_key = NULL). */
   petsMovedToOther: number;
+  shopCategories: number;
+  shopPets: number;
+  products: number;
+  /** Productos que quedan despublicados en la base (los que ya no están en el archivo). */
+  productsHidden: number;
+  /** Productos con compare_at_price <= price: se cargan, pero no se muestran en oferta (FR-016). */
+  compareAtIgnored: string[];
+}
+
+/** Bloque shop: (feature 004, C12). Sin bloque, el catálogo entero queda despublicado. */
+async function loadShop(tx: Db, shop: ContentFile['shop']): Promise<void> {
+  if (!shop) {
+    await unpublishMissing(tx, s.products, []);
+    await unpublishMissing(tx, s.productCategories, []);
+    await unpublishMissing(tx, s.productPets, []);
+    return;
+  }
+  const st = shop.settings;
+  const settings = {
+    singleton: true,
+    shippingText: st.shipping_text,
+    pageSize: st.page_size,
+    demoNoticeEnabled: st.demo_notice.enabled,
+    demoNoticeText: st.demo_notice.text ?? null,
+    metaDescription: st.meta_description,
+  };
+  await tx
+    .insert(s.shopSettings)
+    .values(settings)
+    .onConflictDoUpdate({ target: s.shopSettings.singleton, set: { ...settings, updatedAt: now } });
+
+  const categoryIds = new Map<string, string>();
+  for (const [i, cat] of shop.categories.entries()) {
+    const v = { slug: cat.slug, name: cat.name, position: i, published: true };
+    const [row] = await tx
+      .insert(s.productCategories)
+      .values(v)
+      .onConflictDoUpdate({ target: s.productCategories.slug, set: { ...v, updatedAt: now } })
+      .returning({ id: s.productCategories.id });
+    categoryIds.set(cat.slug, row!.id);
+  }
+  await unpublishMissing(tx, s.productCategories, shop.categories.map((x) => x.slug));
+
+  const petIds = new Map<string, string>();
+  for (const [i, pet] of shop.pets.entries()) {
+    const v = { slug: pet.slug, name: pet.name, position: i, published: true };
+    const [row] = await tx
+      .insert(s.productPets)
+      .values(v)
+      .onConflictDoUpdate({ target: s.productPets.slug, set: { ...v, updatedAt: now } })
+      .returning({ id: s.productPets.id });
+    petIds.set(pet.slug, row!.id);
+  }
+  await unpublishMissing(tx, s.productPets, shop.pets.map((x) => x.slug));
+
+  for (const [i, p] of shop.products.entries()) {
+    const v = {
+      slug: p.slug,
+      name: p.name,
+      searchName: normalizeSearch(p.name),
+      shortDescription: p.short_description,
+      descriptionMd: p.description,
+      ingredientsMd: p.ingredients?.trim() ? p.ingredients : null,
+      usageMd: p.usage?.trim() ? p.usage : null,
+      categoryId: categoryIds.get(p.category)!,
+      priceCents: parseEuros(p.price)!,
+      compareAtCents: p.compare_at_price ? parseEuros(p.compare_at_price)! : null,
+      vatRate: p.vat_rate,
+      stock: p.stock,
+      isNew: p.is_new,
+      position: i,
+      imagePath: toPublic(p.image),
+      imageAlt: p.image ? (p.image_alt ?? null) : null,
+      published: true,
+    };
+    const [row] = await tx
+      .insert(s.products)
+      .values(v)
+      .onConflictDoUpdate({ target: s.products.slug, set: { ...v, updatedAt: now } })
+      .returning({ id: s.products.id });
+    await tx.delete(s.productPetLinks).where(eq(s.productPetLinks.productId, row!.id));
+    await tx.insert(s.productPetLinks).values(p.pets.map((pet) => ({ productId: row!.id, petId: petIds.get(pet)! })));
+  }
+  await unpublishMissing(tx, s.products, shop.products.map((x) => x.slug));
 }
 
 export async function loadContent(db: Db, content: ContentFile): Promise<LoadSummary> {
   const c = content.clinic;
   let petsMovedToOther = 0;
+  let productsHidden = 0;
   await db.transaction(async (tx) => {
+    await loadShop(tx, content.shop);
+    const [hidden] = await tx.select({ n: count() }).from(s.products).where(eq(s.products.published, false));
+    productsHidden = hidden?.n ?? 0;
+
     const clinicValues = {
       singleton: true,
       name: c.name,
@@ -260,6 +360,11 @@ export async function loadContent(db: Db, content: ContentFile): Promise<LoadSum
     closures: content.closures.length,
     species: content.species.length,
     petsMovedToOther,
+    shopCategories: content.shop?.categories.length ?? 0,
+    shopPets: content.shop?.pets.length ?? 0,
+    products: content.shop?.products.length ?? 0,
+    productsHidden,
+    compareAtIgnored: compareAtIgnored(content),
   };
 }
 

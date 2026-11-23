@@ -25,7 +25,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
     <>
       <AccountHero firstName={customer.firstName} />
       <div className="container account-grid">
-        <AccountNav appointmentsHref={appointmentsHref} ordersHref={sectionHref('tienda', sections)} />
+        <AccountNav appointmentsHref={appointmentsHref} ordersHref={sectionHref('carrito', sections)} />
         <div className="account-main">{children}</div>
       </div>
     </>

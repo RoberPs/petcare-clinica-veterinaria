@@ -89,3 +89,31 @@ describe('SC-010: sin copia de textos de las maquetas de la cuenta', () => {
   });
 });
 
+
+// Feature 004: ni los nombres, ni los precios, ni los emojis de las maquetas de la tienda se publican.
+describe('SC-010: sin copia de design/productos.html ni design/producto.html', () => {
+  const html = ['productos.html', 'producto.html'].map((n) => readFileSync(join('design', n), 'utf8')).join('\n');
+  const shop = (parse(readFileSync('content/petcare.yaml', 'utf8')) as { shop: { products: Record<string, any>[] } }).shop;
+  const sources = [...walkFiles('src'), ...walkFiles('content')].map((f) => ({ f, text: readFileSync(f, 'utf8') }));
+
+  it('ningún producto de la demo usa un nombre de producto de las maquetas', () => {
+    const names = [...html.matchAll(/<h[13]>([^<]+)<\/h[13]>/g)].map((m) => normalize(m[1]!)).filter((n) => !['nuestros productos', 'mascota', 'categoría'].includes(n));
+    expect(names.length).toBeGreaterThan(3);
+    const copies = shop.products.filter((p) => names.some((n) => normalize(p.name).includes(n))).map((p) => p.slug);
+    expect(copies).toEqual([]);
+  });
+
+  it('ningún precio de la demo coincide con un precio de las maquetas', () => {
+    const prices = new Set([...html.matchAll(/(\d+),(\d{2})\s*€/g)].map((m) => `${m[1]}.${m[2]}`));
+    expect(prices.size).toBeGreaterThan(3);
+    const copies = shop.products.flatMap((p) => [p.price, p.compare_at_price].filter((v) => v && prices.has(v)).map((v) => `${p.slug}: ${v}`));
+    expect(copies).toEqual([]);
+  });
+
+  it('ni src/ ni content/ contienen los emojis de las maquetas de la tienda', () => {
+    const emojis = [...new Set([...html].filter((ch) => (ch.codePointAt(0) ?? 0) >= 0x1f300))];
+    expect(emojis.length).toBeGreaterThan(0);
+    const found = sources.flatMap(({ f, text }) => emojis.filter((e) => text.includes(e)).map((e) => `${f}: ${e}`));
+    expect(found).toEqual([]);
+  });
+});

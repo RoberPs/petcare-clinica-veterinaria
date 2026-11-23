@@ -9,9 +9,9 @@ test.describe('US6 · preguntas frecuentes', () => {
     const item = page.locator('details.faq__item', { hasText: '¿Vendéis piensos y antiparasitarios?' });
     await dismissCookies(page);
     await item.locator('summary').click();
-    await expect(item.getByRole('link', { name: 'Nuestros productos' })).toHaveAttribute('href', '/proximamente/tienda');
+    await expect(item.getByRole('link', { name: 'Nuestros productos' })).toHaveAttribute('href', '/productos');
     await item.getByRole('link', { name: 'Nuestros productos' }).click();
-    await expect(page).toHaveURL(/\/proximamente\/tienda$/);
+    await expect(page).toHaveURL(/\/productos$/);
     await page.goBack();
     await expect(page.locator('.cta-box').getByRole('link', { name: 'Contacto' })).toHaveAttribute('href', '/contacto');
     await axeCheck(page);

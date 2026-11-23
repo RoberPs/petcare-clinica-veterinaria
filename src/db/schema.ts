@@ -591,3 +591,113 @@ export const appointments = pgTable(
       .where(sql`${t.status} = 'confirmed' and ${t.reminderSentAt} is null`),
   ],
 );
+
+// ---------- Catálogo de la tienda (feature 004, data-model.md) ----------
+
+export const productCategories = pgTable(
+  'product_categories',
+  {
+    id: id(),
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+    position: position(),
+    published: published(),
+    ...timestamps,
+  },
+  (t) => [
+    check('product_categories_slug', sql`${t.slug} ~ '^[a-z0-9-]{1,60}$'`),
+    check('product_categories_name_len', sql`char_length(${t.name}) between 1 and 60`),
+    index('product_categories_order_idx').on(t.published, t.position),
+  ],
+);
+
+export const productPets = pgTable(
+  'product_pets',
+  {
+    id: id(),
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+    position: position(),
+    published: published(),
+    ...timestamps,
+  },
+  (t) => [
+    check('product_pets_slug', sql`${t.slug} ~ '^[a-z0-9-]{1,60}$'`),
+    check('product_pets_name_len', sql`char_length(${t.name}) between 1 and 40`),
+    index('product_pets_order_idx').on(t.published, t.position),
+  ],
+);
+
+export const products = pgTable(
+  'products',
+  {
+    id: id(),
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+    searchName: text('search_name').notNull(),
+    shortDescription: text('short_description').notNull(),
+    descriptionMd: text('description_md').notNull(),
+    ingredientsMd: text('ingredients_md'),
+    usageMd: text('usage_md'),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => productCategories.id, { onDelete: 'restrict' }),
+    priceCents: integer('price_cents').notNull(),
+    compareAtCents: integer('compare_at_cents'),
+    vatRate: smallint('vat_rate').notNull(),
+    stock: integer('stock').notNull().default(0),
+    isNew: boolean('is_new').notNull().default(false),
+    position: position(),
+    imagePath: text('image_path'),
+    imageAlt: text('image_alt'),
+    published: published(),
+    ...timestamps,
+  },
+  (t) => [
+    check('products_slug', sql`${t.slug} ~ '^[a-z0-9-]{1,80}$'`),
+    check('products_name_len', sql`char_length(${t.name}) between 1 and 120`),
+    check('products_short_description_len', sql`char_length(${t.shortDescription}) between 1 and 300`),
+    check('products_price_positive', sql`${t.priceCents} > 0`),
+    check('products_compare_at_positive', sql`${t.compareAtCents} is null or ${t.compareAtCents} > 0`),
+    check('products_vat_rate', sql`${t.vatRate} in (0, 4, 10, 21)`),
+    check('products_stock_non_negative', sql`${t.stock} >= 0`),
+    check('products_image_alt', sql`${t.imagePath} is null or char_length(coalesce(${t.imageAlt}, '')) > 0`),
+    index('products_listing_idx').on(t.published, t.categoryId),
+    index('products_order_idx').on(t.published, t.position),
+  ],
+);
+
+export const productPetLinks = pgTable(
+  'product_pet_links',
+  {
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    petId: uuid('pet_id')
+      .notNull()
+      .references(() => productPets.id, { onDelete: 'restrict' }),
+  },
+  (t) => [primaryKey({ columns: [t.productId, t.petId] }), index('product_pet_links_pet_idx').on(t.petId)],
+);
+
+export const shopSettings = pgTable(
+  'shop_settings',
+  {
+    singleton: boolean('singleton').primaryKey().default(true),
+    shippingText: text('shipping_text').notNull(),
+    pageSize: smallint('page_size').notNull().default(12),
+    demoNoticeEnabled: boolean('demo_notice_enabled').notNull().default(false),
+    demoNoticeText: text('demo_notice_text'),
+    metaDescription: text('meta_description').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('shop_settings_singleton', sql`${t.singleton}`),
+    check('shop_settings_shipping_len', sql`char_length(${t.shippingText}) between 1 and 40`),
+    check('shop_settings_page_size', sql`${t.pageSize} between 4 and 48`),
+    check(
+      'shop_settings_demo_notice',
+      sql`not ${t.demoNoticeEnabled} or char_length(coalesce(${t.demoNoticeText}, '')) > 0`,
+    ),
+  ],
+);

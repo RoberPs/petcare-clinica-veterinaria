@@ -16,7 +16,7 @@ test.describe('US1 · portada', () => {
     ['Pide cita online', /\/pide-cita$/],
     ['Contacto', /\/contacto$/],
     ['Conoce la clínica', /\/la-clinica$/],
-    ['Nuestros productos', /\/proximamente\/tienda$/],
+    ['Nuestros productos', /\/productos$/],
     ['Tratamientos y servicios', /\/tratamientos$/],
     ['Consejos de salud', /\/proximamente\/consejos$/],
   ];

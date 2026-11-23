@@ -416,6 +416,30 @@ ul.pets { list-style: none; margin: 0; padding: 0; }
 dl.appointment-details { display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); margin: 0; }
 dl.appointment-details dt { font-weight: var(--fw-semibold); }
 dl.appointment-details dd { margin: 0; }
+/* Catálogo de la tienda (feature 004, C13). */
+.shop-notice { background: var(--color-pink-light); color: var(--color-pink-dark); border-left: var(--border-width-thick) solid var(--color-pink-dark); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); font-weight: var(--fw-semibold); margin: 0; }
+.shop-filters form { display: flex; flex-direction: column; gap: var(--space-4); }
+.shop-filters fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.shop-filters legend { padding: 0; margin-bottom: var(--space-2); font-size: var(--fs-preamble); font-weight: var(--fw-semibold); }
+.shop-filters .select { min-width: 0; width: 100%; }
+.shop-results { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.shop-results h2 { font-size: var(--fs-lead); margin: 0; }
+ul.product-grid { list-style: none; padding: 0; margin: 0; }
+.product-grid > li { display: flex; }
+.product-grid > li > .product { flex: 1; }
+.product__img img, .detail__gallery img { display: block; width: 100%; height: auto; }
+.detail__gallery { overflow: hidden; }
+.product__tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.product__img .product__tags { position: absolute; top: var(--space-3); left: var(--space-3); right: var(--space-3); }
+.detail__panel { padding-top: var(--space-2); }
+.detail__chip { align-self: flex-start; }
+.detail__info .preamble, .detail__pets { margin: 0; }
+.detail__info .price { font-size: var(--fs-stat); }
+.related h2 { margin-bottom: var(--space-5); }
+.page-hero--compact { padding-bottom: var(--space-4); }
+.pagination ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pagination a { display: inline-block; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--color-white); border: var(--border-hairline); font-weight: var(--fw-semibold); }
+.pagination a[aria-current="page"] { background: var(--color-navy); color: var(--color-white); border-color: var(--color-navy); }
 
 @media (max-width: 900px) {
   .contact-grid, .shop-layout, .detail, .cart-layout, .account-grid, .field-row { grid-template-columns: 1fr; }
