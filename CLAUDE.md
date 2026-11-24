@@ -37,7 +37,7 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 ## Estado actual
 
 - Feature **001 — web pública**: **implementada** (tareas en `specs/001-public-clinic-website/tasks.md`).
-  Despliegue preparado en [`deploy/README.md`](deploy/README.md).
+  Despliegue de referencia (no activo) en [`deploy/README.md`](deploy/README.md).
 - Feature **002 — cuentas de cliente y mascotas**: **implementada** (tareas en
   `specs/002-client-accounts-pets/tasks.md`; desviaciones anotadas en su `checklists/requirements.md`).
   Añade `@node-rs/argon2` y la migración `0001_client_accounts`.
@@ -100,11 +100,15 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
   los tests, `EMAIL_PROVIDER=fake`.
 - **Tests**: Vitest (unitarias y de integración contra PostgreSQL real), Playwright con
   `@axe-core/playwright` (también con el perfil sin JavaScript) y Lighthouse CI.
-- **Despliegue**: Docker Compose en el VPS compartido del chatbot, detrás de su Caddy (red
-  `chatbot_proxy`) y de **Cloudflare**, con proxy y Full (strict). El subdominio de un solo nivel
-  es `petcare.automatizacionro.work`, fijado en la variable `PETCARE_DOMINIO`. La IP real del
-  visitante sale de `CF-Connecting-IP` y solo se confía en ella si la petición viene de
-  `TRUSTED_PROXY_IPS`.
+- **Demo pública (decisión 010)**: **no se despliega** en servidor ni con dominio. La demo para
+  reclutadores es **GitHub Codespaces** (`.devcontainer/`: PostgreSQL, correo falso, pago simulado
+  y compilación de producción), con cuentas de demostración que siembra `npm run demo:seed` (solo
+  con `PETCARE_DEMO=1`). El repositorio pasará a público al terminar, tras revisar que no haya
+  secretos ni datos personales en el historial.
+- **Despliegue de referencia (no activo)**: `deploy/` documenta Docker Compose detrás de Caddy y
+  **Cloudflare** (Full strict), con `PETCARE_DOMINIO` (`petcare.example.com` en la documentación).
+  La IP real del visitante sale de `CF-Connecting-IP` y solo se confía en ella si la petición
+  viene de `TRUSTED_PROXY_IPS`.
 
 ## Reglas que no se negocian
 

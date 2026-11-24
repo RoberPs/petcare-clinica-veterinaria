@@ -42,8 +42,8 @@ imágenes de cada clínica van en `public/media/<clinica>/`.
 `@axe-core/playwright` (de extremo a extremo, también sin JavaScript) y Lighthouse CI (`@lhci/cli`).
 
 **Target Platform**: un VPS Linux con Docker Compose, el Caddy compartido del chatbot y Cloudflare
-(proxy y Full strict) sobre un subdominio de un solo nivel de `automatizacionro.work`
-(propuesto: `petcare.automatizacionro.work`). Navegadores
+(proxy y Full strict) sobre un subdominio de un solo nivel de `example.com`
+(propuesto: `petcare.example.com`). Navegadores
 de móvil y escritorio de las dos últimas versiones.
 
 **Project Type**: aplicación web full-stack (un solo proyecto Next.js).

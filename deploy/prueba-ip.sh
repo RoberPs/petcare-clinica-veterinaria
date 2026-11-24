@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Comprueba que falsear X-Forwarded-For NO permite saltarse el límite de envíos (5 cada 10 min por IP)
-# a través de Cloudflare y Caddy. Uso: deploy/prueba-ip.sh https://petcare.automatizacionro.work [IP_DEL_VPS]
+# a través de Cloudflare y Caddy. Uso: deploy/prueba-ip.sh https://petcare.example.com [IP_DEL_VPS]
 #
 # Con IP_DEL_VPS, conecta directamente al origen (sin pasar por Cloudflare), que es como un atacante
 # intentaría falsear CF-Connecting-IP. Lo correcto es que el origen rechace la conexión (443 abierto

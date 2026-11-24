@@ -327,7 +327,7 @@ responsable real, la mención de que PetCare es ficticia y la ausencia de NIF.
 - [X] T110 [P] Crear `deploy/caddy/petcare.caddy` con el bloque `{$PETCARE_DOMINIO} { import instancia petcare-app }` para el Caddyfile compartido, con comentarios sobre `CF-Connecting-IP` y el nivel único del subdominio
 - [X] T111 [P] Crear las unidades de systemd en `deploy/systemd/`: `petcare-email-dispatch.service` y `.timer` (cada minuto), `petcare-purge.service` y `.timer` (diario) y `petcare-backup.service` y `.timer` (diario), además de `deploy/backup.sh` (`pg_dump` rotado a 14 días)
 - [X] T112 [P] Crear `deploy/prueba-ip.sh`, que comprueba que falsear `X-Forwarded-For` no salta el límite de envíos a través de Cloudflare
-- [X] T113 Escribir `deploy/README.md`, la guía paso a paso: Cloudflare (registro `A` `petcare` en `automatizacionro.work`, proxy, Full strict, «Always Use HTTPS», «Rocket Loader» y «Email Obfuscation» apagados, y la regla temporal si hay un 526), Brevo (dominio con SPF y DKIM, clave dedicada), el entorno del VPS, la migración, la carga de contenido, los temporizadores y las comprobaciones
+- [X] T113 Escribir `deploy/README.md`, la guía paso a paso: Cloudflare (registro `A` `petcare` en `example.com`, proxy, Full strict, «Always Use HTTPS», «Rocket Loader» y «Email Obfuscation» apagados, y la regla temporal si hay un 526), Brevo (dominio con SPF y DKIM, clave dedicada), el entorno del VPS, la migración, la carga de contenido, los temporizadores y las comprobaciones
 - [X] T114 Actualizar `README.md` y `CLAUDE.md` de la raíz: estado "implementada", comandos reales y la ruta de `deploy/README.md`
 - [X] T115 Ejecutar [quickstart.md](./quickstart.md) completo (comprobaciones manuales US1–US8, el perfil sin JavaScript, el reintento de correo y el cambio de clínica con un `content/otra.yaml` temporal) y anotar el resultado en `specs/001-public-clinic-website/checklists/quickstart-run.md`
 
@@ -400,7 +400,7 @@ Persona A: US1 → US3   ·   Persona B: US2 → US6   ·   Persona C: US5   · 
    (cookies; obligatorio antes de publicar con el mapa).
 5. **US8** (legales; **obligatorio antes de publicar**, porque el formulario recoge datos
    personales reales).
-6. F11: despliegue en `petcare.automatizacionro.work` y CI.
+6. F11: despliegue en `petcare.example.com` y CI.
 
 > **Requisito para publicar**: US5 no se publica sin US7 y US8, porque el formulario trata datos
 > reales y la política de privacidad tiene que existir. El mapa no se publica sin US7.

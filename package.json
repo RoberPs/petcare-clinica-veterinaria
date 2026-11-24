@@ -27,7 +27,8 @@
     "retention:purge": "tsx scripts/retention-purge.ts",
     "orders": "tsx scripts/orders.ts",
     "orders:maintain": "tsx scripts/orders-maintain.ts",
-    "admin": "tsx scripts/admin.ts"
+    "admin": "tsx scripts/admin.ts",
+    "demo:seed": "tsx scripts/demo-seed.ts"
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",

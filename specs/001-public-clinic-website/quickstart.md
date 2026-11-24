@@ -70,11 +70,11 @@ de `src/`.
 
 ## Despliegue (resumen; la guía completa estará en `deploy/README.md`)
 
-1. En la zona `automatizacionro.work` de Cloudflare, crear el registro `A` `petcare` hacia el VPS, con proxy
+1. En la zona `example.com` de Cloudflare, crear el registro `A` `petcare` hacia el VPS, con proxy
    activado, en modo Full (strict) y sin «Always Use HTTPS» ni «Rocket Loader» (R16).
 2. En el VPS, ejecutar `docker compose -f deploy/docker-compose.prod.yml up -d`, añadir el bloque
    de Caddy al Caddyfile compartido y fijar `PETCARE_DOMINIO`.
 3. Ejecutar `db:migrate` y `content:load` dentro del contenedor y activar los temporizadores de
    systemd (`email-dispatch`, `retention-purge` y `backup`).
-4. Comprobar que `https://petcare.automatizacionro.work/api/health` responde `200` y que la prueba de IP no se puede
+4. Comprobar que `https://petcare.example.com/api/health` responde `200` y que la prueba de IP no se puede
    falsear con `X-Forwarded-For`.

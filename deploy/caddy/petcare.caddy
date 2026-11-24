@@ -1,6 +1,6 @@
 # Bloque de PetCare para el Caddyfile compartido del chatbot (importar o pegar).
 #
-# - PETCARE_DOMINIO es un subdominio de UN solo nivel (por ejemplo petcare.automatizacionro.work):
+# - PETCARE_DOMINIO es un subdominio de UN solo nivel (por ejemplo petcare.example.com):
 #   el certificado gratuito de Cloudflare no cubre dos niveles.
 # - El snippet "instancia" del Caddyfile compartido hace reverse_proxy al contenedor indicado en el
 #   puerto 3000 y SUSTITUYE X-Forwarded-For por la cabecera CF-Connecting-IP (la IP real del visitante

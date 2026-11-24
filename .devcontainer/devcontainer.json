@@ -1,0 +1,19 @@
+{
+  "name": "PetCare — demo",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/petcare",
+  "shutdownAction": "stopCompose",
+  "hostRequirements": { "cpus": 2, "memory": "8gb" },
+  "forwardPorts": [3000, "email-fake:8025"],
+  "portsAttributes": {
+    "3000": { "label": "PetCare (web)", "onAutoForward": "openBrowser" },
+    "email-fake:8025": { "label": "Correos enviados (GET /emails)", "onAutoForward": "silent" }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "bash .devcontainer/start.sh",
+  "customizations": {
+    "codespaces": { "openFiles": ["README.md"] },
+    "vscode": { "extensions": ["dbaeumer.vscode-eslint"] }
+  }
+}

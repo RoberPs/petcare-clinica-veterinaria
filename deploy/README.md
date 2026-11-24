@@ -1,19 +1,23 @@
 # Despliegue de PetCare
 
-Guía paso a paso para publicar la web en `petcare.automatizacionro.work`, en el VPS compartido del
+> **Referencia, no activo.** PetCare no está desplegado: la demo pública se ejecuta en GitHub
+> Codespaces (ver el [README](../README.md)). Esta guía documenta cómo se pondría en producción.
+> `petcare.example.com` sustituye al dominio real.
+
+Guía paso a paso para publicar la web en `petcare.example.com`, en el VPS compartido del
 chatbot (Docker Compose detrás de su Caddy) y con Cloudflare delante. Las decisiones están en
 [research.md, R16](../specs/001-public-clinic-website/research.md).
 
-## 1. Cloudflare (zona `automatizacionro.work`)
+## 1. Cloudflare (zona `example.com`)
 
 1. **DNS**: registro `A` con nombre `petcare` hacia la IPv4 del VPS, **con proxy** (nube naranja).
    No crees registro `AAAA`. El subdominio tiene que ser de **un solo nivel**: el certificado
-   gratuito de Cloudflare no cubre `a.b.automatizacionro.work`.
+   gratuito de Cloudflare no cubre `a.b.example.com`.
 2. **SSL/TLS**: modo **Full (strict)**.
 3. **Apaga** «Always Use HTTPS» (rompe el desafío HTTP-01 de Caddy), «Rocket Loader» y «Email
    Address Obfuscation» (inyectan scripts que la CSP bloquea).
 4. Si al principio sale un **error 526** (Caddy todavía no tiene certificado), crea una
-   *Configuration Rule* temporal con SSL «Full» solo para `petcare.automatizacionro.work`, espera a
+   *Configuration Rule* temporal con SSL «Full» solo para `petcare.example.com`, espera a
    que Caddy emita el certificado y bórrala.
 
 ## 2. Brevo
@@ -89,10 +93,10 @@ Si se quita una especie del YAML, sus mascotas pasan a "Otra"; `content-load` av
      `PAYMENT_FAKE_ALLOWED=true`, porque en producción `fake` está prohibido por defecto).
    - `STRIPE_SECRET_KEY`: la clave secreta **de pruebas** (`sk_test_…`). Nunca una `sk_live_…`.
    - `STRIPE_WEBHOOK_SECRET`: el secreto de firma del webhook (`whsec_…`, paso 4).
-   - `SITE_URL`: la URL pública (`https://petcare.automatizacionro.work`). Con ella se construyen las
+   - `SITE_URL`: la URL pública (`https://petcare.example.com`). Con ella se construyen las
      vueltas de la pasarela y los enlaces de los correos de pedido.
 4. Webhook de Stripe, en el panel de Stripe **en modo de pruebas** (Desarrolladores → Webhooks):
-   - URL: `https://petcare.automatizacionro.work/api/pagos/webhook`.
+   - URL: `https://petcare.example.com/api/pagos/webhook`.
    - Eventos: `checkout.session.completed`, `checkout.session.expired` y `charge.refunded`.
    - Copia el secreto de firma en `STRIPE_WEBHOOK_SECRET` y reinicia `petcare-app`.
    - Si un aviso se pierde, `petcare-orders-maintain` concilia las sesiones abiertas de más de 5 minutos
@@ -207,7 +211,7 @@ salida incluye datos del comprador: no la pegues en tickets ni en chats.
 ## 5. Caddy compartido
 
 1. Copia `deploy/caddy/petcare.caddy` junto al Caddyfile del chatbot e impórtalo (o pega el bloque).
-2. Define `PETCARE_DOMINIO=petcare.automatizacionro.work` en el entorno de Caddy.
+2. Define `PETCARE_DOMINIO=petcare.example.com` en el entorno de Caddy.
 3. Recarga Caddy. El snippet `instancia` debe sustituir `X-Forwarded-For` por `CF-Connecting-IP` y
    confiar solo en los rangos de Cloudflare.
 
@@ -244,11 +248,11 @@ systemctl list-timers 'petcare-*'
 ## 7. Comprobaciones
 
 ```bash
-curl -fsS https://petcare.automatizacionro.work/api/health        # {"ok":true}
-curl -sI https://petcare.automatizacionro.work/ | grep -i content-security-policy
-deploy/prueba-ip.sh https://petcare.automatizacionro.work          # el 6.º envío queda limitado
-deploy/prueba-ip.sh https://petcare.automatizacionro.work <IP_DEL_VPS>   # sin pasar por Cloudflare
-curl -sI https://petcare.automatizacionro.work/ | grep -i strict-transport-security
+curl -fsS https://petcare.example.com/api/health        # {"ok":true}
+curl -sI https://petcare.example.com/ | grep -i content-security-policy
+deploy/prueba-ip.sh https://petcare.example.com          # el 6.º envío queda limitado
+deploy/prueba-ip.sh https://petcare.example.com <IP_DEL_VPS>   # sin pasar por Cloudflare
+curl -sI https://petcare.example.com/ | grep -i strict-transport-security
 ```
 
 `prueba-ip.sh` crea 5 mensajes reales y envía sus correos: hazla una vez tras el despliegue o tras
