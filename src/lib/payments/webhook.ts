@@ -5,7 +5,7 @@ import { orderStatusHistory, orders, paymentEvents, payments } from '@/db/schema
 import { sendEmailsSoon } from '@/email/outbox';
 import { emptyCart } from '@/lib/cart/cart';
 import { StockUnavailableError } from '@/lib/checkout/reserve';
-import { logger } from '@/lib/logger';
+import { logErrorCode, logger } from '@/lib/logger';
 import { refundOrder } from '@/lib/orders/refund';
 import { transitionOrder } from '@/lib/orders/transition';
 import { getPaymentProvider, InvalidSignature, type CheckoutSession, type PaymentEvent } from './provider';
@@ -149,7 +149,7 @@ async function runEffects(effects: Effects, now: Date): Promise<void> {
       await refundOrder(r.orderId, { now, sendCancelledEmail: r.sendCancelledEmail });
     } catch (error) {
       // Queda "pending": lo reintenta orders:maintain.
-      logger.error({ event: 'refund_after_payment_failed', order_id: r.orderId, code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+      logger.error({ event: 'refund_after_payment_failed', order_id: r.orderId, code: logErrorCode(error) });
     }
   }
 }
@@ -201,7 +201,7 @@ export async function handleWebhookRequest(rawBody: string, headers: Headers, no
     logger.info({ event: 'payment_webhook', type: event.type, result });
     return { status: 200 };
   } catch (error) {
-    logger.error({ event: 'payment_webhook_error', type: event.type, code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'payment_webhook_error', type: event.type, code: logErrorCode(error) });
     return { status: 500 };
   }
 }
@@ -215,7 +215,7 @@ export async function reconcilePayment(payment: Pick<PaymentRow, 'providerSessio
   try {
     session = await (await getPaymentProvider()).retrieveCheckout(payment.providerSessionId);
   } catch (error) {
-    logger.warn({ event: 'payment_reconcile_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.warn({ event: 'payment_reconcile_failed', code: logErrorCode(error) });
     return 'error';
   }
   if (session.status === 'complete' && session.paid) {

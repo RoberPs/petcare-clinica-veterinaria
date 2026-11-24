@@ -247,8 +247,38 @@ systemctl list-timers 'petcare-*'
 curl -fsS https://petcare.automatizacionro.work/api/health        # {"ok":true}
 curl -sI https://petcare.automatizacionro.work/ | grep -i content-security-policy
 deploy/prueba-ip.sh https://petcare.automatizacionro.work          # el 6.º envío queda limitado
+deploy/prueba-ip.sh https://petcare.automatizacionro.work <IP_DEL_VPS>   # sin pasar por Cloudflare
+curl -sI https://petcare.automatizacionro.work/ | grep -i strict-transport-security
 ```
 
 `prueba-ip.sh` crea 5 mensajes reales y envía sus correos: hazla una vez tras el despliegue o tras
-cambiar Caddy. Por último, envía un mensaje desde `/contacto` y comprueba que llegan el correo a
-la clínica y el acuse.
+cambiar Caddy. Con la IP del VPS, conecta al origen sin pasar por Cloudflare: lo correcto es que el
+origen no responda (443 abierto solo a los rangos de Cloudflare) o que el límite se mantenga. Si
+falla, la app confía en un `X-Forwarded-For` o `CF-Connecting-IP` falseado y se saltan todos los
+límites por origen. Si no sale `Strict-Transport-Security`, actívalo en Cloudflare (SSL/TLS → Edge
+Certificates → HSTS). Por último, envía un mensaje desde `/contacto` y comprueba que llegan el
+correo a la clínica y el acuse.
+
+Los contenedores tienen límites de memoria y CPU (`PETCARE_APP_MEM`, `PETCARE_APP_CPUS`,
+`PETCARE_DB_MEM`, `PETCARE_DB_CPUS` en `deploy/.env`; por defecto 768m, 1 CPU, 512m y 1 CPU) y
+logs rotados (3 × 10 MB), para no afectar al chatbot del mismo VPS. `docker stats` muestra el
+consumo real.
+
+## 8. Limitaciones conocidas de la demo
+
+La auditoría de seguridad posterior a la feature 008 no encontró fallos críticos ni altos. Antes de
+desplegar se corrigieron la redirección abierta en `return_to`, los mensajes de error con datos
+personales en los logs y el reloj de pruebas en producción, y se añadieron límites a los
+contenedores. Quedan, aceptados por tratarse de una demo sin datos de valor:
+
+- **Registro repetido de una cuenta sin verificar**: gana el último registro (también su
+  contraseña). Una cuenta real debería pedir la contraseña al confirmar el correo.
+- **Límites de intentos**: se comprueban y se apuntan por separado, así que peticiones en paralelo
+  prueban algunas contraseñas o códigos de más; y el bloqueo por cuenta (5 fallos en 15 min) lo
+  puede provocar quien conozca el correo.
+- **Copias de seguridad** sin cifrar y en el mismo VPS: si se pierden, la demo se vuelve a cargar
+  con `content:load`.
+- **Sesión del administrador** igual que la del cliente (hasta 30 días con «Recordarme»).
+- **Endurecimiento pendiente**: imágenes Docker y acciones de GitHub sin fijar por SHA, red
+  `chatbot_proxy` compartida con el otro proyecto, `bodySizeLimit` de 6 MB para todas las Server
+  Actions y HSTS delegado en Cloudflare.

@@ -46,4 +46,4 @@ export async function checkPolicy(
   return retryAfterMinutes(hits.oldest ?? now, policy, now);
 }
 
-export const errorCode = (error: unknown) => (error instanceof Error ? error.message.slice(0, 80) : 'unknown');
+export { logErrorCode as errorCode } from '../logger';

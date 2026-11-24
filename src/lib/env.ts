@@ -27,6 +27,8 @@ const envSchema = z
     PAYMENT_FAKE_ALLOWED: z.preprocess(emptyToUndefined, z.enum(['true', 'false']).default('false')),
     // Feature 008 (G4): directorio de las fotos subidas. Obligatorio en producción.
     UPLOADS_DIR: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+    // Reloj de pruebas (cabecera x-test-now): solo para los e2e, que sirven por http://localhost.
+    TEST_CLOCK_ENABLED: z.preprocess(emptyToUndefined, z.string().optional()),
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === 'brevo' && !env.BREVO_API_KEY) {
@@ -50,6 +52,15 @@ const envSchema = z
     }
     if (env.NODE_ENV === 'production' && !env.UPLOADS_DIR) {
       ctx.addIssue({ code: 'custom', path: ['UPLOADS_DIR'], message: 'falta UPLOADS_DIR (producción)' });
+    }
+    // Con el reloj de pruebas, cualquier visitante movería la hora de la app (sesiones, plazos, límites).
+    // Los e2e corren con NODE_ENV=production, así que lo que lo prohíbe es un despliegue con https.
+    if (env.TEST_CLOCK_ENABLED === '1' && env.SITE_URL.startsWith('https://')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TEST_CLOCK_ENABLED'],
+        message: 'TEST_CLOCK_ENABLED=1 no se permite con un SITE_URL https (solo para los e2e en local)',
+      });
     }
     if (env.PAYMENT_PROVIDER === 'fake' && env.NODE_ENV === 'production' && env.PAYMENT_FAKE_ALLOWED !== 'true') {
       ctx.addIssue({

@@ -5,7 +5,7 @@ import { formField } from '@/lib/account/common';
 import { ensureCheckoutSession } from '@/lib/checkout/confirm';
 import { assertShopEnabled, ShopDisabledError } from '@/lib/checkout/guard';
 import { getNow } from '@/lib/clock';
-import { logger } from '@/lib/logger';
+import { logErrorCode, logger } from '@/lib/logger';
 import { withNotice } from '@/lib/notice';
 import { cancelOrder as runCancelOrder } from '@/lib/orders/cancel';
 import { orderFromForm } from '@/lib/orders/locate';
@@ -39,7 +39,7 @@ export async function retryPayment(form: FormData): Promise<void> {
   try {
     url = await ensureCheckoutSession(order, now);
   } catch (error) {
-    logger.error({ event: 'payment_retry_failed', order_id: order.id, code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'payment_retry_failed', order_id: order.id, code: logErrorCode(error) });
     redirect(withNotice(backUrl, 'carrito-error'));
   }
   redirect(url);

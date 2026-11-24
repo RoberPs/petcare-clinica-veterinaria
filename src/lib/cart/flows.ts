@@ -6,7 +6,7 @@ import { getCheckoutConfig, getCheckoutSettings, isShopEnabled } from '@/db/quer
 import { recordHit } from '@/db/queries/rate-limit';
 import { carts } from '@/db/schema';
 import { checkPolicy, formField, policyBucket } from '@/lib/account/common';
-import { logger } from '@/lib/logger';
+import { logErrorCode, logger } from '@/lib/logger';
 import { withNotice, type NoticeCode } from '@/lib/notice';
 import { isSafeReturnTo } from '@/lib/return-to';
 import { addItem, readCart, removeItem, setQuantity, type CartChange } from './cart';
@@ -86,7 +86,7 @@ export async function processAddToCart(form: FormData, ctx: CartActionContext): 
       retentionDays: settings.cartRetentionDays,
     };
   } catch (error) {
-    logger.error({ event: 'cart_add_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'cart_add_failed', code: logErrorCode(error) });
     return { redirectTo: withNotice(back, 'carrito-error'), newToken: null, retentionDays: 0 };
   }
 }
@@ -126,7 +126,7 @@ export async function processBuyNow(form: FormData, ctx: CartActionContext): Pro
       retentionDays: settings.cartRetentionDays,
     };
   } catch (error) {
-    logger.error({ event: 'cart_buy_now_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'cart_buy_now_failed', code: logErrorCode(error) });
     return { redirectTo: withNotice(back, 'carrito-error'), newToken: null, retentionDays: 0 };
   }
 }
@@ -148,7 +148,7 @@ export async function processUpdateCartLine(form: FormData, ctx: CartActionConte
     const notice = noticeFor(change, 'carrito-actualizado');
     return { redirectTo: notice ? withNotice(back, notice) : back, newToken: null, retentionDays: 0 };
   } catch (error) {
-    logger.error({ event: 'cart_update_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'cart_update_failed', code: logErrorCode(error) });
     return { redirectTo: withNotice(back, 'carrito-error'), newToken: null, retentionDays: 0 };
   }
 }
@@ -161,7 +161,7 @@ export async function processRemoveCartLine(form: FormData, ctx: CartActionConte
     await removeItem({ owner: ownerFor(ctx).owner, productId: formField(form, 'product_id') ?? '' });
     return { redirectTo: withNotice(back, 'carrito-actualizado'), newToken: null, retentionDays: 0 };
   } catch (error) {
-    logger.error({ event: 'cart_remove_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'cart_remove_failed', code: logErrorCode(error) });
     return { redirectTo: withNotice(back, 'carrito-error'), newToken: null, retentionDays: 0 };
   }
 }
@@ -206,7 +206,7 @@ export async function processApplyDiscount(form: FormData, ctx: DiscountContext)
     await getDb().update(carts).set({ discountCodeId: row!.id, updatedAt: sql`now()` }).where(eq(carts.id, cart.id));
     return { status: 'ok' };
   } catch (error) {
-    logger.error({ event: 'discount_apply_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'discount_apply_failed', code: logErrorCode(error) });
     return { status: 'error' };
   }
 }
@@ -220,7 +220,7 @@ export async function processRemoveDiscount(ctx: CartActionContext): Promise<Car
     if (cart) await getDb().update(carts).set({ discountCodeId: null, updatedAt: sql`now()` }).where(eq(carts.id, cart.id));
     return { redirectTo: withNotice(back, 'descuento-retirado'), newToken: null, retentionDays: 0 };
   } catch (error) {
-    logger.error({ event: 'discount_remove_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'discount_remove_failed', code: logErrorCode(error) });
     return { redirectTo: withNotice(back, 'carrito-error'), newToken: null, retentionDays: 0 };
   }
 }

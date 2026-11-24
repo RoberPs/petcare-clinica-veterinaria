@@ -4,7 +4,7 @@ import { countRecentHits, createContactMessage, findReason } from '@/db/queries/
 import { getSiteData } from '@/db/queries/site';
 import { getEnv } from './env';
 import { verifySubmissionToken } from './form-token';
-import { logger } from './logger';
+import { logErrorCode, logger } from './logger';
 
 export type ContactResult =
   | { status: 'idle' }
@@ -58,7 +58,7 @@ export async function processContactSubmission(
       return { result: { status: 'rate_limited', phone } };
     }
   } catch (error) {
-    logger.error({ code: error instanceof Error ? error.message : 'unknown' }, 'contact_rate_check_failed');
+    logger.error({ code: logErrorCode(error) }, 'contact_rate_check_failed');
     return { result: { status: 'error', phone } };
   }
 
@@ -86,7 +86,7 @@ export async function processContactSubmission(
     logger.info({ message_id: created.id, created: created.created }, 'contact_received');
     return { result: ok, newMessageId: created.created ? created.id : undefined };
   } catch (error) {
-    logger.error({ code: error instanceof Error ? error.message : 'unknown' }, 'contact_store_failed');
+    logger.error({ code: logErrorCode(error) }, 'contact_store_failed');
     return { result: { status: 'error', phone } };
   }
 }
