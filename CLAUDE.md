@@ -75,15 +75,19 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
   vive en `src/lib/admin/` y los estados de pedido siguen cambiando solo en `src/lib/orders/`.
   **`content:load` ya no sobrescribe** productos ni códigos de descuento: solo crea los que faltan;
   con `--force-shop` los restaura desde el YAML. `npm run orders` ahora envía el correo `order_status`.
-- **Repositorio**: `RoberPs/petcare-clinica-veterinaria` (propio, sin historial de otros
-  proyectos). **Rama principal**: `main` (la rama por defecto en GitHub). Cada feature sale de
-  `main` en su rama `NNN-nombre` y vuelve a `main` por PR, con la CI en verde y con *merge commit*.
-  Hasta la 007, las features se fusionaban en `001-public-clinic-website`, que ya está fusionada en
-  `main` y no se usa más. `main` **no está protegida en GitHub** (repositorio privado sin GitHub
-  Pro): al terminar el proyecto se añadirá un hook `pre-push` local que impida el push directo a
-  `main`. Hasta entonces, nada entra en `main` sin PR. El script de ramas de Spec Kit cuenta
-  también las del remoto `gestor-citas` (otro proyecto), así que hay que revisar el número que
-  propone.
+- **Repositorio**: `RoberPs/petcare-clinica-veterinaria`, **público** (propio, sin historial de
+  otros proyectos). Se recreó el 2026-11-24 con el historial reescrito para quitar un correo
+  personal de los commits, así que empieza sin PR. El anterior, con las PR #1–#11, es
+  `RoberPs/petcare-clinica-veterinaria-archivo` (privado; no se usa). Los commits van firmados
+  con el correo `noreply` de GitHub, nunca con uno personal. **Rama principal**: `main` (la rama
+  por defecto). Cada feature sale de `main` en su rama `NNN-nombre` y vuelve a `main` por PR, con
+  la CI en verde y con *merge commit*. Hasta la 007, las features se fusionaban en
+  `001-public-clinic-website`, que ya está fusionada en `main` y no se usa más. **`main` está
+  protegida en GitHub** (también para los administradores): solo entra por PR, con los 6 checks
+  en verde (`lint`, `unit`, `integration`, `e2e`, `lighthouse` y `gitleaks`) y la rama al día,
+  con las conversaciones resueltas y sin *force-push* ni borrado. No hace falta aprobación. El
+  script de ramas de Spec Kit cuenta también las del remoto `gestor-citas` (otro proyecto), así
+  que hay que revisar el número que propone.
 - PostgreSQL local: desarrollo en el puerto **5434** (el 5432 lo usa un PostgreSQL nativo) y
   pruebas en el **5433**.
 
@@ -103,8 +107,7 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 - **Demo pública (decisión 010)**: **no se despliega** en servidor ni con dominio. La demo para
   reclutadores es **GitHub Codespaces** (`.devcontainer/`: PostgreSQL, correo falso, pago simulado
   y compilación de producción), con cuentas de demostración que siembra `npm run demo:seed` (solo
-  con `PETCARE_DEMO=1`). El repositorio pasará a público al terminar, tras revisar que no haya
-  secretos ni datos personales en el historial.
+  con `PETCARE_DEMO=1`) junto con citas y pedidos de ejemplo (`scripts/demo-activity.ts`).
 - **Despliegue de referencia (no activo)**: `deploy/` documenta Docker Compose detrás de Caddy y
   **Cloudflare** (Full strict), con `PETCARE_DOMINIO` (`petcare.example.com` en la documentación).
   La IP real del visitante sale de `CF-Connecting-IP` y solo se confía en ella si la petición
