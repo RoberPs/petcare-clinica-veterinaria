@@ -269,8 +269,8 @@ de la spec y de la constitución.
   proveedor de correo falso.
 - **Dominio y Cloudflare** (decisión del responsable, igual que en otros proyectos):
   - La demo se publica en un **subdominio de un solo nivel** del dominio activo del responsable,
-    **`automatizacionro.work`** (confirmado), gestionado en **Cloudflare**. Se propone
-    `petcare.automatizacionro.work`; el nombre se fija en la configuración (`PETCARE_DOMINIO`),
+    **`example.com`** (confirmado), gestionado en **Cloudflare**. Se propone
+    `petcare.example.com`; el nombre se fija en la configuración (`PETCARE_DOMINIO`),
     así que ni la aplicación ni Caddy lo llevan escrito. Un solo nivel es necesario porque el
     certificado gratuito de Cloudflare no cubre dos.
   - Registro `A` del subdominio a la IPv4 del VPS, **con proxy** (nube naranja) y sin `AAAA`. SSL en
