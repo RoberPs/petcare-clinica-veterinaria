@@ -10,15 +10,18 @@ const i = process.argv.indexOf('--file');
 const file = i >= 0 ? process.argv[i + 1] : undefined;
 
 if (!file) {
-  console.error('Uso: npm run content:load -- --file content/<clinica>.yaml');
+  console.error('Uso: npm run content:load -- --file content/<clinica>.yaml [--force-booking] [--force-shop]');
   process.exit(2);
 }
 
 const forceBooking = process.argv.includes('--force-booking');
 if (forceBooking) console.warn('Aviso: --force-booking. Se sobrescriben los datos de agenda del panel.');
+// Feature 008 (G13): sin --force-shop, el archivo solo crea los productos y códigos que faltan.
+const forceShop = process.argv.includes('--force-shop');
+if (forceShop) console.warn('Aviso: --force-shop. Se restauran productos, stock y códigos de descuento desde el archivo.');
 
 try {
-  const summary = await loadContentFile(getDb(), file, forceBooking ? { forceBooking: true } : {});
+  const summary = await loadContentFile(getDb(), file, { ...(forceBooking ? { forceBooking: true } : {}), ...(forceShop ? { forceShop: true } : {}) });
   console.log(
     `Contenido cargado desde ${file}: ${summary.services} servicios, ${summary.team} profesionales, ` +
       `${summary.faqs} preguntas, ${summary.closures} cierres y ${summary.species} especies. ` +
@@ -26,6 +29,11 @@ try {
       ` (${summary.productsHidden} productos despublicados). ` +
       `Consejos: ${summary.posts} publicaciones (${summary.postsHidden} despublicadas) y ` +
       `${summary.postCategories} categorías. Boletín: ${summary.newsletterEnabled ? 'activo' : 'desactivado'}.`,
+  );
+  const sc = summary.shopCounts;
+  console.log(
+    `Tienda: ${sc.productsCreated} productos creados, ${sc.productsKept} conservados y ${sc.productsRestored} restaurados; ` +
+      `${sc.discountsCreated} códigos creados, ${sc.discountsKept} conservados y ${sc.discountsRestored} restaurados.`,
   );
   for (const slug of summary.compareAtIgnored) {
     console.warn(`Aviso: ${slug} tiene compare_at_price menor o igual que price; no se mostrará en oferta.`);

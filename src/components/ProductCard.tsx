@@ -1,10 +1,9 @@
-import Image from 'next/image';
 import type { ProductSummary } from '@/db/queries/catalog';
 import { AddToCartForm } from './AddToCartForm';
 import { Price, ProductTags } from './Price';
+import { ProductImage } from './ProductImage';
 
-export const PRODUCT_PLACEHOLDER = '/media/comun/placeholder-producto.svg';
-export const PLACEHOLDER_ALT = 'Imagen genérica: este producto todavía no tiene foto';
+export { PLACEHOLDER_ALT, PRODUCT_PLACEHOLDER } from './ProductImage';
 
 /** "Alimentación · Perro, Gato" */
 export const productMeta = (p: Pick<ProductSummary, 'categoryName' | 'pets'>) => `${p.categoryName} · ${p.pets.join(', ')}`;
@@ -22,13 +21,13 @@ export function ProductCard({ product, priority = false, returnTo = null }: Prop
   return (
     <article className="product">
       <div className="product__img">
-        <Image
-          src={product.imagePath ?? PRODUCT_PLACEHOLDER}
-          alt={product.imagePath ? (product.imageAlt ?? '') : PLACEHOLDER_ALT}
-          width={600}
-          height={600}
+        <ProductImage
+          imagePath={product.imagePath}
+          imageAlt={product.imageAlt}
+          imageWidth={product.imageWidth}
+          imageHeight={product.imageHeight}
           sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 25vw"
-          {...(priority ? { priority: true } : { loading: 'lazy' as const })}
+          priority={priority}
         />
         <ProductTags isNew={product.isNew} priceCents={product.priceCents} compareAtCents={product.compareAtCents} />
       </div>

@@ -18,5 +18,12 @@ docker compose -f deploy/docker-compose.prod.yml exec -T petcare-db \
 mv "$file.tmp" "$file"
 chmod 600 "$file"
 
+# Feature 008: fotos de producto subidas desde el panel (volumen petcare-uploads).
+uploads="$BACKUP_DIR/petcare-uploads-$(date +%Y%m%d-%H%M%S).tar.gz"
+docker compose -f deploy/docker-compose.prod.yml exec -T petcare-app   tar -C /app/var/uploads -czf - . > "$uploads.tmp"
+mv "$uploads.tmp" "$uploads"
+chmod 600 "$uploads"
+
 find "$BACKUP_DIR" -name 'petcare-*.sql.gz' -mtime +"$KEEP_DAYS" -delete
-echo "Copia creada: $file"
+find "$BACKUP_DIR" -name 'petcare-uploads-*.tar.gz' -mtime +"$KEEP_DAYS" -delete
+echo "Copia creada: $file y $uploads"

@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CartSummary } from '@/components/CartSummary';
 import { DiscountForm } from '@/components/DiscountForm';
 import { Notice } from '@/components/Notice';
-import { PLACEHOLDER_ALT, PRODUCT_PLACEHOLDER } from '@/components/ProductCard';
+import { ProductImage } from '@/components/ProductImage';
 import { QuantityField } from '@/components/QuantityField';
 import { formatEur } from '@/domain/money';
 import { findCart } from '@/db/queries/cart';
@@ -69,11 +68,13 @@ export default async function CartPage({ searchParams }: Props) {
             {view.lines.map((line) => (
               <article key={line.productId} className={line.unavailable ? 'cart-item cart-item--unavailable' : 'cart-item'}>
                 <div className="cart-item__img">
-                  <Image
-                    src={line.imagePath ?? PRODUCT_PLACEHOLDER}
-                    alt={line.imagePath ? (line.imageAlt ?? '') : PLACEHOLDER_ALT}
-                    width={96}
-                    height={96}
+                  <ProductImage
+                    imagePath={line.imagePath}
+                    imageAlt={line.imageAlt}
+                    imageWidth={line.imageWidth}
+                    imageHeight={line.imageHeight}
+                    sizes="96px"
+                    fallbackSize={96}
                   />
                 </div>
                 <div className="cart-item__body">

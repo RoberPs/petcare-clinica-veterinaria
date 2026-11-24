@@ -152,6 +152,8 @@ export interface CartLineView {
   pets: string[];
   imagePath: string | null;
   imageAlt: string | null;
+  imageWidth: number | null;
+  imageHeight: number | null;
   unitPriceCents: number;
   vatRate: number;
   quantity: number;
@@ -227,6 +229,8 @@ export async function readCart(
       pets: row.pets,
       imagePath: row.imagePath,
       imageAlt: row.imageAlt,
+      imageWidth: row.imageWidth,
+      imageHeight: row.imageHeight,
       unitPriceCents: row.priceCents,
       vatRate: row.vatRate,
       quantity,

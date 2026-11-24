@@ -52,3 +52,31 @@ export function discountMessage(reason: DiscountRejection, code: Pick<DiscountCo
       return `Este código requiere un pedido mínimo de ${formatEur(code?.minSubtotalCents ?? 0)}`;
   }
 }
+
+// ---------- Estado calculado para el panel (feature 008, G12) ----------
+
+export type DiscountState = 'disabled' | 'scheduled' | 'expired' | 'exhausted' | 'active';
+
+export const DISCOUNT_STATE_LABELS: Record<DiscountState, string> = {
+  disabled: 'Desactivado',
+  scheduled: 'Programado',
+  expired: 'Caducado',
+  exhausted: 'Agotado',
+  active: 'Activo',
+};
+
+const STATE_OF: Record<Exclude<DiscountRejection, 'min_subtotal'>, DiscountState> = {
+  not_found: 'disabled',
+  not_started: 'scheduled',
+  expired: 'expired',
+  exhausted: 'exhausted',
+};
+
+/**
+ * Estado de un código en el orden de data-model.md (desactivado, programado, caducado, agotado,
+ * activo). Usa validateDiscount sin pedido mínimo: el panel y el carrito comparten las reglas.
+ */
+export function discountState(code: DiscountCodeData, now: Date): DiscountState {
+  const r = validateDiscount(code, Number.MAX_SAFE_INTEGER, now);
+  return r.ok ? 'active' : r.reason === 'min_subtotal' ? 'active' : STATE_OF[r.reason];
+}

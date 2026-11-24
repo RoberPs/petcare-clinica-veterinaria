@@ -96,3 +96,85 @@ describe('content:load y la agenda del panel', () => {
     expect(await q('SELECT status FROM appointments WHERE id = $1', [future.id])).toEqual([{ status: 'confirmed' }]);
   });
 });
+
+// Feature 008 (G13): la tienda del panel sobrevive a una recarga sin --force-shop; con él, se
+// restaura desde el archivo con movimientos "content_load".
+describe('content:load y la tienda del panel', () => {
+  const PANEL_PRODUCT_ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
+
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+  beforeEach(async () => {
+    await truncateAll();
+    await loadContentFile(await setupTestDb(), 'content/petcare.yaml');
+    // Producto creado en el panel, stock ajustado, precio cambiado y código propio del panel.
+    await q(
+      `INSERT INTO products (id, slug, name, search_name, short_description, description_md, category_id, price_cents, vat_rate, stock)
+       SELECT $1, 'producto-del-panel', 'Producto del panel', 'producto del panel', 'Descripción corta.', 'Descripción larga del producto.',
+         id, 1000, 21, 4 FROM product_categories ORDER BY position LIMIT 1`,
+      [PANEL_PRODUCT_ID],
+    );
+    await q("UPDATE products SET stock = 77, price_cents = 1234 WHERE slug = 'pienso-perro-adulto'");
+    await q("INSERT INTO discount_codes (code, kind, value) VALUES ('DELPANEL', 'percent', 5)");
+    await q("UPDATE discount_codes SET value = 50 WHERE code = 'BIENVENIDA10'");
+    await q('DELETE FROM stock_movements');
+  });
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  it('la primera carga crea cada producto con su movimiento initial', async () => {
+    await truncateAll();
+    const summary = await loadContentFile(await setupTestDb(), 'content/petcare.yaml');
+    const [{ products }] = (await q<{ products: number }>('SELECT count(*)::int AS products FROM products')) as [{ products: number }];
+    expect(summary.shopCounts.productsCreated).toBe(products);
+    expect(await q("SELECT count(*)::int AS n FROM stock_movements WHERE reason = 'initial'")).toEqual([{ n: products }]);
+  });
+
+  it('sin --force-shop conserva lo del panel y no despublica ni desactiva lo ausente', async () => {
+    const summary = await loadContentFile(await setupTestDb(), 'content/petcare.yaml');
+    expect(summary.shopCounts).toMatchObject({ productsCreated: 0, productsRestored: 0, discountsCreated: 0, discountsRestored: 0 });
+    expect(summary.shopCounts.productsKept).toBeGreaterThan(0);
+    expect(await q("SELECT stock, price_cents FROM products WHERE slug = 'pienso-perro-adulto'")).toEqual([{ stock: 77, price_cents: 1234 }]);
+    expect(await q("SELECT published FROM products WHERE slug = 'producto-del-panel'")).toEqual([{ published: true }]);
+    expect(await q("SELECT enabled FROM discount_codes WHERE code = 'DELPANEL'")).toEqual([{ enabled: true }]);
+    expect(await q("SELECT value FROM discount_codes WHERE code = 'BIENVENIDA10'")).toEqual([{ value: 50 }]);
+    expect(await q('SELECT count(*)::int AS n FROM stock_movements')).toEqual([{ n: 0 }]);
+  });
+
+  it('sin --force-shop crea los productos y códigos nuevos del archivo', async () => {
+    const file = variant((c) => {
+      const base = c.shop.products[0];
+      c.shop.products.push({ ...base, slug: 'producto-nuevo-yaml', name: 'Producto nuevo del archivo', stock: 9 });
+      c.checkout.discount_codes.push({ code: 'NUEVOYAML', kind: 'percent', value: 15 });
+    });
+    const summary = await loadContentFile(await setupTestDb(), file);
+    expect(summary.shopCounts).toMatchObject({ productsCreated: 1, discountsCreated: 1 });
+    expect(await q("SELECT m.delta, m.reason, m.stock_after FROM stock_movements m JOIN products p ON p.id = m.product_id WHERE p.slug = 'producto-nuevo-yaml'")).toEqual([
+      { delta: 9, reason: 'initial', stock_after: 9 },
+    ]);
+    expect(await q("SELECT enabled FROM discount_codes WHERE code = 'NUEVOYAML'")).toEqual([{ enabled: true }]);
+  });
+
+  it('con --force-shop restaura todo, despublica el ausente y deja el movimiento content_load', async () => {
+    const yamlStock = (parse(readFileSync('content/petcare.yaml', 'utf8')) as Record<string, any>).shop.products.find(
+      (p: Record<string, any>) => p.slug === 'pienso-perro-adulto',
+    ).stock as number;
+    const summary = await loadContentFile(await setupTestDb(), 'content/petcare.yaml', { forceShop: true });
+    expect(summary.shopCounts.productsRestored).toBeGreaterThan(0);
+    expect(summary.shopCounts.discountsRestored).toBeGreaterThan(0);
+    const [p] = await q<{ stock: number; price_cents: number }>("SELECT stock, price_cents FROM products WHERE slug = 'pienso-perro-adulto'");
+    expect(p!.stock).toBe(yamlStock);
+    expect(p!.price_cents).not.toBe(1234);
+    expect(await q("SELECT published FROM products WHERE slug = 'producto-del-panel'")).toEqual([{ published: false }]);
+    expect(
+      await q("SELECT m.delta, m.reason, m.stock_after FROM stock_movements m JOIN products p ON p.id = m.product_id WHERE p.slug = 'pienso-perro-adulto'"),
+    ).toEqual([{ delta: yamlStock - 77, reason: 'content_load', stock_after: yamlStock }]);
+    // Solo deja movimiento el stock que cambia.
+    expect(await q("SELECT count(*)::int AS n FROM stock_movements")).toEqual([{ n: 1 }]);
+    expect(await q("SELECT enabled FROM discount_codes WHERE code = 'DELPANEL'")).toEqual([{ enabled: false }]);
+    expect(await q("SELECT value FROM discount_codes WHERE code = 'BIENVENIDA10'")).toEqual([{ value: 10 }]);
+  });
+});
+

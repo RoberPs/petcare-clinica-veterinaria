@@ -28,10 +28,10 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 1. [`.specify/memory/constitution.md`](.specify/memory/constitution.md) (v1.1.0). **Prevalece
    sobre todo.** Ante un conflicto con una spec, un plan o una tarea, gana la constitución.
 2. La spec y el plan de la feature activa, que indica `.specify/feature.json`. Hoy es
-   [`specs/007-admin-agenda-panel/`](specs/007-admin-agenda-panel/): `spec.md`, `plan.md`,
-   `research.md` (decisiones F1–F18), `data-model.md` y `contracts/`. Siguen vigentes las
+   [`specs/008-admin-store-panel/`](specs/008-admin-store-panel/): `spec.md`, `plan.md`,
+   `research.md` (decisiones G1–G18), `data-model.md` y `contracts/`. Siguen vigentes las
    decisiones R1–R17 de la 001, A1–A14 de la 002, B1–B17 de la 003, C1–C16 de la 004, D1–D20
-   de la 005 y E1–E18 de la 006.
+   de la 005, E1–E18 de la 006 y F1–F18 de la 007.
 3. [`design/README.md`](design/README.md), la guía visual.
 
 ## Estado actual
@@ -67,8 +67,21 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
   (`src/lib/admin/actions-list.ts`). **`content:load` ya no sobrescribe** servicios reservables,
   nombre y `bookable` del equipo, horarios por veterinario ni bloqueos: solo los siembra; con
   `--force-booking` lo restaura todo desde el YAML (y borra horarios y bloqueos del panel).
+- Feature **008 — panel de administración de la tienda**: **implementada** (tareas en
+  `specs/008-admin-store-panel/tasks.md`; desviaciones anotadas en su `checklists/requirements.md`).
+  Añade la migración `0007_admin_store`, declara `sharp` como dependencia directa y la variable
+  `UPLOADS_DIR` (volumen `petcare-uploads` en producción) para las fotos subidas. Productos, stock
+  (`stock_movements`), pedidos y códigos de descuento se gestionan en `/admin`; la lógica con efectos
+  vive en `src/lib/admin/` y los estados de pedido siguen cambiando solo en `src/lib/orders/`.
+  **`content:load` ya no sobrescribe** productos ni códigos de descuento: solo crea los que faltan;
+  con `--force-shop` los restaura desde el YAML. `npm run orders` ahora envía el correo `order_status`.
 - **Repositorio**: `RoberPs/petcare-clinica-veterinaria` (propio, sin historial de otros
-  proyectos). **Rama de git**: `007-admin-agenda-panel`. El script de ramas de Spec Kit cuenta
+  proyectos). **Rama principal**: `main` (la rama por defecto en GitHub). Cada feature sale de
+  `main` en su rama `NNN-nombre` y vuelve a `main` por PR, con la CI en verde y con *merge commit*.
+  Hasta la 007, las features se fusionaban en `001-public-clinic-website`, que ya está fusionada en
+  `main` y no se usa más. `main` **no está protegida en GitHub** (repositorio privado sin GitHub
+  Pro): al terminar el proyecto se añadirá un hook `pre-push` local que impida el push directo a
+  `main`. Hasta entonces, nada entra en `main` sin PR. El script de ramas de Spec Kit cuenta
   también las del remoto `gestor-citas` (otro proyecto), así que hay que revisar el número que
   propone.
 - PostgreSQL local: desarrollo en el puerto **5434** (el 5432 lo usa un PostgreSQL nativo) y
@@ -117,9 +130,10 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 - Los datos personales del responsable y el buzón de destino van en `${VAR}` dentro del YAML y se
   resuelven desde el entorno. **Nunca se escriben en el repositorio.**
 - **Hay una excepción temporal (parcial) al principio VIII**: desde la feature 007 el panel
-  gestiona servicios reservables, veterinarios, sus horarios y los bloqueos; el resto (horario
-  general, cierres, reglas de reserva, ficha pública del equipo y demás contenidos) sigue en el
-  YAML. Las páginas leen **solo de la base de datos**, nunca del YAML directamente.
+  gestiona servicios reservables, veterinarios, sus horarios y los bloqueos, y desde la 008 también
+  productos, stock, pedidos y códigos de descuento; el resto (horario general, cierres, reglas de
+  reserva, ficha pública del equipo, categorías y ajustes de la tienda y demás contenidos) sigue en
+  el YAML. Las páginas leen **solo de la base de datos**, nunca del YAML directamente.
 - Las cifras de actividad pueden ser ficticias. Los **avisos de salud** solo se muestran si tienen
   una fuente real.
 - En la demo no se inventan razón social ni NIF. El responsable del tratamiento es el responsable
@@ -160,7 +174,7 @@ Los identificadores del código (variables, funciones, tipos, tablas y columnas)
 ```bash
 docker compose up -d                              # PostgreSQL y el correo falso
 npm run db:migrate
-npm run content:load -- --file content/petcare.yaml   # siembra; --force-booking restaura la agenda del YAML
+npm run content:load -- --file content/petcare.yaml   # siembra; --force-booking / --force-shop restauran agenda / tienda
 npm run admin -- grant <correo> --by "<quién>"     # rol del panel (list, grant, revoke)
 npm run dev
 npm run lint              # ESLint, tsc y check:design

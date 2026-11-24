@@ -28,11 +28,12 @@ export async function migrateTestDb(): Promise<void> {
 }
 
 /**
- * Las pruebas cargan con --force-booking (F4): cada carga deja servicios, equipo, horarios por
- * veterinario y bloqueos como en el YAML, aunque otra prueba los haya cambiado desde el panel.
+ * Las pruebas cargan con --force-booking (F4) y --force-shop (feature 008): cada carga deja la
+ * agenda, los productos y los códigos como en el YAML, aunque otra prueba los haya cambiado desde
+ * el panel.
  */
 export async function loadContent(file: string): Promise<void> {
-  await loadContentFile(testDb(), file, { env: { ...process.env, ...testEnv }, forceBooking: true });
+  await loadContentFile(testDb(), file, { env: { ...process.env, ...testEnv }, forceBooking: true, forceShop: true });
 }
 
 export const PETCARE_YAML = 'content/petcare.yaml';

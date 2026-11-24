@@ -16,7 +16,8 @@ export const PENINSULA_PREFIXES = Array.from({ length: 50 }, (_, i) => String(i 
 export async function seedShop(mutate?: (content: Content) => void): Promise<LoadSummary> {
   const content = petcareContent();
   mutate?.(content);
-  return loadContentFile(getDb(), writeVariant(content));
+  // --force-shop (feature 008): la tienda queda como en el archivo aunque ya existiera.
+  return loadContentFile(getDb(), writeVariant(content), { forceShop: true });
 }
 
 export interface CheckoutSeedOptions {
@@ -174,4 +175,59 @@ export async function cardOrder(
     [result.orderId],
   );
   return { orderId: result.orderId, sessionId: p!.provider_session_id, amountCents: p!.amount_cents, cartId };
+}
+
+// ---------- Panel de la tienda (feature 008) ----------
+
+/** Pedido de un invitado con recogida y pago en la clínica, pendiente hasta su plazo. */
+export async function inClinicOrder(
+  items: MakeCartOptions['items'] = [{ slug: 'pienso-perro-adulto', quantity: 1 }],
+  options: { now?: Date; email?: string } = {},
+): Promise<{ orderId: string; cartId: string }> {
+  const { confirmOrder } = await import('@/lib/checkout/confirm');
+  const { token, cartId } = await guestCart(items);
+  const result = await confirmOrder(
+    checkoutForm({ email: options.email ?? 'comprador@example.test', shipping_method: 'recogida', payment_method: 'in_clinic' }),
+    guestCtx(token, options.now ?? new Date()),
+  );
+  if (result.status !== 'ok') throw new Error(`confirmOrder: ${result.status}`);
+  return { orderId: result.orderId, cartId };
+}
+
+type ReachableStatus = 'pending_payment' | 'paid' | 'preparing' | 'shipped' | 'ready_for_pickup' | 'delivered' | 'cancelled';
+
+/**
+ * Pedido con tarjeta llevado hasta `status` por el camino normal (pasarela y clínica), sin dejar
+ * correos pendientes de interés: los tests que miran la bandeja de salida la vacían antes.
+ * `delivery`: envío a domicilio (por defecto) o recogida en la clínica.
+ */
+export async function orderInStatus(
+  status: ReachableStatus,
+  options: { delivery?: 'home' | 'pickup'; items?: MakeCartOptions['items']; now?: Date } = {},
+): Promise<{ orderId: string; cartId: string }> {
+  const { getDb } = await import('@/db/client');
+  const { transitionOrder } = await import('@/lib/orders/transition');
+  const now = options.now ?? new Date();
+  const pickup = options.delivery === 'pickup';
+  const { orderId, cartId } = await cardOrder(options.items, { now, fields: pickup ? { shipping_method: 'recogida' } : {} });
+  const path: { to: ReachableStatus; actor: 'gateway' | 'clinic' }[] = [];
+  if (status !== 'pending_payment' && status !== 'cancelled') path.push({ to: 'paid', actor: 'gateway' });
+  if (['preparing', 'shipped', 'ready_for_pickup', 'delivered'].includes(status)) path.push({ to: 'preparing', actor: 'clinic' });
+  if (status === 'shipped' || (status === 'delivered' && !pickup)) path.push({ to: 'shipped', actor: 'clinic' });
+  if (status === 'ready_for_pickup' || (status === 'delivered' && pickup)) path.push({ to: 'ready_for_pickup', actor: 'clinic' });
+  if (status === 'delivered') path.push({ to: 'delivered', actor: 'clinic' });
+  if (status === 'cancelled') path.push({ to: 'cancelled', actor: 'clinic' });
+  // Un segundo por paso: el historial se ordena por fecha.
+  for (const [i, step] of path.entries()) {
+    const at = new Date(now.getTime() + (i + 1) * 1000);
+    await getDb().transaction((tx) => transitionOrder(tx, orderId, step.to, step.actor, { now: at, skipEmail: true }));
+  }
+  return { orderId, cartId };
+}
+
+/** Administrador del panel para la lógica de src/lib/admin/ (solo hace falta el id). */
+export async function adminCtx(): Promise<{ id: string; email: string }> {
+  const { createCustomer } = await import('./db');
+  const admin = await createCustomer({ admin: true });
+  return { id: admin.id, email: admin.email };
 }

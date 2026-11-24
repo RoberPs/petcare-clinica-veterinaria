@@ -11,8 +11,9 @@ import type { DbOrTx } from '@/db/client';
 import { lockOrder, type OrderRow } from '@/db/queries/orders';
 import { discountCodes, orderStatusHistory, orders } from '@/db/schema';
 import type { OrderEmailKind } from '@/email/outbox';
+import { isOrderStatusEmailState } from '@/email/templates/order-status';
 import { releaseOrderStock, reserveOrderStock } from '@/lib/checkout/reserve';
-import { enqueueOrderEmails } from './emails';
+import { enqueueOrderEmails, enqueueOrderStatusEmail } from './emails';
 
 // Única puerta para cambiar el estado de un pedido: valida con la tabla de order-status.ts, escribe
 // el historial y last_status_at, aplica el efecto en la reserva de stock y en el uso del código de
@@ -25,6 +26,17 @@ export class TransitionError extends Error {
   ) {
     super(`Transición no permitida: ${statusLabel(from)} → ${statusLabel(to)}`);
     this.name = 'TransitionError';
+  }
+}
+
+/** El pedido ya no está en el estado que vio quien pide el cambio (G8): no se hace nada. */
+export class StaleOrderError extends Error {
+  constructor(
+    public readonly expected: OrderStatus,
+    public readonly actual: OrderStatus,
+  ) {
+    super('stale_order');
+    this.name = 'StaleOrderError';
   }
 }
 
@@ -44,6 +56,12 @@ export interface TransitionOptions {
   skipEmail?: boolean;
   /** Estado del reembolso que se fija a la vez (cancelación de un pedido pagado). */
   refundStatus?: OrderRow['refundStatus'];
+  /** Feature 008 (G9): administrador del panel que hace el cambio (order_status_history.admin_id). */
+  adminId?: string | null;
+  /** Feature 008 (G8): estado que vio el administrador; si ya no lo es, StaleOrderError. */
+  expectedFrom?: OrderStatus;
+  /** Feature 008 (US5): el correo order_status dice "pago confirmado y pedido entregado". */
+  combinedEmail?: boolean;
 }
 
 export interface TransitionResult {
@@ -93,7 +111,8 @@ export async function transitionOrder(
   const order = await lockOrder(orderId, tx);
   if (!order) throw new OrderNotFoundError();
   const from = order.status;
-  if (!canTransition(order, to, actor)) throw new TransitionError(from, to);
+  if (options.expectedFrom && options.expectedFrom !== from) throw new StaleOrderError(options.expectedFrom, from);
+  if (!canTransition(order, to, actor, options.now)) throw new TransitionError(from, to);
 
   // Reserva de stock (D4): el UPDATE condicionado por el estado actual la hace idempotente.
   const nextReservation = reservationEffect(order.reservationStatus, to);
@@ -142,15 +161,24 @@ export async function transitionOrder(
     fromStatus: from,
     toStatus: to,
     actor,
+    adminId: actor === 'clinic' ? (options.adminId ?? null) : null,
     note: options.note?.slice(0, 200) ?? (options.reason ? `motivo: ${options.reason}` : null),
     createdAt: options.now,
   });
 
   const kinds: OrderEmailKind[] = [];
   if (!options.skipEmail) {
-    if (to === 'paid') kinds.push('order_confirmed', 'clinic_order');
+    // El pago con tarjeta lo confirma la pasarela; el pago en la clínica lo registra la clínica (order_status).
+    if (to === 'paid' && actor !== 'clinic') kinds.push('order_confirmed', 'clinic_order');
     if (to === 'cancelled' && options.reason !== 'replaced') kinds.push('order_cancelled');
   }
   const emailIds = await enqueueOrderEmails(tx, orderId, kinds);
+  // Feature 008 (G11): aviso al comprador de cada cambio de la clínica, desde el panel o la CLI.
+  if (!options.skipEmail && actor === 'clinic' && isOrderStatusEmailState(to)) {
+    // Entregar directamente un pedido de pago en clínica pendiente también confirma el pago.
+    const combined = options.combinedEmail ?? (from === 'pending_payment' && to === 'delivered');
+    const id = await enqueueOrderStatusEmail(tx, orderId, to, { combined });
+    if (id) emailIds.push(id);
+  }
   return { order: updated!, from, to, emailIds };
 }

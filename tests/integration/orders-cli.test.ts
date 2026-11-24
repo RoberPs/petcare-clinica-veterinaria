@@ -103,4 +103,16 @@ describe('npm run orders', () => {
     // Cancelar otra vez: transición no permitida.
     expect((await run('cancel', o.number)).code).toBe(EXIT.transition);
   });
+
+  // Feature 008 (G11): la CLI también avisa al comprador, sin autor del panel.
+  it('set-status a shipped desde la CLI encola order_status y deja admin_id nulo', async () => {
+    const o = await paidOrder();
+    await q('DELETE FROM email_outbox WHERE order_id = $1', [o.orderId]);
+    expect((await run('set-status', o.number, 'shipped')).code).toBe(0);
+    const kinds = (await q<{ kind: string }>('SELECT kind FROM email_outbox WHERE order_id = $1', [o.orderId])).map((r) => r.kind);
+    expect(kinds).toEqual(['order_status']);
+    expect(await q('SELECT actor, admin_id FROM order_status_history WHERE order_id = $1 AND to_status = $2', [o.orderId, 'shipped'])).toEqual([
+      { actor: 'clinic', admin_id: null },
+    ]);
+  });
 });

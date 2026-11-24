@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
@@ -9,7 +8,8 @@ import { Breadcrumb } from '@/components/Breadcrumb';
 import { Markdown } from '@/components/Markdown';
 import { Notice } from '@/components/Notice';
 import { Price, ProductTags } from '@/components/Price';
-import { PLACEHOLDER_ALT, PRODUCT_PLACEHOLDER, ProductCard, productMeta } from '@/components/ProductCard';
+import { ProductCard, productMeta } from '@/components/ProductCard';
+import { ProductImage } from '@/components/ProductImage';
 import { ShopNotice } from '@/components/ShopNotice';
 import { availability, pickTab, productTabs } from '@/domain/catalog';
 import { isSectionEnabled } from '@/domain/sections';
@@ -82,11 +82,11 @@ export default async function ProductPage({ params, searchParams }: Props) {
       <div className="container">
         <div className="detail">
           <div className="detail__gallery">
-            <Image
-              src={product.imagePath ?? PRODUCT_PLACEHOLDER}
-              alt={product.imagePath ? (product.imageAlt ?? '') : PLACEHOLDER_ALT}
-              width={600}
-              height={600}
+            <ProductImage
+              imagePath={product.imagePath}
+              imageAlt={product.imageAlt}
+              imageWidth={product.imageWidth}
+              imageHeight={product.imageHeight}
               sizes="(max-width: 900px) 100vw, 50vw"
               priority
             />

@@ -1,9 +1,12 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
+import sharp from 'sharp';
 import { resolve } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ADMIN_ACTIONS, ADMIN_PAGES, type AdminPageEntry } from '@/lib/admin/actions-list';
 import { createSubmissionToken } from '@/lib/form-token';
+import { orderInStatus, seedShop } from './helpers/checkout';
 import { createAppointment, createBlock, createCustomer, createSessionFor, madrid, q, seedBookingConfig, setupTestDb, teardownTestDb, truncateAll } from './helpers/db';
+import { useTempUploadsDir } from './helpers/uploads';
 
 // Guardia del panel (F2, SC-001, FR-002, FR-003): cada página y cada Server Action de /admin
 // rechazan al anónimo (a iniciar sesión), al cliente sin rol, al admin sin verificar y al que ha
@@ -73,19 +76,31 @@ async function snapshot() {
     (SELECT count(*) FROM schedule_blocks)::int AS blocks,
     (SELECT count(*) FROM appointment_events)::int AS events,
     (SELECT count(*) FROM email_outbox)::int AS emails,
-    (SELECT count(*) FROM appointments WHERE status = 'cancelled')::int AS cancelled`);
+    (SELECT count(*) FROM appointments WHERE status = 'cancelled')::int AS cancelled,
+    (SELECT count(*) FROM products)::int AS products,
+    (SELECT count(*) FROM products WHERE published)::int AS published,
+    (SELECT coalesce(sum(stock), 0) FROM products)::int AS stock,
+    (SELECT count(*) FROM stock_movements)::int AS movements,
+    (SELECT count(*) FROM order_status_history)::int AS order_history,
+    (SELECT count(*) FROM discount_codes WHERE enabled)::int AS discounts`);
   return counts;
 }
 
 describe('guardia del panel de administración', () => {
   const ids: Record<string, string> = {};
 
+  let uploads: Awaited<ReturnType<typeof useTempUploadsDir>>;
   beforeAll(async () => {
     await setupTestDb();
+    uploads = await useTempUploadsDir();
   });
   beforeEach(async () => {
     await truncateAll();
     const seed = await seedBookingConfig();
+    // Tienda (feature 008): un producto y un pedido de ejemplo para las páginas con id.
+    await seedShop();
+    ids[':product'] = (await q<{ id: string }>("SELECT id FROM products WHERE slug = 'pienso-perro-adulto'"))[0]!.id;
+    ids[':order'] = (await orderInStatus('paid')).orderId;
     const appt = await createAppointment({ service: 'consulta-general', staff: 'nerea-olmedo', startsAt: madrid('2027-01-12', '10:00') });
     ids[':appointment'] = appt.id;
     ids[':service'] = seed.services.consulta;
@@ -93,6 +108,7 @@ describe('guardia del panel de administración', () => {
     ids[':block'] = await createBlock({ kind: 'once', startsAt: madrid('2027-01-13', '10:00'), endsAt: madrid('2027-01-13', '11:00') });
   });
   afterAll(async () => {
+    await uploads.cleanup();
     await teardownTestDb();
   });
 
@@ -114,6 +130,13 @@ describe('guardia del panel de administración', () => {
     const form = new FormData();
     form.set('id', ids[':appointment']!);
     form.set('submission', createSubmissionToken(new Date(Date.now() - 10_000)));
+    // Campos de la tienda (feature 008): si la guardia fallara, la acción podría hacer algo real.
+    form.set('from', 'paid');
+    form.set('to', 'preparing');
+    form.set('delta', '-1');
+    form.set('reason', 'damage');
+    form.set('enabled', '0');
+    form.set('published', '0');
     return arity === 2 ? fn({ status: 'idle' }, form) : fn(form);
   }
 
@@ -153,6 +176,40 @@ describe('guardia del panel de administración', () => {
       expect(await snapshot()).toEqual(before);
     });
   }
+
+  // Feature 008: la acción con archivo (multipart) tampoco procesa ni guarda nada sin el rol.
+  it('saveProduct con una foto: sin rol no escribe archivos ni filas', async () => {
+    const { saveProduct } = (await import(/* @vite-ignore */ modulePath('app/admin/productos/actions'))) as {
+      saveProduct: (prev: unknown, form: FormData) => Promise<unknown>;
+    };
+    const jpeg = await sharp({ create: { width: 64, height: 64, channels: 3, background: { r: 1, g: 2, b: 3 } } }).jpeg().toBuffer();
+    const [cat] = await q<{ id: string }>('SELECT id FROM product_categories LIMIT 1');
+    const [pet] = await q<{ id: string }>('SELECT id FROM product_pets LIMIT 1');
+    for (const kind of ['anonymous', 'customer', 'revoked'] as const) {
+      await as(kind);
+      const form = new FormData();
+      form.set('submission', createSubmissionToken(new Date(Date.now() - 10_000)));
+      for (const [k, v] of Object.entries({
+        name: 'Producto intruso',
+        short_description: 'Descripción corta suficiente.',
+        description_md: 'Descripción larga suficiente del producto.',
+        category_id: cat!.id,
+        pet_ids: pet!.id,
+        price: '10',
+        vat_rate: '21',
+        stock_initial: '1',
+        position: '0',
+        image_alt: 'Foto intrusa',
+      }))
+        form.set(k, v);
+      form.set('image', new File([new Uint8Array(jpeg)], 'foto.jpg', { type: 'image/jpeg' }));
+      const before = await snapshot();
+      expect(await outcome(() => saveProduct({ status: 'idle' }, form)), kind).toBe(kind === 'anonymous' ? 'login' : 'not_found');
+      expect(await snapshot()).toEqual(before);
+    }
+    const dir = `${uploads.dir}/productos`;
+    expect(existsSync(dir) ? readdirSync(dir) : []).toEqual([]);
+  });
 
   it('un admin verificado pasa la guardia en todas las páginas y acciones', async () => {
     await as('admin');

@@ -3,13 +3,14 @@ import { summarizeHours } from '@/domain/hours';
 import type { DbOrTx } from '@/db/client';
 import { getCheckoutSettings } from '@/db/queries/checkout-config';
 import { getOrder, getOrderItems } from '@/db/queries/orders';
-import { openingHours } from '@/db/schema';
+import { openingHours, shopSettings } from '@/db/schema';
 import { enqueueEmail, getEmailContext, type OrderEmailKind } from '@/email/outbox';
 import { orderCancelled } from '@/email/templates/order-cancelled';
 import { orderClinic } from '@/email/templates/order-clinic';
 import type { OrderEmailContext, OrderEmailData } from '@/email/templates/order-common';
 import { orderConfirmed } from '@/email/templates/order-confirmed';
 import { orderReceived } from '@/email/templates/order-received';
+import { orderStatus, type OrderStatusEmailState } from '@/email/templates/order-status';
 import { orderPath } from './access';
 
 // Encolado de los correos de pedido (D17): se renderizan con la copia del pedido y se encolan en la
@@ -79,4 +80,25 @@ export async function enqueueOrderEmails(tx: DbOrTx, orderId: string, kinds: rea
     ids.push(id);
   }
   return ids;
+}
+
+/**
+ * Encola el correo order_status (feature 008, G11): cambio de estado hecho por la clínica. Con
+ * `combined`, la variante "pago confirmado y pedido entregado". Devuelve el id o null si el pedido
+ * está anonimizado.
+ */
+export async function enqueueOrderStatusEmail(
+  tx: DbOrTx,
+  orderId: string,
+  state: OrderStatusEmailState,
+  options: { combined?: boolean } = {},
+): Promise<string | null> {
+  const ctx = await orderEmailContext(tx);
+  const data = await orderEmailData(tx, orderId, ctx.siteUrl);
+  if (!data) return null;
+  const [settings] = await tx.select({ shippingText: shopSettings.shippingText }).from(shopSettings).limit(1);
+  const order = await getOrder(orderId, tx);
+  const email = orderStatus(ctx, data, state, { combined: options.combined, shippingText: settings?.shippingText ?? null });
+  const { id } = await enqueueEmail(tx, { kind: 'order_status', to: email.to.email, email, customerId: order?.customerId ?? null, orderId });
+  return id;
 }

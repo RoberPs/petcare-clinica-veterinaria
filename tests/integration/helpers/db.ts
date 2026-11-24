@@ -24,7 +24,7 @@ export async function setupTestDb() {
 
 export async function truncateAll(): Promise<void> {
   await getPool().query(`
-    TRUNCATE payment_events, payments, order_status_history, order_items, orders, cart_items, carts,
+    TRUNCATE stock_movements, payment_events, payments, order_status_history, order_items, orders, cart_items, carts,
       discount_codes, shipping_methods, product_pet_links, products, product_pets, product_categories, shop_settings,
       admin_audit_log, appointment_events, schedule_blocks, staff_hours,
       appointments, booking_service_staff, booking_services, booking_settings,

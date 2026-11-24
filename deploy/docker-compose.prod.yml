@@ -13,7 +13,11 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
+      # Fotos de producto subidas desde el panel (feature 008, G4).
+      UPLOADS_DIR: /app/var/uploads
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@petcare-db:5432/${POSTGRES_DB}
+    volumes:
+      - petcare-uploads:/app/var/uploads
     depends_on:
       petcare-db:
         condition: service_healthy
@@ -45,3 +49,5 @@ networks:
 
 volumes:
   petcare-db-data:
+  # Fotos de producto subidas desde el panel: entra en la copia de seguridad (deploy/README.md).
+  petcare-uploads:

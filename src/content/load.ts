@@ -81,7 +81,7 @@ export interface LoadSummary {
   shopCategories: number;
   shopPets: number;
   products: number;
-  /** Productos que quedan despublicados en la base (los que ya no están en el archivo). */
+  /** Productos despublicados en la base tras la carga (desde la 008, solo `--force-shop` despublica los ausentes). */
   productsHidden: number;
   /** Productos con compare_at_price <= price: se cargan, pero no se muestran en oferta (FR-016). */
   compareAtIgnored: string[];
@@ -90,10 +90,36 @@ export interface LoadSummary {
   postsHidden: number;
   postCategories: number;
   newsletterEnabled: boolean;
+  /** Feature 008 (G13): productos y códigos creados, conservados (sin --force-shop) o restaurados. */
+  shopCounts: ShopCounts;
 }
 
-/** Bloque shop: (feature 004, C12). Sin bloque, el catálogo entero queda despublicado. */
-async function loadShop(tx: Db, shop: ContentFile['shop']): Promise<void> {
+export interface ShopCounts {
+  productsCreated: number;
+  productsKept: number;
+  productsRestored: number;
+  discountsCreated: number;
+  discountsKept: number;
+  discountsRestored: number;
+}
+
+const emptyShopCounts = (): ShopCounts => ({
+  productsCreated: 0,
+  productsKept: 0,
+  productsRestored: 0,
+  discountsCreated: 0,
+  discountsKept: 0,
+  discountsRestored: 0,
+});
+
+/**
+ * Bloque shop: (feature 004, C12). Sin bloque, el catálogo entero queda despublicado.
+ * Feature 008 (G13): sin --force-shop, los productos solo se crean (con su movimiento "initial"):
+ * los que ya existen no se tocan y los ausentes no se despublican, para no deshacer el panel. Con
+ * --force-shop se restaura todo como en el archivo y cada stock cambiado deja un movimiento
+ * "content_load". Categorías, mascotas y ajustes se sobrescriben siempre.
+ */
+async function loadShop(tx: Db, shop: ContentFile['shop'], forceShop: boolean, counts: ShopCounts): Promise<void> {
   if (!shop) {
     await unpublishMissing(tx, s.products, []);
     await unpublishMissing(tx, s.productCategories, []);
@@ -156,8 +182,16 @@ async function loadShop(tx: Db, shop: ContentFile['shop']): Promise<void> {
       position: i,
       imagePath: toPublic(p.image),
       imageAlt: p.image ? (p.image_alt ?? null) : null,
+      // Las imágenes del archivo son estáticas (SVG): sin dimensiones de foto subida.
+      imageWidth: null,
+      imageHeight: null,
       published: true,
     };
+    const [existing] = await tx.select({ id: s.products.id, stock: s.products.stock }).from(s.products).where(eq(s.products.slug, p.slug)).limit(1);
+    if (existing && !forceShop) {
+      counts.productsKept += 1;
+      continue;
+    }
     const [row] = await tx
       .insert(s.products)
       .values(v)
@@ -165,8 +199,17 @@ async function loadShop(tx: Db, shop: ContentFile['shop']): Promise<void> {
       .returning({ id: s.products.id });
     await tx.delete(s.productPetLinks).where(eq(s.productPetLinks.productId, row!.id));
     await tx.insert(s.productPetLinks).values(p.pets.map((pet) => ({ productId: row!.id, petId: petIds.get(pet)! })));
+    if (!existing) {
+      counts.productsCreated += 1;
+      await tx.insert(s.stockMovements).values({ productId: row!.id, delta: p.stock, reason: 'initial', stockAfter: p.stock });
+    } else {
+      counts.productsRestored += 1;
+      if (existing.stock !== p.stock) {
+        await tx.insert(s.stockMovements).values({ productId: row!.id, delta: p.stock - existing.stock, reason: 'content_load', stockAfter: p.stock });
+      }
+    }
   }
-  await unpublishMissing(tx, s.products, shop.products.map((x) => x.slug));
+  if (forceShop) await unpublishMissing(tx, s.products, shop.products.map((x) => x.slug));
 }
 
 /** Inicio del día `isoDate` en Europe/Madrid (`nextDay` = inicio del día siguiente: fin inclusivo). */
@@ -178,9 +221,10 @@ function madridDayStart(isoDate: string, nextDay = false): Date {
 /**
  * Bloque checkout: (feature 005, contracts/content-file.md). Upsert por `code`; lo que desaparece
  * del archivo pasa a enabled = false (los pedidos lo referencian) y uses_count nunca se toca. Sin
- * bloque, no queda ningún método ni código activo.
+ * bloque, no queda ningún método ni código activo. Feature 008 (G13): sin --force-shop, los
+ * códigos de descuento solo se crean y no se desactivan los ausentes.
  */
-async function loadCheckout(tx: Db, checkout: ContentFile['checkout']): Promise<void> {
+async function loadCheckout(tx: Db, checkout: ContentFile['checkout'], forceShop: boolean, counts: ShopCounts): Promise<void> {
   if (!checkout) {
     await tx.update(s.shippingMethods).set({ enabled: false, updatedAt: now }).where(eq(s.shippingMethods.enabled, true));
     await tx.update(s.discountCodes).set({ enabled: false, updatedAt: now }).where(eq(s.discountCodes.enabled, true));
@@ -225,10 +269,12 @@ async function loadCheckout(tx: Db, checkout: ContentFile['checkout']): Promise<
   }
 
   const discountCodes = checkout.discount_codes.map((d) => d.code);
-  await tx
-    .update(s.discountCodes)
-    .set({ enabled: false, updatedAt: now })
-    .where(discountCodes.length > 0 ? notInArray(s.discountCodes.code, discountCodes) : sql`true`);
+  if (forceShop) {
+    await tx
+      .update(s.discountCodes)
+      .set({ enabled: false, updatedAt: now })
+      .where(discountCodes.length > 0 ? notInArray(s.discountCodes.code, discountCodes) : sql`true`);
+  }
   for (const d of checkout.discount_codes) {
     const v = {
       code: d.code,
@@ -241,7 +287,14 @@ async function loadCheckout(tx: Db, checkout: ContentFile['checkout']): Promise<
       enabled: true,
     };
     // uses_count no se toca: ni al crear (0 por defecto) ni al actualizar.
+    const [existing] = await tx.select({ id: s.discountCodes.id }).from(s.discountCodes).where(eq(s.discountCodes.code, d.code)).limit(1);
+    if (existing && !forceShop) {
+      counts.discountsKept += 1;
+      continue;
+    }
     await tx.insert(s.discountCodes).values(v).onConflictDoUpdate({ target: s.discountCodes.code, set: { ...v, updatedAt: now } });
+    if (existing) counts.discountsRestored += 1;
+    else counts.discountsCreated += 1;
   }
 }
 
@@ -327,6 +380,11 @@ export interface LoadOptions {
    * borra y vuelve a sembrar los horarios por veterinario y los bloqueos. Sin él, el YAML siembra.
    */
   forceBooking?: boolean;
+  /**
+   * --force-shop (feature 008, G13): restaura productos (con su stock y la despublicación de los
+   * ausentes) y códigos de descuento desde el archivo. Sin él, el YAML solo crea lo que falta.
+   */
+  forceShop?: boolean;
 }
 
 /** Modo por defecto de `content:load` (F4): el YAML siembra y no sobrescribe la agenda del panel. */
@@ -334,19 +392,21 @@ export const DEFAULT_FORCE_BOOKING = false;
 
 export async function loadContent(db: Db, content: ContentFile, options: LoadOptions = {}): Promise<LoadSummary> {
   const forceBooking = options.forceBooking ?? DEFAULT_FORCE_BOOKING;
+  const forceShop = options.forceShop ?? false;
+  const shopCounts = emptyShopCounts();
   const c = content.clinic;
   let petsMovedToOther = 0;
   let productsHidden = 0;
   let postsHidden = 0;
   await db.transaction(async (tx) => {
-    await loadShop(tx, content.shop);
+    await loadShop(tx, content.shop, forceShop, shopCounts);
     await loadPostCategories(tx, content.post_categories);
     await loadPosts(tx, content.posts);
     await deleteMissingPostCategories(tx, content.post_categories);
     await loadNewsletter(tx, content.newsletter);
     const [postsOff] = await tx.select({ n: count() }).from(s.posts).where(eq(s.posts.published, false));
     postsHidden = postsOff?.n ?? 0;
-    await loadCheckout(tx, content.checkout);
+    await loadCheckout(tx, content.checkout, forceShop, shopCounts);
     const [hidden] = await tx.select({ n: count() }).from(s.products).where(eq(s.products.published, false));
     productsHidden = hidden?.n ?? 0;
 
@@ -606,6 +666,7 @@ export async function loadContent(db: Db, content: ContentFile, options: LoadOpt
     postsHidden,
     postCategories: content.post_categories.length,
     newsletterEnabled: content.newsletter?.enabled ?? false,
+    shopCounts,
   };
 }
 
@@ -624,5 +685,5 @@ export async function loadContentFile(
       { path: 'newsletter.enabled', message: 'el boletín está activo, pero falta la variable de entorno NEWSLETTER_HASH_KEY' },
     ]);
   }
-  return loadContent(db, content, { forceBooking: options.forceBooking });
+  return loadContent(db, content, { forceBooking: options.forceBooking, forceShop: options.forceShop });
 }

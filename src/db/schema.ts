@@ -19,7 +19,9 @@ import {
   unique,
   uniqueIndex,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
+import { VAT_RATES } from '../domain/vat';
 
 // Esquema de data-model.md. Ningún campo de contenido tiene un valor por defecto de una clínica concreta.
 
@@ -30,6 +32,8 @@ const timestamps = {
 };
 const position = () => integer('position').notNull().default(0);
 const published = () => boolean('published').notNull().default(true);
+/** Lista SQL de los tipos de IVA (T007): `(0, 4, 10, 21)`. */
+const vatRatesSql = sql.raw(`(${VAT_RATES.join(', ')})`);
 
 // ---------- Contenido ----------
 
@@ -284,6 +288,8 @@ export const outboxKind = pgEnum('outbox_kind', [
   'order_cancelled',
   'clinic_order',
   'newsletter_confirm',
+  // Feature 008 (G11): cambio de estado de un pedido hecho por la clínica.
+  'order_status',
 ]);
 export const outboxStatus = pgEnum('outbox_status', ['pending', 'sent', 'failed', 'skipped_rate_limit']);
 
@@ -790,6 +796,9 @@ export const products = pgTable(
     position: position(),
     imagePath: text('image_path'),
     imageAlt: text('image_alt'),
+    // Feature 008 (G4): dimensiones de la variante mayor de una foto subida; nulas en las SVG.
+    imageWidth: integer('image_width'),
+    imageHeight: integer('image_height'),
     published: published(),
     ...timestamps,
   },
@@ -799,9 +808,13 @@ export const products = pgTable(
     check('products_short_description_len', sql`char_length(${t.shortDescription}) between 1 and 300`),
     check('products_price_positive', sql`${t.priceCents} > 0`),
     check('products_compare_at_positive', sql`${t.compareAtCents} is null or ${t.compareAtCents} > 0`),
-    check('products_vat_rate', sql`${t.vatRate} in (0, 4, 10, 21)`),
+    check('products_vat_rate', sql`${t.vatRate} in ${vatRatesSql}`),
     check('products_stock_non_negative', sql`${t.stock} >= 0`),
     check('products_image_alt', sql`${t.imagePath} is null or char_length(coalesce(${t.imageAlt}, '')) > 0`),
+    check(
+      'products_image_size',
+      sql`(${t.imageWidth} is null and ${t.imageHeight} is null) or (${t.imageWidth} > 0 and ${t.imageHeight} > 0)`,
+    ),
     index('products_listing_idx').on(t.published, t.categoryId),
     index('products_order_idx').on(t.published, t.position),
   ],
@@ -913,7 +926,7 @@ export const shippingMethods = pgTable(
     check('shipping_methods_name_len', sql`char_length(${t.name}) between 1 and 60`),
     check('shipping_methods_description_len', sql`char_length(${t.description}) between 1 and 160`),
     check('shipping_methods_cost', sql`${t.costCents} >= 0`),
-    check('shipping_methods_vat_rate', sql`${t.vatRate} in (0, 4, 10, 21)`),
+    check('shipping_methods_vat_rate', sql`${t.vatRate} in ${vatRatesSql}`),
     check('shipping_methods_prefixes', sql`${t.postalPrefixes} is null or ${t.kind} = 'home_delivery'`),
     uniqueIndex('shipping_methods_one_pickup')
       .on(t.kind)
@@ -1047,7 +1060,7 @@ export const orders = pgTable(
       sql`${t.subtotalCents} >= 0 and ${t.discountCents} >= 0 and ${t.totalCents} >= 0 and ${t.vatCents} >= 0 and ${t.shippingCostCents} >= 0`,
     ),
     check('orders_total', sql`${t.totalCents} = ${t.subtotalCents} - ${t.discountCents} + ${t.shippingCostCents}`),
-    check('orders_vat_rate', sql`${t.shippingVatRate} in (0, 4, 10, 21)`),
+    check('orders_vat_rate', sql`${t.shippingVatRate} in ${vatRatesSql}`),
     check(
       'orders_names_len',
       sql`(${t.firstName} is null or char_length(${t.firstName}) between 1 and 60) and (${t.lastName} is null or char_length(${t.lastName}) between 1 and 60)`,
@@ -1073,6 +1086,8 @@ export const orders = pgTable(
     index('orders_pickup_expiry_idx').on(t.status, t.pickupDeadline),
     index('orders_pending_email_idx').on(t.contactEmailNormalized).where(sql`${t.status} = 'pending_payment'`),
     index('orders_refund_pending_idx').on(t.refundNextAttemptAt).where(sql`${t.refundStatus} = 'pending'`),
+    // Feature 008 (G6): lista del panel, de más reciente a más antiguo.
+    index('orders_created_at_idx').on(t.createdAt.desc()),
   ],
 );
 
@@ -1097,7 +1112,7 @@ export const orderItems = pgTable(
   (t) => [
     check('order_items_price', sql`${t.unitPriceCents} > 0`),
     check('order_items_quantity', sql`${t.quantity} between 1 and 99`),
-    check('order_items_vat_rate', sql`${t.vatRate} in (0, 4, 10, 21)`),
+    check('order_items_vat_rate', sql`${t.vatRate} in ${vatRatesSql}`),
     check(
       'order_items_amounts',
       sql`${t.discountShareCents} >= 0 and ${t.lineTotalCents} >= 0 and ${t.vatCents} >= 0`,
@@ -1117,6 +1132,8 @@ export const orderStatusHistory = pgTable(
     fromStatus: orderStatus('from_status'),
     toStatus: orderStatus('to_status').notNull(),
     actor: orderActor('actor').notNull(),
+    // Feature 008 (G9): quién hizo el cambio desde el panel. Nulo desde la CLI y en el resto de actores.
+    adminId: uuid('admin_id').references(() => customers.id, { onDelete: 'set null' }),
     note: text('note'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1283,5 +1300,41 @@ export const newsletterSettings = pgTable(
     check('newsletter_settings_singleton', sql`${t.id} = 1`),
     check('newsletter_settings_title_len', sql`char_length(${t.title}) between 1 and 80`),
     check('newsletter_settings_text_len', sql`char_length(${t.text}) between 1 and 240`),
+  ],
+);
+
+// ---------- Panel de la tienda (feature 008, data-model.md) ----------
+
+export const stockMovementReason = pgEnum('stock_movement_reason', [
+  'initial',
+  'restock',
+  'count',
+  'damage',
+  'other',
+  'order_reserved',
+  'order_released',
+  'content_load',
+]);
+
+/** Historial del stock disponible (G5): cada cambio de `products.stock` escribe una fila. */
+export const stockMovements = pgTable(
+  'stock_movements',
+  {
+    id: id(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'restrict' }),
+    delta: integer('delta').notNull(),
+    reason: stockMovementReason('reason').notNull(),
+    stockAfter: integer('stock_after').notNull(),
+    orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+    adminId: uuid('admin_id').references(() => customers.id, { onDelete: 'set null' }),
+    note: varchar('note', { length: 200 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('stock_movements_delta', sql`${t.delta} <> 0 or ${t.reason} = 'initial'`),
+    check('stock_movements_stock_after', sql`${t.stockAfter} >= 0`),
+    index('stock_movements_product_idx').on(t.productId, t.createdAt.desc()),
   ],
 );

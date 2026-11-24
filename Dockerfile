@@ -26,6 +26,9 @@ COPY --from=build --chown=petcare:petcare /app/public ./public
 COPY --from=build --chown=petcare:petcare /app/cli ./cli
 COPY --from=build --chown=petcare:petcare /app/drizzle ./drizzle
 COPY --from=build --chown=petcare:petcare /app/content ./content
+# Fotos subidas desde el panel (feature 008, G4): el volumen petcare-uploads se monta aquí y
+# hereda el propietario del directorio de la imagen la primera vez.
+RUN mkdir -p /app/var/uploads/productos && chown -R petcare:petcare /app/var
 USER petcare
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

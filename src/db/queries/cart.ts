@@ -67,6 +67,8 @@ export interface CartLineRow {
   pets: string[];
   imagePath: string | null;
   imageAlt: string | null;
+  imageWidth: number | null;
+  imageHeight: number | null;
 }
 
 /** Líneas del carrito con los datos actuales del producto, en el orden en que se añadieron. */
@@ -88,6 +90,8 @@ export async function cartLines(cartId: string, db: DbOrTx = getDb()): Promise<C
         where l.product_id = ${products.id} and pp.published order by pp.position, pp.slug)`,
       imagePath: products.imagePath,
       imageAlt: products.imageAlt,
+      imageWidth: products.imageWidth,
+      imageHeight: products.imageHeight,
     })
     .from(cartItems)
     .innerJoin(products, eq(products.id, cartItems.productId))

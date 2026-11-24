@@ -11,6 +11,10 @@ const ITEMS = [
   { href: '/admin/servicios', label: 'Servicios', also: [] },
   { href: '/admin/veterinarios', label: 'Veterinarios', also: [] },
   { href: '/admin/bloqueos', label: 'Bloqueos', also: [] },
+  // Tienda (feature 008, G1): el alta, la edición y el stock cuelgan de cada lista.
+  { href: '/admin/productos', label: 'Productos', also: [] },
+  { href: '/admin/pedidos', label: 'Pedidos', also: [] },
+  { href: '/admin/descuentos', label: 'Descuentos', also: [] },
 ];
 
 export function AdminNav() {
