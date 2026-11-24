@@ -27,6 +27,8 @@ const summaryColumns = {
   isNew: products.isNew,
   imagePath: products.imagePath,
   imageAlt: products.imageAlt,
+  imageWidth: products.imageWidth,
+  imageHeight: products.imageHeight,
 };
 
 export interface ProductSummary {
@@ -41,6 +43,8 @@ export interface ProductSummary {
   isNew: boolean;
   imagePath: string | null;
   imageAlt: string | null;
+  imageWidth: number | null;
+  imageHeight: number | null;
 }
 
 /** Tarjetas de producto con su categoría. Se combina siempre con publishedProducts(). */

@@ -22,6 +22,9 @@ Thumbs.db
 *.swp
 .idea/
 
+# Fotos subidas desde el panel en local (UPLOADS_DIR, feature 008)
+var/
+
 # Material de referencia de terceros (no se publica) y caché de Spec Kit
 design/reference/
 .specify/extensions/.cache/

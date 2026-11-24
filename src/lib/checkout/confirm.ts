@@ -22,7 +22,7 @@ import { signOrderRef } from '@/lib/orders/access';
 import { enqueueOrderEmails } from '@/lib/orders/emails';
 import { transitionOrder } from '@/lib/orders/transition';
 import { getPaymentProvider, sessionExpiry } from '@/lib/payments/provider';
-import { reserveStock, StockUnavailableError } from './reserve';
+import { linkMovementsToOrder, reserveStock, StockUnavailableError } from './reserve';
 
 // Confirmación del pedido (contracts/routes.md, D4, D6, D10, D11, D12). Orden: guarda de la
 // tienda → campo trampa → token → Zod → idempotencia (submission_id) → límite por origen →
@@ -164,7 +164,7 @@ async function createOrder(tx: DbOrTx, input: CreateInput): Promise<{ order: Ord
   }
 
   const lines = view.lines.filter((l) => !l.unavailable);
-  await reserveStock(tx, lines.map((l) => ({ productId: l.productId, quantity: l.quantity })));
+  const movementIds = await reserveStock(tx, lines.map((l) => ({ productId: l.productId, quantity: l.quantity })));
 
   if (view.discount) {
     const taken = await tx
@@ -240,6 +240,7 @@ async function createOrder(tx: DbOrTx, input: CreateInput): Promise<{ order: Ord
     })),
   );
   await tx.insert(orderStatusHistory).values({ orderId: order!.id, fromStatus: null, toStatus: 'pending_payment', actor: 'customer', createdAt: ctx.now });
+  await linkMovementsToOrder(tx, movementIds, order!.id);
   await recordHit(input.bucket, ctx.now, tx);
 
   let emailIds: string[] = [];

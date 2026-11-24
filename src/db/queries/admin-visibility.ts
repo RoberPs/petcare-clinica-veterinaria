@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { getDb } from '../client';
-import { appointments, bookingServices, scheduleBlocks, teamMembers } from '../schema';
+import { appointments, bookingServices, orders, products, scheduleBlocks, teamMembers } from '../schema';
 
 // Rutas del panel con id (contracts/routes.md: "los ids que no existen dan 404"). Lo consulta el
 // middleware, como el catálogo, para servir el 404 normal también sin JavaScript.
@@ -25,6 +25,15 @@ const ROUTES: [RegExp, (id: string) => Promise<unknown[]>][] = [
   [
     /^\/admin\/bloqueos\/([^/]+)\/?$/,
     (id) => db().select({ id: scheduleBlocks.id }).from(scheduleBlocks).where(eq(scheduleBlocks.id, id)).limit(1),
+  ],
+  // Tienda (feature 008, G15).
+  [
+    /^\/admin\/productos\/([^/]+)(?:\/stock)?\/?$/,
+    (id) => db().select({ id: products.id }).from(products).where(eq(products.id, id)).limit(1),
+  ],
+  [
+    /^\/admin\/pedidos\/([^/]+)(?:\/cancelar)?\/?$/,
+    (id) => db().select({ id: orders.id }).from(orders).where(eq(orders.id, id)).limit(1),
   ],
 ];
 

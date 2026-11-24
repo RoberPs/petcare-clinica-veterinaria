@@ -25,6 +25,8 @@ const envSchema = z
     STRIPE_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
     STRIPE_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
     PAYMENT_FAKE_ALLOWED: z.preprocess(emptyToUndefined, z.enum(['true', 'false']).default('false')),
+    // Feature 008 (G4): directorio de las fotos subidas. Obligatorio en producción.
+    UPLOADS_DIR: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === 'brevo' && !env.BREVO_API_KEY) {
@@ -45,6 +47,9 @@ const envSchema = z
       if (!env.STRIPE_WEBHOOK_SECRET || !env.STRIPE_WEBHOOK_SECRET.startsWith('whsec_')) {
         ctx.addIssue({ code: 'custom', path: ['STRIPE_WEBHOOK_SECRET'], message: 'STRIPE_WEBHOOK_SECRET debe empezar por whsec_' });
       }
+    }
+    if (env.NODE_ENV === 'production' && !env.UPLOADS_DIR) {
+      ctx.addIssue({ code: 'custom', path: ['UPLOADS_DIR'], message: 'falta UPLOADS_DIR (producción)' });
     }
     if (env.PAYMENT_PROVIDER === 'fake' && env.NODE_ENV === 'production' && env.PAYMENT_FAKE_ALLOWED !== 'true') {
       ctx.addIssue({
@@ -81,6 +86,17 @@ export function parseEnv(source: Record<string, string | undefined>): { ok: true
   const parsed = envSchema.safeParse(source);
   if (parsed.success) return { ok: true };
   return { ok: false, error: parsed.error.issues.map((i) => `${i.path.join('.') || '(entorno)'}: ${i.message}`).join('; ') };
+}
+
+/**
+ * Directorio de las fotos subidas (G4). Se lee sin validar el resto del entorno, porque lo usan
+ * también el route handler de las fotos y los tests. Fuera de producción vale `./var/uploads`.
+ */
+export function uploadsDir(): string {
+  const value = process.env.UPLOADS_DIR?.trim();
+  if (value) return value;
+  if (process.env.NODE_ENV === 'production') throw new Error('Configuración de entorno no válida — falta UPLOADS_DIR');
+  return './var/uploads';
 }
 
 /** Solo para pruebas: olvida la configuración leída. */

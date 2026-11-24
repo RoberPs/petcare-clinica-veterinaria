@@ -32,4 +32,6 @@ export const testEnv = {
   PAYMENT_FAKE_ALLOWED: 'true',
   // Feature 006: huella anónima de las bajas del boletín (valor de prueba, 32 bytes en base64).
   NEWSLETTER_HASH_KEY: 'cHJ1ZWJhcy1ib2xldGluLWNsYXZlLWRlLTMyLWJ5dGU=',
+  // Feature 008: fotos subidas desde el panel (las pruebas de integración usan un temporal propio).
+  UPLOADS_DIR: './var/uploads-test',
 } satisfies Record<string, string>;

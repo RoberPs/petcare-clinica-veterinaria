@@ -41,9 +41,18 @@ describe('PAYMENT_PROVIDER (D1, D2)', () => {
 
   it('prohíbe fake en producción salvo con PAYMENT_FAKE_ALLOWED=true', () => {
     expect(parseEnv({ ...base, NODE_ENV: 'production', PAYMENT_PROVIDER: 'fake' }).ok).toBe(false);
-    expect(parseEnv({ ...base, NODE_ENV: 'production', PAYMENT_PROVIDER: 'fake', PAYMENT_FAKE_ALLOWED: 'true' }).ok).toBe(
-      true,
-    );
+    expect(
+      parseEnv({ ...base, NODE_ENV: 'production', PAYMENT_PROVIDER: 'fake', PAYMENT_FAKE_ALLOWED: 'true', UPLOADS_DIR: '/app/var/uploads' }).ok,
+    ).toBe(true);
+  });
+
+  // Feature 008 (G4): en producción las fotos subidas necesitan su directorio (volumen).
+  it('exige UPLOADS_DIR en producción', () => {
+    const prod = { ...base, NODE_ENV: 'production', PAYMENT_PROVIDER: 'fake', PAYMENT_FAKE_ALLOWED: 'true' };
+    const result = parseEnv(prod);
+    expect(!result.ok && result.error).toContain('UPLOADS_DIR');
+    expect(parseEnv({ ...prod, UPLOADS_DIR: '/app/var/uploads' }).ok).toBe(true);
+    expect(parseEnv(base).ok).toBe(true);
   });
 
   it('rechaza un proveedor desconocido', () => {

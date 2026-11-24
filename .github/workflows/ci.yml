@@ -101,6 +101,8 @@ jobs:
       CLINIC_PHONE_DISPLAY: 600 00 00 00
       LEGAL_OWNER_NAME: Responsable de CI
       LEGAL_CONTACT_EMAIL: derechos@example.test
+      # Feature 008: fotos subidas desde el panel (obligatorio con NODE_ENV=production).
+      UPLOADS_DIR: ./var/uploads
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -108,6 +110,8 @@ jobs:
       - run: npm ci
       - run: npm run db:migrate
       - run: npm run content:load -- --file content/petcare.yaml
+      # SC-008: una ficha con una foto subida (variantes WebP) entra en la medición.
+      - run: npx tsx scripts/seed-uploaded-photo.ts cama-acolchada
       - run: npm run build
       - run: npm run test:lighthouse
 

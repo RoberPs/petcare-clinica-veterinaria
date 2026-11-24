@@ -50,6 +50,13 @@
       "when": 1795421334332,
       "tag": "0006_admin_agenda",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795439328263,
+      "tag": "0007_admin_store",
+      "breakpoints": true
     }
   ]
 }

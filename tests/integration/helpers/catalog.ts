@@ -27,7 +27,8 @@ export function writeVariant(content: Content): string {
 export async function seedCatalog(mutate?: (shop: ShopBlock, content: Content) => void): Promise<LoadSummary> {
   const content = petcareContent();
   mutate?.(content.shop, content);
-  return loadContentFile(getDb(), writeVariant(content));
+  // --force-shop (feature 008): la tienda queda como en el archivo aunque ya existiera.
+  return loadContentFile(getDb(), writeVariant(content), { forceShop: true });
 }
 
 /** Producto del bloque shop: por slug (para modificarlo en `mutate`). */

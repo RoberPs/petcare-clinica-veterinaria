@@ -16,6 +16,18 @@ export const ADMIN_AUDIT_ACTIONS = [
   'block.delete',
   'role.grant',
   'role.revoke',
+  // Tienda (feature 008, G14)
+  'product.create',
+  'product.update',
+  'product.publish',
+  'product.unpublish',
+  'stock.adjust',
+  'order.status',
+  'order.cancel',
+  'order.refund_retry',
+  'discount.create',
+  'discount.enable',
+  'discount.disable',
 ] as const;
 
 export type AdminAuditAction = (typeof ADMIN_AUDIT_ACTIONS)[number];
@@ -50,6 +62,30 @@ export const AUDIT_CHANGE_KEYS = [
   'cancelledCount',
   // Rol
   'isAdmin',
+  // Productos (feature 008, G14): de los textos largos solo se anota que han cambiado.
+  'slug',
+  'categoryId',
+  'petIds',
+  'priceCents',
+  'compareAtCents',
+  'vatRate',
+  'isNew',
+  'image',
+  'imageAlt',
+  'description_changed',
+  // Stock
+  'delta',
+  'stockAfter',
+  // Pedidos (nunca datos del comprador)
+  'from',
+  'to',
+  'deliver',
+  // Códigos de descuento
+  'code',
+  'value',
+  'minSubtotalCents',
+  'maxUses',
+  'enabled',
 ] as const;
 
 const actionSchema = z.enum(ADMIN_AUDIT_ACTIONS);
@@ -59,7 +95,7 @@ export interface AdminAuditEntry {
   actorId?: string | null;
   actorLabel?: string | null;
   action: AdminAuditAction;
-  entityType: 'booking_service' | 'team_member' | 'schedule_block' | 'customer';
+  entityType: 'booking_service' | 'team_member' | 'schedule_block' | 'customer' | 'product' | 'order' | 'discount_code';
   entityId: string;
   /** { campo: { before, after } } o { campo: valor }. */
   changes: Record<string, unknown>;

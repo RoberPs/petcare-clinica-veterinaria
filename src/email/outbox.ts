@@ -20,7 +20,9 @@ export type AppointmentEmailKind =
   | 'clinic_appointment';
 export type OrderEmailKind = 'order_confirmed' | 'order_received' | 'order_cancelled' | 'clinic_order';
 export type NewsletterEmailKind = 'newsletter_confirm';
-export type RenderedEmailKind = AccountEmailKind | AppointmentEmailKind | OrderEmailKind | NewsletterEmailKind;
+/** Feature 008: cambio de estado hecho por la clínica (plantilla con variantes). */
+export type OrderStatusEmailKind = 'order_status';
+export type RenderedEmailKind = AccountEmailKind | AppointmentEmailKind | OrderEmailKind | NewsletterEmailKind | OrderStatusEmailKind;
 
 /**
  * Tipos con límite de 3 por dirección y hora (FR-033 de la 002). Solo los de cuenta: los de cita

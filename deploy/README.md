@@ -147,6 +147,31 @@ Si se quita una especie del YAML, sus mascotas pasan a "Otra"; `content-load` av
 
 5. No hay temporizadores nuevos.
 
+### Actualizar a la feature 008 (panel de administración de la tienda)
+
+1. Haz una copia de seguridad (`deploy/backup.sh`).
+2. Añade `UPLOADS_DIR=/app/var/uploads` (ya lo fija `docker-compose.prod.yml`) y recrea el
+   contenedor: el volumen nuevo **`petcare-uploads`** guarda las fotos de producto subidas desde
+   `/admin/productos` (tres anchos WebP por foto, sin metadatos). La imagen crea el directorio con
+   propietario `petcare`; el volumen lo hereda la primera vez. `deploy/backup.sh` lo copia cada día
+   en `petcare-uploads-*.tar.gz`, junto al `pg_dump`. Para restaurarlo:
+   `docker compose -f deploy/docker-compose.prod.yml exec -T petcare-app tar -C /app/var/uploads -xzf - < petcare-uploads-AAAAMMDD-HHMMSS.tar.gz`.
+3. Aplica la migración `0007_admin_store` con `cli/migrate.mjs`. Añade el historial de stock
+   (`stock_movements`, con un movimiento inicial por producto con su stock de hoy), las dimensiones
+   de las fotos, el autor de cada cambio de estado de un pedido y el correo `order_status`.
+4. **`content:load` ya no sobrescribe la tienda.** Sin `--force-shop`, el YAML solo crea los
+   productos y códigos de descuento que faltan (cada producto nuevo, con su movimiento de stock
+   inicial): no cambia precio, stock, foto ni estado de los existentes, no despublica los productos
+   creados en el panel ni desactiva sus códigos. Categorías, mascotas, ajustes de la tienda, envío y
+   formas de pago se siguen sobrescribiendo siempre. Para volver a dejar la tienda como en el YAML
+   usa `--force-shop`: restaura productos y stock (cada cambio de stock deja un movimiento
+   `content_load`), despublica los productos que no están en el archivo y desactiva sus códigos.
+   Las fotos subidas que se sustituyen se quedan en el volumen.
+5. **`cli/orders.mjs` ahora avisa al comprador**: cualquier cambio a pagado, en preparación,
+   enviado, listo para recoger o entregado hecho por la clínica encola el correo `order_status`,
+   igual que desde el panel. En el historial del pedido aparece como "Clínica (CLI)".
+6. No hay temporizadores nuevos.
+
 ### Administradores del panel (`cli/admin.mjs`)
 
 ```bash
@@ -160,9 +185,10 @@ Códigos de salida: 0 bien (o nada que hacer), 1 error inesperado, 2 uso incorre
 el correo no es válido) y 3 la cuenta no existe o no está verificada. Retirar el rol surte efecto en
 la siguiente petición de esa persona. Cada cambio queda en `admin_audit_log` con el `--by`.
 
-### Gestión de pedidos sin panel (`cli/orders.mjs`)
+### Gestión de pedidos desde el VPS (`cli/orders.mjs`)
 
-Mientras no haya panel de administración, la clínica gestiona los pedidos desde el VPS:
+Desde la feature 008 los pedidos se gestionan en `/admin/pedidos`; la CLI sigue disponible desde el
+VPS y comparte las mismas reglas de estado (y los mismos correos al comprador):
 
 ```bash
 cd /opt/petcare
@@ -211,7 +237,9 @@ systemctl list-timers 'petcare-*'
   anonimiza los pedidos de más de 6 años (conserva importes y líneas).
 - Desde la feature 006, `petcare-purge` borra también las suscripciones al boletín sin confirmar de
   más de 30 días y las constancias de baja anónimas de más de 3 años.
-- `petcare-backup` (diario): `pg_dump` comprimido en `/var/backups/petcare`, rotado a 14 días.
+- `petcare-backup` (diario): `pg_dump` comprimido en `/var/backups/petcare`, rotado a 14 días. Desde
+  la feature 008 copia también el volumen `petcare-uploads` (fotos de producto) en
+  `petcare-uploads-*.tar.gz`, con la misma rotación.
 
 ## 7. Comprobaciones
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  allowedTransitions,
   canTransition,
   ORDER_STATUSES,
   reservationEffect,
@@ -113,5 +114,54 @@ describe('statusLabel', () => {
   it('con la marca "· Reembolsado"', () => {
     expect(statusLabel('cancelled', 'refunded')).toBe('Cancelado · Reembolsado');
     expect(statusLabel('cancelled', 'pending')).toBe('Cancelado');
+  });
+});
+
+// ---------- Feature 008: lo que ofrece el panel (G7) y el pago en clínica (US5) ----------
+
+describe('allowedTransitions (clínica)', () => {
+  const NOW = new Date('2026-11-20T10:00:00Z');
+  const pickupDeadline = new Date('2026-11-25T23:00:00Z');
+  const clinicPayLive: OrderFacts = { ...clinicPay, pickupDeadline };
+
+  it('ofrece, por estado y tipo de envío, solo las transiciones de la tabla', () => {
+    expect(allowedTransitions(card, 'clinic', NOW)).toEqual(['cancelled']);
+    expect(allowedTransitions(at(card, 'paid'), 'clinic', NOW)).toEqual(['preparing', 'shipped', 'cancelled']);
+    expect(allowedTransitions(at(card, 'preparing'), 'clinic', NOW)).toEqual(['shipped', 'cancelled']);
+    expect(allowedTransitions(at(pickupCard, 'paid'), 'clinic', NOW)).toEqual(['preparing', 'ready_for_pickup', 'cancelled']);
+    expect(allowedTransitions(at(pickupCard, 'preparing'), 'clinic', NOW)).toEqual(['ready_for_pickup', 'cancelled']);
+    expect(allowedTransitions(at(pickupCard, 'ready_for_pickup'), 'clinic', NOW)).toEqual(['delivered', 'cancelled']);
+    expect(allowedTransitions(at(card, 'shipped'), 'clinic', NOW)).toEqual(['delivered']);
+    expect(allowedTransitions(at(card, 'delivered'), 'clinic', NOW)).toEqual([]);
+    expect(allowedTransitions(at(card, 'cancelled', 'clinic'), 'clinic', NOW)).toEqual([]);
+  });
+
+  it('nunca ofrece cancelar un pedido enviado o entregado', () => {
+    for (const o of [card, pickupCard, clinicPayLive]) {
+      expect(allowedTransitions(at(o, 'shipped'), 'clinic', NOW)).not.toContain('cancelled');
+      expect(allowedTransitions(at(o, 'delivered'), 'clinic', NOW)).not.toContain('cancelled');
+    }
+  });
+
+  it('el pago en clínica pendiente y vigente admite pagado, entregado o cancelado', () => {
+    expect(allowedTransitions(clinicPayLive, 'clinic', NOW)).toEqual(['paid', 'delivered', 'cancelled']);
+  });
+
+  it('el pago en clínica ya pagado se puede entregar en el mostrador', () => {
+    expect(allowedTransitions(at(clinicPayLive, 'paid'), 'clinic', NOW)).toEqual(['preparing', 'ready_for_pickup', 'delivered', 'cancelled']);
+  });
+});
+
+describe('pending_payment → paid por la clínica (US5)', () => {
+  const NOW = new Date('2026-11-20T10:00:00Z');
+  it('solo con pago en clínica y el plazo de recogida vigente', () => {
+    expect(canTransition({ ...clinicPay, pickupDeadline: new Date(NOW.getTime() + 60_000) }, 'paid', 'clinic', NOW)).toBe(true);
+    expect(canTransition({ ...clinicPay, pickupDeadline: new Date(NOW.getTime() - 1) }, 'paid', 'clinic', NOW)).toBe(false);
+    expect(canTransition({ ...clinicPay, pickupDeadline: NOW }, 'paid', 'clinic', NOW)).toBe(false);
+    expect(canTransition({ ...clinicPay, pickupDeadline: null }, 'paid', 'clinic', NOW)).toBe(false);
+  });
+  it('nunca con tarjeta', () => {
+    expect(canTransition({ ...card, pickupDeadline: new Date(NOW.getTime() + 60_000) }, 'paid', 'clinic', NOW)).toBe(false);
+    expect(canTransition({ ...pickupCard, pickupDeadline: new Date(NOW.getTime() + 60_000) }, 'paid', 'clinic', NOW)).toBe(false);
   });
 });

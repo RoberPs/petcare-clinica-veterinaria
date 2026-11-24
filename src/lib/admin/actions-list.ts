@@ -23,13 +23,23 @@ export const ADMIN_ACTIONS: readonly AdminActionEntry[] = [
   // US5
   { name: 'saveBlock', module: 'app/admin/bloqueos/actions', arity: 1 },
   { name: 'deleteBlock', module: 'app/admin/bloqueos/actions', arity: 1 },
+  // Tienda (feature 008, contracts/routes.md)
+  { name: 'saveProduct', module: 'app/admin/productos/actions', arity: 2 },
+  { name: 'setProductPublished', module: 'app/admin/productos/actions', arity: 1 },
+  { name: 'adjustStock', module: 'app/admin/productos/actions', arity: 2 },
+  { name: 'setOrderStatusAdmin', module: 'app/admin/pedidos/actions', arity: 1 },
+  { name: 'confirmInClinicPayment', module: 'app/admin/pedidos/actions', arity: 1 },
+  { name: 'cancelOrderAdmin', module: 'app/admin/pedidos/actions', arity: 2 },
+  { name: 'retryRefundAdmin', module: 'app/admin/pedidos/actions', arity: 1 },
+  { name: 'createDiscountCode', module: 'app/admin/descuentos/actions', arity: 2 },
+  { name: 'setDiscountEnabled', module: 'app/admin/descuentos/actions', arity: 1 },
 ];
 
 export interface AdminPageEntry {
   path: string;
   /** Módulo de la página, relativo a src/. */
   module: string;
-  /** Parámetros dinámicos; ":appointment", ":service", ":staff" y ":block" son ids de ejemplo del test. */
+  /** Parámetros dinámicos; ":appointment", ":service", ":staff", ":block", ":product" y ":order" son ids de ejemplo del test. */
   params?: Record<string, string>;
 }
 
@@ -49,4 +59,14 @@ export const ADMIN_PAGES: readonly AdminPageEntry[] = [
   { path: '/admin/bloqueos', module: 'app/admin/bloqueos/page' },
   { path: '/admin/bloqueos/nuevo', module: 'app/admin/bloqueos/nuevo/page' },
   { path: '/admin/bloqueos/[id]', module: 'app/admin/bloqueos/[id]/page', params: { id: ':block' } },
+  // Tienda (feature 008)
+  { path: '/admin/productos', module: 'app/admin/productos/page' },
+  { path: '/admin/productos/nuevo', module: 'app/admin/productos/nuevo/page' },
+  { path: '/admin/productos/[id]', module: 'app/admin/productos/[id]/page', params: { id: ':product' } },
+  { path: '/admin/productos/[id]/stock', module: 'app/admin/productos/[id]/stock/page', params: { id: ':product' } },
+  { path: '/admin/pedidos', module: 'app/admin/pedidos/page' },
+  { path: '/admin/pedidos/[id]', module: 'app/admin/pedidos/[id]/page', params: { id: ':order' } },
+  { path: '/admin/pedidos/[id]/cancelar', module: 'app/admin/pedidos/[id]/cancelar/page', params: { id: ':order' } },
+  { path: '/admin/descuentos', module: 'app/admin/descuentos/page' },
+  { path: '/admin/descuentos/nuevo', module: 'app/admin/descuentos/nuevo/page' },
 ];

@@ -58,6 +58,11 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Argon2id (A1) es un módulo nativo: se carga desde node_modules en tiempo de ejecución, sin empaquetar.
   serverExternalPackages: ['@node-rs/argon2'],
+  experimental: {
+    // Fotos de producto (feature 008, G4): el archivo admite hasta 5 MB (se comprueba en la
+    // acción); el margen cubre el resto de campos del formulario multipart.
+    serverActions: { bodySizeLimit: '6mb' },
+  },
   images: {
     // Las imágenes de la demo son SVG propios; se sirven tal cual (sin optimizador) y con dimensiones.
     dangerouslyAllowSVG: false,

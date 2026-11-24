@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { parseEuros } from '@/domain/money';
+import { VAT_RATES } from '@/domain/vat';
 
 // Esquema del archivo de contenido por clínica (contracts/content-file.md). Mensajes en español.
 
@@ -144,9 +145,7 @@ const shopProduct = z
       .superRefine((v, ctx) => uniqueBy(v, (x) => x, ctx, 'mascota')),
     price: euros,
     compare_at_price: euros.nullish(),
-    vat_rate: z.union([z.literal(0), z.literal(4), z.literal(10), z.literal(21)], {
-      error: 'el IVA (vat_rate) debe ser 0, 4, 10 o 21',
-    }),
+    vat_rate: z.literal([...VAT_RATES], { error: `el IVA (vat_rate) debe ser ${VAT_RATES.join(', ')}` }),
     stock: z.number().int('el stock debe ser un número entero').min(0, 'el stock no puede ser negativo'),
     is_new: z.boolean().default(false),
     ...imageFields,
@@ -225,7 +224,7 @@ const shippingMethodSchema = z.object({
   name: text(60),
   description: text(160),
   cost: eurosAmount(false),
-  vat_rate: z.union([z.literal(0), z.literal(4), z.literal(10), z.literal(21)], { error: 'vat_rate debe ser 0, 4, 10 o 21' }).default(21),
+  vat_rate: z.literal([...VAT_RATES], { error: `vat_rate debe ser ${VAT_RATES.join(', ')}` }).default(21),
   postal_prefixes: z
     .array(z.string().regex(POSTAL_PREFIX_RE, 'el prefijo postal debe ir entre "01" y "52"'))
     .min(1, 'si hay lista de prefijos, no puede estar vacía')
