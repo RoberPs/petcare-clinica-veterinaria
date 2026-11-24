@@ -9,7 +9,7 @@ import { clearLoginHint } from '@/lib/auth/login-hint';
 import { setSessionCookie } from '@/lib/auth/session';
 import { clearCartCookie, readCartToken } from '@/lib/cart/cookie';
 import { mergeGuestCart } from '@/lib/cart/merge';
-import { logger } from '@/lib/logger';
+import { logErrorCode, logger } from '@/lib/logger';
 
 // Iniciar sesión (contracts/forms.md). Con éxito, 303 a return_to (si es seguro) o a /mi-cuenta.
 export async function login(_prev: LoginState, form: FormData): Promise<LoginState> {
@@ -26,7 +26,7 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
         await mergeGuestCart(result.customerId, cartToken);
         await clearCartCookie();
       } catch (error) {
-        logger.error({ event: 'cart_merge_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+        logger.error({ event: 'cart_merge_failed', code: logErrorCode(error) });
       }
     }
     redirect(safeReturnTo(formField(form, 'return_to')));

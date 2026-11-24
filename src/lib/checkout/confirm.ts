@@ -17,7 +17,7 @@ import { checkPolicy, formField, formRecord, isHoneypotFilled, policyBucket } fr
 import { emptyCart, readCart, type CartView } from '@/lib/cart/cart';
 import { hashCartToken } from '@/lib/cart/cookie';
 import { verifySubmissionToken } from '@/lib/form-token';
-import { logger } from '@/lib/logger';
+import { logErrorCode, logger } from '@/lib/logger';
 import { signOrderRef } from '@/lib/orders/access';
 import { enqueueOrderEmails } from '@/lib/orders/emails';
 import { transitionOrder } from '@/lib/orders/transition';
@@ -347,7 +347,7 @@ export async function confirmOrder(form: FormData, ctx: ConfirmContext): Promise
       return { status: 'ok', url: await ensureCheckoutSession(order, ctx.now), orderId: order.id };
     } catch (error) {
       // Compensación: sin sesión de pago, el pedido no puede seguir; se libera la reserva sin correo.
-      logger.error({ event: 'payment_session_failed', order_id: order.id, code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+      logger.error({ event: 'payment_session_failed', order_id: order.id, code: logErrorCode(error) });
       if (!created.reused) {
         await getDb().transaction((tx) =>
           transitionOrder(tx, order.id, 'cancelled', 'system', { now: ctx.now, reason: 'expired', note: 'no se pudo abrir la pasarela', skipEmail: true }),
@@ -356,7 +356,7 @@ export async function confirmOrder(form: FormData, ctx: ConfirmContext): Promise
       return { status: 'error' };
     }
   } catch (error) {
-    logger.error({ event: 'checkout_failed', code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+    logger.error({ event: 'checkout_failed', code: logErrorCode(error) });
     return { status: 'error' };
   }
 }

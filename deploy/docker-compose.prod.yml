@@ -3,6 +3,14 @@
 # La app solo es accesible a través del Caddy compartido (red chatbot_proxy): no publica puertos.
 name: petcare
 
+# Límites para convivir con el chatbot en el VPS compartido: un pico de PetCare (sharp procesando una
+# foto, una consulta pesada) no debe dejar sin memoria al resto. Se pueden ajustar desde deploy/.env.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
 services:
   petcare-app:
     build:
@@ -24,6 +32,13 @@ services:
     networks:
       - chatbot_proxy
       - petcare_internal
+    mem_limit: ${PETCARE_APP_MEM:-768m}
+    cpus: ${PETCARE_APP_CPUS:-1.0}
+    pids_limit: 256
+    # La app corre como el usuario petcare y no necesita capacidades del kernel.
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    logging: *logging
 
   petcare-db:
     image: postgres:16
@@ -40,6 +55,10 @@ services:
       retries: 10
     networks:
       - petcare_internal
+    mem_limit: ${PETCARE_DB_MEM:-512m}
+    cpus: ${PETCARE_DB_CPUS:-1.0}
+    pids_limit: 256
+    logging: *logging
 
 networks:
   chatbot_proxy:

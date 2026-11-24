@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, lte, or } from 'drizzle-orm';
 import { getDb, getPool } from '@/db/client';
 import { orders, payments } from '@/db/schema';
-import { logger } from '@/lib/logger';
+import { logErrorCode, logger } from '@/lib/logger';
 import { reconcilePayment } from '@/lib/payments/webhook';
 import { cancelOrder } from './cancel';
 import { refundOrder } from './refund';
@@ -79,7 +79,7 @@ export async function expireOrders(now: Date): Promise<number> {
       expired += 1;
     } catch (error) {
       // Otro proceso lo cambió a la vez (p. ej. un pago): la transición ya no vale.
-      logger.warn({ event: 'order_expire_skipped', order_id: o.id, code: error instanceof Error ? error.message.slice(0, 80) : 'unknown' });
+      logger.warn({ event: 'order_expire_skipped', order_id: o.id, code: logErrorCode(error) });
     }
   }
   return expired;

@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, lte } from 'drizzle-orm';
 import { summarizeHours } from '@/domain/hours';
 import { getDb, type Db } from '@/db/client';
 import { clinic, contactMessages, emailOutbox, openingHours } from '@/db/schema';
-import { logger } from '@/lib/logger';
+import { logErrorCode, logger } from '@/lib/logger';
 import { getEmailProvider } from './provider';
 import { clinicNotification } from './templates/clinic-notification';
 import { visitorAck } from './templates/visitor-ack';
@@ -143,7 +143,7 @@ export async function dispatchForMessage(messageId: string): Promise<void> {
   try {
     await dispatchPending({ messageId, limit: 2 });
   } catch (error) {
-    logger.error({ message_id: messageId, code: error instanceof Error ? error.message : 'unknown' }, 'email_dispatch_error');
+    logger.error({ message_id: messageId, code: logErrorCode(error) }, 'email_dispatch_error');
   }
 }
 
@@ -154,6 +154,6 @@ export async function dispatchById(outboxIds: string | string[]): Promise<void> 
   try {
     await dispatchPending({ outboxIds: ids, limit: ids.length });
   } catch (error) {
-    logger.error({ code: error instanceof Error ? error.message : 'unknown' }, 'email_dispatch_error');
+    logger.error({ code: logErrorCode(error) }, 'email_dispatch_error');
   }
 }
