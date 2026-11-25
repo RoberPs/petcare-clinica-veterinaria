@@ -2,6 +2,7 @@
   "name": "petcare-web",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Web pública de una clínica veterinaria configurable por archivo de contenido (demo PetCare).",
   "type": "module",
   "engines": {
