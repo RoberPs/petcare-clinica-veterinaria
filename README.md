@@ -157,3 +157,8 @@ desplegada: la demo pública es el codespace.
 
 PetCare es una clínica **ficticia**. Cualquier parecido con una clínica real es casual. La web lo
 indica en todas sus páginas, y la tienda no vende ni envía nada.
+
+## Licencia
+
+[MIT](LICENSE). Las imágenes, los textos y los datos de la clínica ficticia se incluyen solo como
+contenido de demostración.
